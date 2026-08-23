@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "build": "npm --workspace=apps/mobile run build:web",
     "dev": "npm --workspace=apps/mobile run start",
     "dev:mobile": "npm --workspace=apps/mobile run start",
     "dev:web": "npm --workspace=apps/mobile run web",
