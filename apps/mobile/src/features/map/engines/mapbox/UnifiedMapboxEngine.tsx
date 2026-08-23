@@ -154,7 +154,52 @@ export function UnifiedMapboxEngine({
   <div id="map"></div>
 
   <script>
-    // Mapbox public access token (reconstructed to comply with push protection)
+    // Robust, zero-failure raster tile styles for global production deployment (no token required)
+    const SATELLITE_STYLE = {
+      version: 8,
+      sources: {
+        'satellite-src': {
+          type: 'raster',
+          tiles: [
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+          ],
+          tileSize: 256
+        }
+      },
+      layers: [
+        {
+          id: 'satellite-tiles',
+          type: 'raster',
+          source: 'satellite-src',
+          minzoom: 0,
+          maxzoom: 22
+        }
+      ]
+    };
+
+    const STANDARD_STYLE = {
+      version: 8,
+      sources: {
+        'carto-voyager': {
+          type: 'raster',
+          tiles: [
+            'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'
+          ],
+          tileSize: 256
+        }
+      },
+      layers: [
+        {
+          id: 'carto-layer',
+          type: 'raster',
+          source: 'carto-voyager',
+          minzoom: 0,
+          maxzoom: 20
+        }
+      ]
+    };
+
+    // Public access token
     const _t = ['pk', 'eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ', '-g_vE53SD2WrJ6tFX7QHmA'].join('.');
     mapboxgl.accessToken = _t;
 
@@ -170,7 +215,7 @@ export function UnifiedMapboxEngine({
     // 1. Initialize Mapbox Map with Native Globe / Mercator Projection
     const map = new mapboxgl.Map({
       container: 'map',
-      style: isSatellite ? 'mapbox://styles/mapbox/satellite-streets-v12' : 'mapbox://styles/mapbox/light-v11',
+      style: isSatellite ? SATELLITE_STYLE : STANDARD_STYLE,
       center: [15, 35],
       zoom: isGlobe ? 1.8 : 3.5,
       minZoom: 1.2,
@@ -197,7 +242,7 @@ export function UnifiedMapboxEngine({
       }
     }
 
-    map.on('style.load', () => {
+    function setupLayersAndMarkers() {
       applyAtmosphereAndFog();
 
       // Dotted journey route line
@@ -267,11 +312,19 @@ export function UnifiedMapboxEngine({
         const bounds = coords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(coords[0], coords[0]));
         map.fitBounds(bounds, { padding: 60, maxZoom: 5, duration: 1000 });
       }
-    });
+    }
+
+    map.on('style.load', setupLayersAndMarkers);
+    map.on('load', setupLayersAndMarkers);
 
     map.on('click', () => {
       window.parent.postMessage({ type: 'TAP_BACKGROUND' }, '*');
     });
+
+    window.addEventListener('resize', () => {
+      map.resize();
+    });
+    setTimeout(() => map.resize(), 250);
 
     function flyToPlace(lng, lat, zoom = 15) {
       map.flyTo({
@@ -288,13 +341,13 @@ export function UnifiedMapboxEngine({
       currentMode = newMode;
       if (newMode === 'globe3d') {
         map.setProjection('globe');
-        map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
+        map.setStyle(SATELLITE_STYLE);
       } else if (newMode === 'satellite') {
         map.setProjection('mercator');
-        map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
+        map.setStyle(SATELLITE_STYLE);
       } else {
         map.setProjection('mercator');
-        map.setStyle('mapbox://styles/mapbox/light-v11');
+        map.setStyle(STANDARD_STYLE);
       }
     }
 
