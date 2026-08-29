@@ -223,6 +223,9 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
           extractedPhone = '+34 963 74 82 90';
         }
 
+        const realImages: string[] = [];
+        if (realImage) realImages.push(realImage);
+
         return {
           title: name,
           brand: address ? address : name,

@@ -172,7 +172,7 @@ export default function WishesScreen() {
   };
 
   const handleScheduleRestaurantDate = (placeOrWish: { id?: string; name?: string; title?: string; phoneNumber?: string; city?: string }) => {
-    triggerHaptic('impactMedium');
+    triggerHaptic('medium');
     const name = placeOrWish.name || placeOrWish.title || 'Restaurante';
     const rawPhone =
       placeOrWish.phoneNumber ||
@@ -527,12 +527,12 @@ export default function WishesScreen() {
                             <TouchableOpacity
                               style={[
                                 styles.btnSurpriseTrigger,
-                                { backgroundColor: Colors.light.tintGold + '15', borderColor: Colors.light.tintGold + '40' }
+                                { backgroundColor: Colors.light.primary + '15', borderColor: Colors.light.primary + '40' }
                               ]}
                               activeOpacity={0.8}
                               onPress={() => handleScheduleRestaurantDate(wish)}
                             >
-                              <Text style={[styles.btnSurpriseTriggerText, { color: Colors.light.tintGold }]}>
+                              <Text style={[styles.btnSurpriseTriggerText, { color: Colors.light.primary }]}>
                                 📞 Llamar & Agendar
                               </Text>
                             </TouchableOpacity>
