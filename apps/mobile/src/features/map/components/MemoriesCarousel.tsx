@@ -109,7 +109,6 @@ const styles = StyleSheet.create({
     ...Typography.captionBold,
     color: '#1E252B',
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    backdropFilter: 'blur(16px)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: Radii.full,
@@ -121,7 +120,6 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    backdropFilter: 'blur(16px)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: Radii.full,
@@ -169,7 +167,6 @@ const styles = StyleSheet.create({
     right: 0,
     padding: Spacing.sm,
     backgroundColor: 'rgba(20, 27, 32, 0.75)',
-    backdropFilter: 'blur(10px)',
   },
   cardLocation: {
     ...Typography.captionBold,

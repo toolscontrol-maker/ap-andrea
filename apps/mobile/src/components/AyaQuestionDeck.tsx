@@ -29,7 +29,7 @@ export function AyaQuestionDeck({ onSelectQuestion, getRandomQuestion }: AyaQues
         <View style={styles.cardHeader}>
           <View style={styles.categoryBadge}>
             <Text style={styles.categoryBadgeText}>
-              ✨ CARTA DE CONEXIÓN • {currentPrompt.category.toUpperCase()}
+              CARTA DE CONEXIÓN • {currentPrompt.category.toUpperCase()}
             </Text>
           </View>
           <TouchableOpacity
@@ -37,7 +37,7 @@ export function AyaQuestionDeck({ onSelectQuestion, getRandomQuestion }: AyaQues
             onPress={handleShuffle}
             activeOpacity={0.7}
           >
-            <Text style={styles.shuffleBtnText}>🎲 Otra carta</Text>
+            <Text style={styles.shuffleBtnText}>Otra carta</Text>
           </TouchableOpacity>
         </View>
 

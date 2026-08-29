@@ -103,7 +103,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    backdropFilter: 'blur(20px)',
     borderRadius: Radii['2xl'],
     paddingLeft: Spacing.md,
     paddingRight: Spacing.xs,

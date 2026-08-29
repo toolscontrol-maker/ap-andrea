@@ -55,6 +55,7 @@ export const Colors = {
     textLight: '#C9BFC7',
     textGold: '#946714',
     textInverse: '#FFFFFF',
+    error: '#D9534F',
 
     // 8. Bevels, Glass Borders & Ambient Shadows
     border: 'rgba(43, 33, 41, 0.07)',

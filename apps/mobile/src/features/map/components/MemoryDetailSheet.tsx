@@ -166,7 +166,6 @@ const styles = StyleSheet.create({
     bottom: 10,
     right: 10,
     backgroundColor: 'rgba(20, 27, 32, 0.75)',
-    backdropFilter: 'blur(8px)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: Radii.full,

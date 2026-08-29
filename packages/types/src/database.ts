@@ -11,6 +11,7 @@ export interface Profile {
   subscription_owner_id: string | null;
   encryption_pubkey: string | null; // X25519 public key base64
   created_at: string;
+  updated_at?: string | null;
 }
 
 export interface UserKeyMetadata {

@@ -153,7 +153,6 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: Radii.lg,
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    backdropFilter: 'blur(16px)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,

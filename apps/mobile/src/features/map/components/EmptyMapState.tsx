@@ -40,7 +40,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 420,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(20px)',
     borderRadius: Radii['2xl'],
     padding: Spacing.xl,
     alignItems: 'center',

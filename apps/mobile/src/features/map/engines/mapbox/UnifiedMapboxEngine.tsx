@@ -437,8 +437,6 @@ const styles = StyleSheet.create({
   iframe: {
     width: '100%',
     height: '100%',
-    border: 'none',
-    display: 'block',
   },
   fallback: {
     flex: 1,

@@ -105,7 +105,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 520,
     backgroundColor: 'rgba(255, 255, 255, 0.96)',
-    backdropFilter: 'blur(20px)',
     borderRadius: Radii['2xl'],
     padding: Spacing.md,
     flexDirection: 'row',

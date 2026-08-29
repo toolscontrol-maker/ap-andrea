@@ -1,7 +1,7 @@
 /**
- * Andrea Design System — Core Tokens
- * Inspired by Apple Design Awards, Linear & Things 3.
- * 8-point geometric scale, dual-layer elevation, and fluid typography.
+ * Andrea Design System — Core Tokens (Apple HIG & Quiet Luxury Standards)
+ * Inspired by Apple Design Awards, Apple Journal, Things 3 & Flighty.
+ * 8-point geometric scale, G2 continuous squircle curvature, Materials & SF Pro optical tracking.
  */
 
 export const Spacing = {
@@ -21,28 +21,28 @@ export const Spacing = {
 
 export const Radii = {
   none: 0,
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  '2xl': 24,
-  '3xl': 28,
-  '4xl': 32,
-  full: 9999,
+  xs: 8,      // Micro tags, badges
+  sm: 12,     // Inputs, chips, inner items
+  md: 16,     // Buttons, interactive pills
+  lg: 20,     // Inset cards, medium widgets
+  xl: 24,     // Feature cards, photo frames
+  '2xl': 28,  // Modal sheets, bottom sheets
+  '3xl': 32,  // Hero cards, dialog containers
+  '4xl': 36,  // Large bottom drawers
+  full: 9999, // Circular buttons, action pills
 } as const;
 
 export const Typography = {
   display: {
     fontSize: 34,
-    lineHeight: 40,
+    lineHeight: 41,
     fontWeight: '800' as const,
     letterSpacing: -0.8,
   },
   h1: {
     fontSize: 28,
     lineHeight: 34,
-    fontWeight: '800' as const,
+    fontWeight: '700' as const,
     letterSpacing: -0.6,
   },
   h2: {
@@ -52,47 +52,99 @@ export const Typography = {
     letterSpacing: -0.4,
   },
   h3: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '700' as const,
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '600' as const,
     letterSpacing: -0.2,
   },
+  headline: {
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '600' as const,
+    letterSpacing: -0.4,
+  },
   bodyLarge: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 22,
     fontWeight: '400' as const,
-    letterSpacing: -0.1,
+    letterSpacing: -0.4,
   },
   body: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 15,
+    lineHeight: 20,
     fontWeight: '400' as const,
-    letterSpacing: 0,
+    letterSpacing: -0.2,
   },
   bodyMedium: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 15,
+    lineHeight: 20,
     fontWeight: '600' as const,
-    letterSpacing: 0,
+    letterSpacing: -0.2,
+  },
+  callout: {
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: '400' as const,
+    letterSpacing: -0.3,
+  },
+  subheadline: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '400' as const,
+    letterSpacing: -0.2,
+  },
+  footnote: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400' as const,
+    letterSpacing: -0.1,
   },
   caption: {
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '500' as const,
-    letterSpacing: 0.1,
+    letterSpacing: 0,
   },
   captionBold: {
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '700' as const,
-    letterSpacing: 0.1,
+    letterSpacing: 0,
   },
   overline: {
     fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '800' as const,
-    letterSpacing: 0.8,
+    lineHeight: 13,
+    fontWeight: '700' as const,
+    letterSpacing: 0.6,
     textTransform: 'uppercase' as const,
+  },
+} as const;
+
+export const Materials = {
+  ultraThin: {
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    borderColor: 'rgba(255, 255, 255, 0.20)',
+    borderWidth: 1,
+  },
+  thin: {
+    backgroundColor: 'rgba(255, 255, 255, 0.70)',
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    borderWidth: 1,
+  },
+  regular: {
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+  },
+  thick: {
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderWidth: 1,
+  },
+  darkGlass: {
+    backgroundColor: 'rgba(12, 24, 48, 0.80)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
   },
 } as const;
 
@@ -105,28 +157,28 @@ export const Shadows = {
     elevation: 0,
   },
   subtle: {
-    shadowColor: 'rgba(58, 47, 56, 0.04)',
+    shadowColor: 'rgba(30, 20, 35, 0.04)',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 8,
     elevation: 1,
   },
   sm: {
-    shadowColor: 'rgba(58, 47, 56, 0.06)',
+    shadowColor: 'rgba(30, 20, 35, 0.06)',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 12,
     elevation: 2,
   },
   md: {
-    shadowColor: 'rgba(58, 47, 56, 0.08)',
+    shadowColor: 'rgba(30, 20, 35, 0.08)',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 1,
     shadowRadius: 20,
     elevation: 4,
   },
   lg: {
-    shadowColor: 'rgba(58, 47, 56, 0.12)',
+    shadowColor: 'rgba(30, 20, 35, 0.12)',
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 1,
     shadowRadius: 32,
@@ -134,9 +186,27 @@ export const Shadows = {
   },
 } as const;
 
+export const SpringPresets = {
+  interactiveTap: {
+    stiffness: 400,
+    damping: 25,
+    mass: 0.8,
+  },
+  sheetSlide: {
+    stiffness: 300,
+    damping: 30,
+    mass: 1.0,
+  },
+  segmentSnap: {
+    stiffness: 500,
+    damping: 35,
+    mass: 0.6,
+  },
+} as const;
+
 export const Layout = {
   maxContentWidth: 680,
-  screenPaddingHorizontal: Spacing.xl,
-  screenPaddingVertical: Spacing.xl,
+  screenPaddingHorizontal: Spacing.lg,
+  screenPaddingVertical: Spacing.lg,
   tabBarHeight: 68,
 } as const;

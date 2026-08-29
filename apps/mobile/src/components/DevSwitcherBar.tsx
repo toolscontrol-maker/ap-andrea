@@ -31,7 +31,6 @@ export function DevSwitcherBar() {
       <View style={styles.floatingContainer} pointerEvents="box-none">
         <View style={styles.bar}>
           <TouchableOpacity style={styles.roleButton} onPress={toggleUser} activeOpacity={0.7}>
-            <Text style={styles.roleIcon}>👤</Text>
             <Text style={styles.roleText}>
               Ver como: <Text style={styles.roleName}>{currentDevUser.name}</Text>
             </Text>
@@ -41,7 +40,7 @@ export function DevSwitcherBar() {
           <View style={styles.divider} />
 
           <TouchableOpacity style={styles.menuButton} onPress={() => setModalVisible(true)} activeOpacity={0.7}>
-            <Text style={styles.menuButtonText}>⚙️ Demo</Text>
+            <Text style={styles.menuButtonText}>Demo</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -50,7 +49,7 @@ export function DevSwitcherBar() {
       <ModalWrapper
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
-        title="🛠️ Panel de Simulación (Demo)"
+        title="Panel de Simulación"
         subtitle="Alterna roles y configuraciones en tiempo real:"
       >
         {/* Role Selector */}

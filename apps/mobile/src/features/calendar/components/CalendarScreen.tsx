@@ -106,8 +106,8 @@ export function CalendarScreen() {
         : undefined,
       visibility: 'private_until_reveal',
       partnerTeaserTitle: payload.visibilityPreset === 'total_secret'
-        ? '🔒 Sorpresa secreta'
-        : '✨ Tienes un plan especial',
+        ? 'Sorpresa secreta'
+        : 'Plan especial',
       partnerTeaserSubtitle: payload.visibilityPreset === 'visible_plan'
         ? `Plan el ${payload.date} preparado con cariño.`
         : 'Prepárate para un momento bonito juntos.',
@@ -131,7 +131,7 @@ export function CalendarScreen() {
     addCoupleEvent({
       eventType: 'important_date',
       date: letter.unlockDate,
-      title: `💌 ${letter.title}`,
+      title: letter.title,
       subtitle: letter.message,
       revealPolicy: 'scheduled',
       revealAt: `${letter.unlockDate}T00:00:00`,

@@ -22,20 +22,20 @@ export function DayAgendaView({
   const getBadgeProps = (ev: SanitizedEventItem) => {
     if (ev.eventType === 'surprise') {
       if (ev.isOwner) {
-        return { variant: 'butter' as const, label: '🔒 Sorpresa secreta', color: '#E86A58' };
+        return { variant: 'butter' as const, label: 'Sorpresa secreta', color: '#E86A58' };
       }
-      return { variant: 'butter' as const, label: '✨ Algo especial para ti', color: '#E86A58' };
+      return { variant: 'butter' as const, label: 'Plan especial para ti', color: '#E86A58' };
     }
     if (ev.eventType === 'important_date') {
-      return { variant: 'butter' as const, label: '💛 Fecha importante', color: '#CBA86A' };
+      return { variant: 'butter' as const, label: 'Fecha importante', color: '#CBA86A' };
     }
     if (ev.eventType === 'future_trip') {
-      return { variant: 'mistBlue' as const, label: '✈️ Viaje', color: '#5C9F9A' };
+      return { variant: 'mistBlue' as const, label: 'Viaje', color: '#5C9F9A' };
     }
     if (ev.eventType === 'ritual') {
-      return { variant: 'sage' as const, label: '🌿 Ritual', color: '#8A7BB5' };
+      return { variant: 'sage' as const, label: 'Ritual', color: '#8A7BB5' };
     }
-    return { variant: 'secondary' as const, label: '🍷 Plan juntos', color: '#4A7C9B' };
+    return { variant: 'secondary' as const, label: 'Plan juntos', color: '#4A7C9B' };
   };
 
   return (

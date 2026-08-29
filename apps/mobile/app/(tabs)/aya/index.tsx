@@ -139,7 +139,7 @@ export default function AyaSpaceScreen() {
           activeOpacity={0.7}
         >
           <Text style={[styles.insightsPillText, showInsightsBoard && styles.insightsPillTextActive]}>
-            💡 {showInsightsBoard ? 'Ocultar aprendizajes de AYA' : 'Ver aprendizajes descubiertos de vosotros'}
+            {showInsightsBoard ? 'Ocultar aprendizajes de Andrea' : 'Ver aprendizajes descubiertos de vosotros'}
           </Text>
         </TouchableOpacity>
 

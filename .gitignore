@@ -28,8 +28,8 @@ Thumbs.db
 # Logs & Environment
 *.log
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Turborepo & Cache
 .turbo/

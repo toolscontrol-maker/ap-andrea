@@ -1,7 +1,8 @@
 import React, { ReactNode } from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import { Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
 import { Colors } from '../../theme/colors';
-import { Radii, Spacing, Typography } from '../../theme/tokens';
+import { Radii, Spacing, Typography, Shadows } from '../../theme/tokens';
+import { PressableScale } from './PressableScale';
 
 interface ButtonProps {
   children: ReactNode;
@@ -32,7 +33,11 @@ export function Button({
   const isGhost = variant === 'ghost';
 
   return (
-    <TouchableOpacity
+    <PressableScale
+      onPress={onPress}
+      disabled={disabled || loading}
+      scaleTo={0.97}
+      haptic="light"
       style={[
         styles.base,
         styles[variant],
@@ -40,9 +45,6 @@ export function Button({
         (disabled || loading) && styles.disabled,
         style,
       ]}
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.7}
     >
       {loading ? (
         <ActivityIndicator
@@ -65,7 +67,7 @@ export function Button({
           {iconRight}
         </>
       )}
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -74,66 +76,69 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radii.xl,
-    gap: Spacing.sm,
+    borderRadius: Radii.md,
+    gap: Spacing.xs,
   },
-  // Sizes
-  size_sm: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.lg,
-  },
-  size_md: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: Radii.xl,
-  },
-  size_lg: {
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing['2xl'],
-    borderRadius: Radii['2xl'],
-  },
-  // Variants
   primary: {
     backgroundColor: Colors.light.primary,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    ...Shadows.sm,
   },
   secondary: {
     backgroundColor: Colors.light.secondary,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    ...Shadows.sm,
   },
   sage: {
     backgroundColor: Colors.light.sage,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    ...Shadows.sm,
   },
   butter: {
     backgroundColor: Colors.light.butterDark,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    ...Shadows.sm,
   },
   mistBlue: {
-    backgroundColor: '#3D6B88',
+    backgroundColor: Colors.light.mistBlue,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    ...Shadows.sm,
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: Colors.light.borderStrong,
+    borderColor: Colors.light.primary,
   },
   ghost: {
     backgroundColor: 'transparent',
   },
+  size_sm: {
+    paddingVertical: Spacing.xs + 2,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.sm,
+  },
+  size_md: {
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radii.md,
+  },
+  size_lg: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: Radii.lg,
+  },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.45,
   },
-  // Typography
   baseText: {
-    ...Typography.bodyMedium,
+    fontWeight: '600',
     textAlign: 'center',
-  },
-  textSize_sm: {
-    ...Typography.captionBold,
-  },
-  textSize_md: {
-    ...Typography.bodyMedium,
-  },
-  textSize_lg: {
-    ...Typography.h3,
-    fontSize: 16,
+    letterSpacing: -0.2,
   },
   text_primary: {
     color: '#FFFFFF',
@@ -151,9 +156,21 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   text_outline: {
-    color: Colors.light.text,
+    color: Colors.light.primary,
   },
   text_ghost: {
     color: Colors.light.textSecondary,
+  },
+  textSize_sm: {
+    ...Typography.footnote,
+    fontWeight: '600',
+  },
+  textSize_md: {
+    ...Typography.body,
+    fontWeight: '600',
+  },
+  textSize_lg: {
+    ...Typography.headline,
+    fontWeight: '600',
   },
 });

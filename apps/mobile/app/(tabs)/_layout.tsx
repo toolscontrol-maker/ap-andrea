@@ -1,15 +1,14 @@
 import { Tabs } from 'expo-router';
 import { Colors } from '../../src/theme/colors';
-import { Layout, Typography, Radii, Shadows } from '../../src/theme/tokens';
-import { Text, Platform, View } from 'react-native';
-
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return (
-    <View style={{ transform: [{ scale: focused ? 1.15 : 1 }] }}>
-      <Text style={{ fontSize: 20 }}>{emoji}</Text>
-    </View>
-  );
-}
+import { Layout, Typography, Shadows } from '../../src/theme/tokens';
+import { Platform } from 'react-native';
+import {
+  IconHome,
+  IconHeart,
+  IconCalendar,
+  IconMapPin,
+  IconSparkles
+} from '../../src/components/ui/Icons';
 
 export default function TabLayout() {
   return (
@@ -28,38 +27,82 @@ export default function TabLayout() {
         },
         tabBarLabelStyle: {
           ...Typography.captionBold,
-          fontSize: 10,
+          fontSize: 10.5,
           marginTop: 2,
         },
         headerShown: false,
       }}
     >
       <Tabs.Screen
-        name="surprises"
+        name="home"
         options={{
-          title: 'Sorpresas',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🎁" focused={focused} />,
+          title: 'Nido',
+          tabBarIcon: ({ color, focused }) => (
+            <IconHome
+              size={20}
+              color={color}
+              strokeWidth={focused ? 2.2 : 1.75}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="wishes"
+        options={{
+          title: 'Deseos',
+          tabBarIcon: ({ color, focused }) => (
+            <IconHeart
+              size={20}
+              color={color}
+              strokeWidth={focused ? 2.2 : 1.75}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: 'Agenda',
+          tabBarIcon: ({ color, focused }) => (
+            <IconCalendar
+              size={20}
+              color={color}
+              strokeWidth={focused ? 2.2 : 1.75}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="map"
         options={{
           title: 'Mapa',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🗺️" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="calendar"
-        options={{
-          title: 'Calendario',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📅" focused={focused} />,
+          tabBarIcon: ({ color, focused }) => (
+            <IconMapPin
+              size={20}
+              color={color}
+              strokeWidth={focused ? 2.2 : 1.75}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="aya"
         options={{
-          title: 'AYA Space',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="✨" focused={focused} />,
+          title: 'Andrea',
+          tabBarIcon: ({ color, focused }) => (
+            <IconSparkles
+              size={20}
+              color={color}
+              strokeWidth={focused ? 2.2 : 1.75}
+            />
+          ),
+        }}
+      />
+      {/* Retain surprises route internally without displaying separate tab */}
+      <Tabs.Screen
+        name="surprises"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

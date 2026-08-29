@@ -14,16 +14,9 @@ export interface SurpriseItem {
   executedAt?: string;
   reaction?: string;
   isSecret: boolean;
+  linkedWishlistId?: string;
+  linkedPlaceId?: string;
+  linkedEventId?: string;
   createdAt: string;
-}
-
-export interface WishlistItem {
-  id: string;
-  authorId: string;
-  title: string;
-  notes?: string;
-  url?: string;
-  priceEstimate?: number;
-  priority: 'low' | 'medium' | 'high';
-  createdAt: string;
+  updatedAt?: string;
 }
