@@ -30,6 +30,7 @@ import {
 import { Colors } from '../../../src/theme/colors';
 import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
 import { triggerHaptic } from '../../../src/utils/haptics';
+import { ConnectedCoupleHeart } from '../../../src/components/ui/ConnectedCoupleHeart';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -122,36 +123,19 @@ export default function AccountScreen() {
           </View>
         </View>
 
-        {/* COUPLE PROFILE HERO CARD */}
+        {/* COUPLE PROFILE HERO CARD WITH CONNECTED HEART ANIMATION */}
         <TiltedCard style={styles.coupleHeroCard} variant="elevated">
-          <View style={styles.avatarsRow}>
-            <View style={styles.avatarWrapper}>
-              <Image
-                source={{ uri: currentDevUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop' }}
-                style={styles.avatarImg}
-              />
-              <View style={styles.avatarPill}>
-                <Text style={styles.avatarPillText}>Tú ({currentDevUser.name})</Text>
-              </View>
-            </View>
-
-            <View style={styles.heartConnector}>
-              <View style={styles.heartCircle}>
-                <IconHeart size={16} color="#E05666" />
-              </View>
-              <Text style={styles.daysTogetherCount}>{diffDays} días</Text>
-            </View>
-
-            <View style={styles.avatarWrapper}>
-              <Image
-                source={{ uri: partnerDevUser.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop' }}
-                style={styles.avatarImg}
-              />
-              <View style={styles.avatarPill}>
-                <Text style={styles.avatarPillText}>{partnerDevUser.name}</Text>
-              </View>
-            </View>
-          </View>
+          <ConnectedCoupleHeart
+            user1Name="Andrea"
+            user1Avatar="A"
+            user1PhotoUrl="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80"
+            user2Name="Ángel"
+            user2Avatar="Á"
+            user2PhotoUrl="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80"
+            currentUserName={currentDevUser.name}
+            daysTogether={diffDays}
+            startDateFormatted="15 de Febrero de 2025"
+          />
 
           <View style={styles.coupleInfoSection}>
             <Text style={styles.coupleNames}>Andrea & Ángel</Text>
@@ -423,51 +407,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(20, 19, 18, 0.06)',
     ...Shadows.md,
-  },
-  avatarsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    marginBottom: Spacing.md,
-  },
-  avatarWrapper: {
-    alignItems: 'center',
-  },
-  avatarImg: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    borderWidth: 3,
-    borderColor: Colors.light.backgroundWarm,
-    marginBottom: Spacing.xs,
-  },
-  avatarPill: {
-    backgroundColor: Colors.light.backgroundWarm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: Radii.full,
-  },
-  avatarPillText: {
-    ...Typography.captionBold,
-    fontSize: 11,
-    color: Colors.light.text,
-  },
-  heartConnector: {
-    alignItems: 'center',
-  },
-  heartCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(235, 87, 87, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  daysTogetherCount: {
-    ...Typography.captionBold,
-    fontSize: 11,
-    color: Colors.light.textMuted,
   },
   coupleInfoSection: {
     alignItems: 'center',

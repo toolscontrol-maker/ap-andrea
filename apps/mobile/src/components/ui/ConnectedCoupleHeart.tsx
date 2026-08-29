@@ -1,0 +1,673 @@
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Animated,
+  Easing,
+  Platform
+} from 'react-native';
+import { Colors } from '../../theme/colors';
+import { Radii, Shadows, Spacing, Typography } from '../../theme/tokens';
+import { IconHeart, IconSparkles } from './Icons';
+import { triggerHaptic } from '../../utils/haptics';
+
+export interface ConnectedCoupleHeartProps {
+  user1Name: string;
+  user1Avatar?: string;
+  user1PhotoUrl?: string;
+  user2Name: string;
+  user2Avatar?: string;
+  user2PhotoUrl?: string;
+  currentUserName: string;
+  daysTogether: number;
+  startDateFormatted?: string;
+  onHeartPress?: () => void;
+}
+
+interface FloatingParticle {
+  id: number;
+  x: Animated.Value;
+  y: Animated.Value;
+  opacity: Animated.Value;
+  scale: Animated.Value;
+  symbol: string;
+}
+
+export function ConnectedCoupleHeart({
+  user1Name,
+  user1Avatar = 'Á',
+  user1PhotoUrl = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+  user2Name,
+  user2Avatar = 'A',
+  user2PhotoUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+  currentUserName,
+  daysTogether,
+  startDateFormatted = '15 de Febrero de 2025',
+  onHeartPress
+}: ConnectedCoupleHeartProps) {
+  // Animation values
+  const heartbeatScale = useRef(new Animated.Value(1)).current;
+  const glowRing1Scale = useRef(new Animated.Value(0.8)).current;
+  const glowRing1Opacity = useRef(new Animated.Value(0.6)).current;
+  const glowRing2Scale = useRef(new Animated.Value(0.8)).current;
+  const glowRing2Opacity = useRef(new Animated.Value(0.4)).current;
+  const beamWave = useRef(new Animated.Value(0)).current;
+  const avatarAura = useRef(new Animated.Value(1)).current;
+
+  // Floating hearts on tap
+  const [floatingParticles, setFloatingParticles] = useState<FloatingParticle[]>([]);
+  const [heartbeatToast, setHeartbeatToast] = useState<string | null>(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+
+  // Image load error fallback state
+  const [img1Error, setImg1Error] = useState(false);
+  const [img2Error, setImg2Error] = useState(false);
+
+  useEffect(() => {
+    // 1. Biological Double Systolic Heartbeat Loop (Lubb-Dubb)
+    const heartbeatAnim = Animated.loop(
+      Animated.sequence([
+        // Lubb (Systole 1)
+        Animated.timing(heartbeatScale, {
+          toValue: 1.2,
+          duration: 140,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(heartbeatScale, {
+          toValue: 1.06,
+          duration: 100,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        // Dubb (Systole 2 - Stronger)
+        Animated.timing(heartbeatScale, {
+          toValue: 1.28,
+          duration: 160,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(heartbeatScale, {
+          toValue: 1.0,
+          duration: 380,
+          easing: Easing.out(Easing.back(1.5)),
+          useNativeDriver: true,
+        }),
+        // Diastole (Resting interval)
+        Animated.delay(1000),
+      ])
+    );
+
+    // 2. Ripple Glow Ring 1 (Staggered expand)
+    const ripple1 = Animated.loop(
+      Animated.parallel([
+        Animated.timing(glowRing1Scale, {
+          toValue: 2.2,
+          duration: 1800,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.timing(glowRing1Opacity, {
+            toValue: 0.5,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowRing1Opacity, {
+            toValue: 0,
+            duration: 1500,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]),
+      ])
+    );
+
+    // 3. Ripple Glow Ring 2 (Offset by 600ms)
+    const ripple2 = Animated.loop(
+      Animated.sequence([
+        Animated.delay(600),
+        Animated.parallel([
+          Animated.timing(glowRing2Scale, {
+            toValue: 2.5,
+            duration: 1800,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.sequence([
+            Animated.timing(glowRing2Opacity, {
+              toValue: 0.4,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            Animated.timing(glowRing2Opacity, {
+              toValue: 0,
+              duration: 1500,
+              easing: Easing.out(Easing.quad),
+              useNativeDriver: true,
+            }),
+          ]),
+        ]),
+      ])
+    );
+
+    // 4. Connecting Beam Photons Loop
+    const beamAnim = Animated.loop(
+      Animated.timing(beamWave, {
+        toValue: 1,
+        duration: 2400,
+        easing: Easing.inOut(Easing.sin),
+        useNativeDriver: true,
+      })
+    );
+
+    // 5. Avatar Aura Breathing Loop
+    const auraAnim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(avatarAura, {
+          toValue: 1.08,
+          duration: 1600,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(avatarAura, {
+          toValue: 1.0,
+          duration: 1600,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    heartbeatAnim.start();
+    ripple1.start();
+    ripple2.start();
+    beamAnim.start();
+    auraAnim.start();
+
+    return () => {
+      heartbeatAnim.stop();
+      ripple1.stop();
+      ripple2.stop();
+      beamAnim.stop();
+      auraAnim.stop();
+    };
+  }, []);
+
+  const handleTapHeart = () => {
+    // 1. Double tactile haptic rhythm
+    triggerHaptic('medium');
+    setTimeout(() => {
+      triggerHaptic('heavy');
+    }, 130);
+
+    // 2. Extra elastic bounce on press
+    Animated.sequence([
+      Animated.timing(heartbeatScale, {
+        toValue: 1.5,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.spring(heartbeatScale, {
+        toValue: 1.0,
+        friction: 3,
+        tension: 80,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // 3. Spawn floating heart particles
+    const partnerName = currentUserName === user1Name ? user2Name : user1Name;
+    const symbols = ['❤️', '✨', '💖', '🌸', '💫'];
+    const newParticles: FloatingParticle[] = Array.from({ length: 6 }).map((_, i) => {
+      const p = {
+        id: Date.now() + i + Math.random(),
+        x: new Animated.Value(0),
+        y: new Animated.Value(0),
+        opacity: new Animated.Value(1),
+        scale: new Animated.Value(0.4),
+        symbol: symbols[i % symbols.length],
+      };
+
+      const targetX = (Math.random() - 0.5) * 120;
+      const targetY = -70 - Math.random() * 80;
+
+      Animated.parallel([
+        Animated.timing(p.x, {
+          toValue: targetX,
+          duration: 900,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(p.y, {
+          toValue: targetY,
+          duration: 900,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(p.scale, {
+          toValue: 1.2 + Math.random() * 0.4,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.delay(450),
+          Animated.timing(p.opacity, {
+            toValue: 0,
+            duration: 450,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start();
+
+      return p;
+    });
+
+    setFloatingParticles((prev) => [...prev, ...newParticles]);
+    setTimeout(() => {
+      setFloatingParticles((prev) => prev.filter((p) => !newParticles.includes(p)));
+    }, 1000);
+
+    // 4. Show Toast Notification
+    setHeartbeatToast(`¡Latido enviado a ${partnerName}! 💕`);
+    Animated.sequence([
+      Animated.timing(toastOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.delay(1800),
+      Animated.timing(toastOpacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setHeartbeatToast(null));
+
+    if (onHeartPress) onHeartPress();
+  };
+
+  // Interpolated photon beam positions
+  const photonLeftTranslate = beamWave.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-60, 0],
+  });
+
+  const photonRightTranslate = beamWave.interpolate({
+    inputRange: [0, 1],
+    outputRange: [60, 0],
+  });
+
+  const photonOpacity = beamWave.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.2, 0.9, 0.2],
+  });
+
+  return (
+    <View style={styles.container}>
+      {/* ── BACKGROUND CONNECTING LASER BEAM ── */}
+      <View style={styles.beamTrack}>
+        <View style={styles.beamLineGradient} />
+        {/* Animated Left Traveling Light Photon */}
+        <Animated.View
+          style={[
+            styles.photonDot,
+            {
+              transform: [{ translateX: photonLeftTranslate }],
+              opacity: photonOpacity,
+            },
+          ]}
+        />
+        {/* Animated Right Traveling Light Photon */}
+        <Animated.View
+          style={[
+            styles.photonDot,
+            {
+              transform: [{ translateX: photonRightTranslate }],
+              opacity: photonOpacity,
+            },
+          ]}
+        />
+      </View>
+
+      {/* ── AVATAR 1 (USER 1) ── */}
+      <View style={styles.avatarColumn}>
+        <Animated.View
+          style={[
+            styles.avatarAuraRing,
+            {
+              transform: [{ scale: avatarAura }],
+              borderColor: 'rgba(212, 175, 55, 0.35)',
+            },
+          ]}
+        />
+        <View style={styles.avatarContainer}>
+          {!img1Error && user1PhotoUrl ? (
+            <Image
+              source={{ uri: user1PhotoUrl }}
+              style={styles.avatarImage}
+              onError={() => setImg1Error(true)}
+            />
+          ) : (
+            <View style={[styles.avatarFallback, { backgroundColor: Colors.light.primary }]}>
+              <Text style={styles.avatarFallbackText}>{user1Avatar}</Text>
+            </View>
+          )}
+          <View style={styles.presenceBeacon} />
+        </View>
+        <View style={styles.namePill}>
+          <Text style={styles.namePillText} numberOfLines={1}>
+            {user1Name}
+          </Text>
+        </View>
+      </View>
+
+      {/* ── CENTER ANIMATED HEART CONNECTOR ── */}
+      <View style={styles.centerHeartWrapper}>
+        {/* Expanding Glow Ring 1 */}
+        <Animated.View
+          style={[
+            styles.glowRing,
+            {
+              transform: [{ scale: glowRing1Scale }],
+              opacity: glowRing1Opacity,
+              borderColor: 'rgba(235, 87, 87, 0.6)',
+              backgroundColor: 'rgba(235, 87, 87, 0.08)',
+            },
+          ]}
+        />
+
+        {/* Expanding Glow Ring 2 */}
+        <Animated.View
+          style={[
+            styles.glowRing,
+            {
+              transform: [{ scale: glowRing2Scale }],
+              opacity: glowRing2Opacity,
+              borderColor: 'rgba(212, 175, 55, 0.5)',
+              backgroundColor: 'rgba(212, 175, 55, 0.05)',
+            },
+          ]}
+        />
+
+        {/* Interactive Pulsing Heart Button */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={handleTapHeart}
+          style={styles.heartTouchable}
+        >
+          <Animated.View
+            style={[
+              styles.heartCircleButton,
+              {
+                transform: [{ scale: heartbeatScale }],
+              },
+            ]}
+          >
+            <IconHeart size={22} color="#FFFFFF" strokeWidth={2.4} />
+          </Animated.View>
+        </TouchableOpacity>
+
+        {/* Days Together Metric */}
+        <View style={styles.daysBadge}>
+          <Text style={styles.daysNumberText}>{daysTogether}</Text>
+          <Text style={styles.daysLabelText}>días</Text>
+        </View>
+
+        {/* Floating Tap Particles */}
+        {floatingParticles.map((p) => (
+          <Animated.View
+            key={p.id}
+            pointerEvents="none"
+            style={[
+              styles.floatingParticle,
+              {
+                transform: [
+                  { translateX: p.x },
+                  { translateY: p.y },
+                  { scale: p.scale },
+                ],
+                opacity: p.opacity,
+              },
+            ]}
+          >
+            <Text style={{ fontSize: 20 }}>{p.symbol}</Text>
+          </Animated.View>
+        ))}
+      </View>
+
+      {/* ── AVATAR 2 (USER 2) ── */}
+      <View style={styles.avatarColumn}>
+        <Animated.View
+          style={[
+            styles.avatarAuraRing,
+            {
+              transform: [{ scale: avatarAura }],
+              borderColor: 'rgba(235, 87, 87, 0.35)',
+            },
+          ]}
+        />
+        <View style={styles.avatarContainer}>
+          {!img2Error && user2PhotoUrl ? (
+            <Image
+              source={{ uri: user2PhotoUrl }}
+              style={styles.avatarImage}
+              onError={() => setImg2Error(true)}
+            />
+          ) : (
+            <View style={[styles.avatarFallback, { backgroundColor: Colors.light.secondary }]}>
+              <Text style={styles.avatarFallbackText}>{user2Avatar}</Text>
+            </View>
+          )}
+          <View style={[styles.presenceBeacon, { backgroundColor: '#E05666' }]} />
+        </View>
+        <View style={styles.namePill}>
+          <Text style={styles.namePillText} numberOfLines={1}>
+            {user2Name}
+          </Text>
+        </View>
+      </View>
+
+      {/* ── HEARTBEAT SENT INTERACTIVE TOAST ── */}
+      {heartbeatToast && (
+        <Animated.View
+          style={[
+            styles.toastBubble,
+            {
+              opacity: toastOpacity,
+            },
+          ]}
+        >
+          <IconSparkles size={12} color={Colors.light.primary} />
+          <Text style={styles.toastText}>{heartbeatToast}</Text>
+        </Animated.View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+  },
+  beamTrack: {
+    position: 'absolute',
+    top: 36,
+    left: 45,
+    right: 45,
+    height: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 0,
+  },
+  beamLineGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: 'rgba(212, 175, 55, 0.22)',
+    borderRadius: 1,
+  },
+  photonDot: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.light.primary,
+    shadowColor: Colors.light.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+  },
+  avatarColumn: {
+    alignItems: 'center',
+    zIndex: 2,
+    width: 85,
+  },
+  avatarAuraRing: {
+    position: 'absolute',
+    top: -4,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 2,
+  },
+  avatarContainer: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#FFFFFF',
+    padding: 3,
+    ...Shadows.md,
+    borderWidth: 1,
+    borderColor: 'rgba(20, 19, 18, 0.08)',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 32,
+  },
+  avatarFallback: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarFallbackText: {
+    ...Typography.h2,
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  presenceBeacon: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#27AE60',
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+  },
+  namePill: {
+    marginTop: Spacing.xs + 2,
+    backgroundColor: Colors.light.backgroundWarm,
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 3,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    borderColor: 'rgba(20, 19, 18, 0.06)',
+  },
+  namePillText: {
+    ...Typography.captionBold,
+    fontSize: 11.5,
+    color: Colors.light.text,
+  },
+  centerHeartWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 3,
+    width: 100,
+    height: 90,
+  },
+  glowRing: {
+    position: 'absolute',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1.5,
+  },
+  heartTouchable: {
+    zIndex: 4,
+  },
+  heartCircleButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#E05666',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.md,
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+  },
+  daysBadge: {
+    marginTop: Spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 3,
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.28)',
+  },
+  daysNumberText: {
+    ...Typography.captionBold,
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.light.primary,
+  },
+  daysLabelText: {
+    ...Typography.caption,
+    fontSize: 10,
+    color: Colors.light.textMuted,
+  },
+  floatingParticle: {
+    position: 'absolute',
+    top: 20,
+    zIndex: 10,
+  },
+  toastBubble: {
+    position: 'absolute',
+    bottom: -18,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 5,
+    borderRadius: Radii.full,
+    ...Shadows.md,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
+    zIndex: 20,
+  },
+  toastText: {
+    ...Typography.captionBold,
+    fontSize: 11.5,
+    color: Colors.light.primary,
+  },
+});
