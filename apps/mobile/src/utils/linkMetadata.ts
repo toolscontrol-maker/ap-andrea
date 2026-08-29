@@ -47,28 +47,6 @@ function sanitizeUrl(rawUrl: string): string {
 }
 
 /**
- * Restaurant & Gastronomy Gallery Curated Sets
- */
-const RESTAURANT_GALLERY_SETS = [
-  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1000&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=1000&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1000&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1544025162-d76694265947?w=1000&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1000&auto=format&fit=crop',
-];
-
-/**
- * Travel & Romantic Escapes Curated Gallery Sets
- */
-const TRAVEL_GALLERY_SETS = [
-  'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=1000&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1000&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1000&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1000&auto=format&fit=crop',
-];
-
-/**
  * Famous destinations dictionary
  */
 const DESTINATIONS_MAP: Record<string, { name: string; country: string; price: number }> = {
@@ -168,6 +146,7 @@ async function scrapeViaMicrolink(targetUrl: string): Promise<any | null> {
 
 /**
  * Universal Intelligent Link Extractor & Categorizer
+ * Extracts ONLY authentic photos from the website/link without any artificial or generic fallbacks
  */
 export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLinkMetadata | null> {
   if (!rawUrl || !rawUrl.trim()) return null;
@@ -196,7 +175,7 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
     (hostname.includes('goo.gl') && pathname.includes('/maps')) ||
     hostname.includes('maps.apple.com')
   ) {
-    // Attempt Live Microlink Scraping first for exact place name, address and photo!
+    // Attempt Live Microlink Scraping first for exact place name, address and authentic photos!
     try {
       const liveData = await scrapeViaMicrolink(targetUrl);
       if (liveData && liveData.title) {
@@ -215,9 +194,22 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
           name.toLowerCase().includes('parador') ||
           name.toLowerCase().includes('casa rural');
 
-        const images = realImage
-          ? [realImage, ...(isHotel ? TRAVEL_GALLERY_SETS : RESTAURANT_GALLERY_SETS)]
-          : (isHotel ? TRAVEL_GALLERY_SETS : RESTAURANT_GALLERY_SETS);
+        // Extract ONLY real photos extracted from the link (no random fillers)
+        const realImages: string[] = [];
+        if (realImage) {
+          realImages.push(realImage);
+        }
+        if (Array.isArray(liveData.images)) {
+          for (const img of liveData.images) {
+            const u = typeof img === 'string' ? img : img?.url;
+            if (u && isValidProductImage(u)) {
+              const sanitized = sanitizeImageHotlink(u);
+              if (!realImages.includes(sanitized)) {
+                realImages.push(sanitized);
+              }
+            }
+          }
+        }
 
         return {
           title: name,
@@ -225,8 +217,8 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
           type: isHotel ? 'trip' : 'restaurant',
           domain: hostname,
           estimatedPrice: isHotel ? 180 : undefined,
-          imageUrl: images[0],
-          galleryImages: images,
+          imageUrl: realImages.length > 0 ? realImages[0] : undefined,
+          galleryImages: realImages,
           description: cuisine ? cuisine : (address ? address : `Guardado desde Google Maps`),
         };
       }
@@ -268,8 +260,8 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       type: 'restaurant',
       domain: hostname,
       estimatedPrice: undefined,
-      imageUrl: RESTAURANT_GALLERY_SETS[0],
-      galleryImages: RESTAURANT_GALLERY_SETS,
+      imageUrl: undefined,
+      galleryImages: [],
       description: addressPart ? addressPart : `Ubicación guardada desde Google Maps`,
     };
   }
@@ -311,8 +303,8 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       type: 'restaurant',
       domain: hostname,
       estimatedPrice: undefined,
-      imageUrl: RESTAURANT_GALLERY_SETS[0],
-      galleryImages: RESTAURANT_GALLERY_SETS,
+      imageUrl: undefined,
+      galleryImages: [],
       description: `Reserva gastronómica en ${brandName}`,
     };
   }
@@ -379,8 +371,8 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       type: 'trip',
       domain: hostname,
       estimatedPrice: matchedPrice,
-      imageUrl: TRAVEL_GALLERY_SETS[0],
-      galleryImages: TRAVEL_GALLERY_SETS,
+      imageUrl: undefined,
+      galleryImages: [],
       description: `Plan de viaje o alojamiento guardado`,
     };
   }
@@ -449,12 +441,8 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       type: 'fashion',
       domain: hostname,
       estimatedPrice: exactPrice,
-      imageUrl: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
-      galleryImages: [
-        'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
-      ],
+      imageUrl: undefined,
+      galleryImages: [],
       description: `Bolso de piel de alta artesanía Polène Paris`,
     };
   }
@@ -476,12 +464,8 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       type: 'fashion',
       domain: hostname,
       estimatedPrice: exactPrice,
-      imageUrl: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
-      galleryImages: [
-        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=1000&auto=format&fit=crop',
-      ],
+      imageUrl: undefined,
+      galleryImages: [],
       description: `Colección parisina Sézane`,
     };
   }
@@ -503,12 +487,8 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       type: 'fashion',
       domain: hostname,
       estimatedPrice: exactPrice,
-      imageUrl: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
-      galleryImages: [
-        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
-      ],
+      imageUrl: undefined,
+      galleryImages: [],
       description: `Pieza icónica de marroquinería Loewe`,
     };
   }
@@ -528,12 +508,8 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       type: 'fashion',
       domain: hostname,
       estimatedPrice: isZara ? 49.95 : 129,
-      imageUrl: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1000&auto=format&fit=crop',
-      galleryImages: [
-        'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1000&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=1000&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1000&auto=format&fit=crop',
-      ],
+      imageUrl: undefined,
+      galleryImages: [],
       description: `Visto en catálogo de ${brandName}`,
     };
   }
@@ -550,11 +526,8 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       type: 'home',
       domain: hostname,
       estimatedPrice: 85,
-      imageUrl: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1000&auto=format&fit=crop',
-      galleryImages: [
-        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1000&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1000&auto=format&fit=crop',
-      ],
+      imageUrl: undefined,
+      galleryImages: [],
       description: `Elemento de decoración y confort para el hogar`,
     };
   }
