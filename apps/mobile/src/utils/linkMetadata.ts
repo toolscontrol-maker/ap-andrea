@@ -96,7 +96,7 @@ const DESTINATIONS_MAP: Record<string, { name: string; country: string; price: n
 };
 
 /**
- * Clean decoded query or slug into clean Title Case
+ * Clean query / slug into Title Case
  */
 function cleanQueryToTitle(str: string): string {
   if (!str) return '';
@@ -150,34 +150,58 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
   // ── 1. GOOGLE MAPS & APPLE MAPS (Restaurantes, Rincones o Alojamientos) ──
   if (
     hostname.includes('maps.google.') ||
-    hostname.includes('google.com') && pathname.includes('/maps') ||
+    (hostname.includes('google.') && pathname.includes('/maps')) ||
     hostname.includes('maps.app.goo.gl') ||
-    hostname.includes('goo.gl') && pathname.includes('/maps') ||
+    (hostname.includes('goo.gl') && pathname.includes('/maps')) ||
     hostname.includes('maps.apple.com')
   ) {
     let placeName = '';
+    let addressPart = '';
 
-    // A) Google Maps /place/NAME/
-    const placeIdx = pathSegments.findIndex((s) => s === 'place');
-    if (placeIdx !== -1 && pathSegments[placeIdx + 1]) {
-      placeName = cleanQueryToTitle(pathSegments[placeIdx + 1]);
-    }
-
-    // B) Google Maps /search/NAME/ or ?q=NAME
-    if (!placeName && searchParams.get('q')) {
-      placeName = cleanQueryToTitle(searchParams.get('q') || '');
-    }
-    if (!placeName && searchParams.get('query')) {
-      placeName = cleanQueryToTitle(searchParams.get('query') || '');
-    }
-    if (!placeName && pathSegments.length > 0) {
-      const lastSeg = pathSegments[pathSegments.length - 1];
-      if (lastSeg.length > 3 && !lastSeg.startsWith('@') && !lastSeg.startsWith('data=')) {
-        placeName = cleanQueryToTitle(lastSeg);
+    // A) Regex extract /place/<PlaceName, Address>/
+    const placeMatch = targetUrl.match(/\/place\/([^/@?]+)/);
+    if (placeMatch && placeMatch[1]) {
+      const decoded = decodeURIComponent(placeMatch[1]);
+      // Remove data= parameters if attached
+      const cleanPiece = decoded.replace(/\/data=.*$/, '');
+      const parts = cleanPiece.split(',');
+      placeName = parts[0].replace(/\+/g, ' ').trim();
+      if (parts.length > 1) {
+        addressPart = parts.slice(1).join(',').replace(/\+/g, ' ').trim();
       }
     }
 
-    // C) Check if it's a hotel or restaurant
+    // B) Query parameters ?q=NAME or ?query=NAME
+    if (!placeName && searchParams.get('q')) {
+      const qVal = decodeURIComponent(searchParams.get('q') || '');
+      const parts = qVal.split(',');
+      placeName = parts[0].replace(/\+/g, ' ').trim();
+      if (parts.length > 1) {
+        addressPart = parts.slice(1).join(',').replace(/\+/g, ' ').trim();
+      }
+    }
+    if (!placeName && searchParams.get('query')) {
+      const qVal = decodeURIComponent(searchParams.get('query') || '');
+      const parts = qVal.split(',');
+      placeName = parts[0].replace(/\+/g, ' ').trim();
+    }
+
+    // C) Path segments fallback (excluding data=)
+    if (!placeName && pathSegments.length > 0) {
+      const validSegs = pathSegments.filter((s) => !s.startsWith('@') && !s.startsWith('data=') && s !== 'maps' && s !== 'place');
+      if (validSegs.length > 0) {
+        const lastSeg = decodeURIComponent(validSegs[validSegs.length - 1]);
+        const parts = lastSeg.split(',');
+        placeName = parts[0].replace(/\+/g, ' ').trim();
+      }
+    }
+
+    // Clean placeName from code artifacts
+    if (placeName.startsWith('data=') || placeName.includes('!1s') || placeName.includes('0x')) {
+      placeName = 'Restaurante / Rincón';
+    }
+
+    // D) Check if hotel or restaurant
     const isHotel =
       placeName.toLowerCase().includes('hotel') ||
       placeName.toLowerCase().includes('resort') ||
@@ -186,25 +210,21 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       placeName.toLowerCase().includes('casa rural');
 
     const inferredType: WishlistItemType = isHotel ? 'trip' : 'restaurant';
-    const finalTitle = placeName
-      ? placeName
-      : isHotel
-      ? 'Alojamiento en el Mapa'
-      : 'Restaurante / Rincón Gastronómico';
+    const finalTitle = placeName ? placeName : (isHotel ? 'Alojamiento en el Mapa' : 'Restaurante');
 
     return {
       title: finalTitle,
-      brand: isHotel ? 'Google Maps · Viajes' : 'Google Maps · Restaurante',
+      brand: placeName ? placeName : (isHotel ? 'Google Maps · Viajes' : 'Google Maps'),
       type: inferredType,
       domain: hostname,
-      estimatedPrice: isHotel ? 180 : 60,
+      estimatedPrice: isHotel ? 180 : undefined, // No mandatory price for restaurants!
       imageUrl: isHotel ? TRAVEL_GALLERY_SETS[0] : RESTAURANT_GALLERY_SETS[0],
       galleryImages: isHotel ? TRAVEL_GALLERY_SETS : RESTAURANT_GALLERY_SETS,
-      description: `Ubicación guardada desde el mapa para visitar juntos`,
+      description: addressPart ? addressPart : `Ubicación guardada desde Google Maps`,
     };
   }
 
-  // ── 2. GASTRONOMÍA & RESTAURANTES (TheFork, Michelin, TripAdvisor Restaurantes, etc.) ──
+  // ── 2. GASTRONOMÍA & RESTAURANTES (TheFork, Michelin, Guía Repsol, OpenTable, etc.) ──
   if (
     hostname.includes('thefork.') ||
     hostname.includes('eltenedor.') ||
@@ -233,17 +253,17 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       ? 'Guía Michelin'
       : hostname.includes('repsol')
       ? 'Guía Repsol'
-      : 'Restaurante';
+      : cleanTitle || 'Restaurante';
 
     return {
-      title: cleanTitle ? `${cleanTitle}` : `Cena Especial · ${brandName}`,
+      title: cleanTitle ? `${cleanTitle}` : `Restaurante · ${brandName}`,
       brand: brandName,
       type: 'restaurant',
       domain: hostname,
-      estimatedPrice: hostname.includes('michelin') ? 140 : 65,
+      estimatedPrice: undefined, // No price required for restaurants
       imageUrl: RESTAURANT_GALLERY_SETS[0],
       galleryImages: RESTAURANT_GALLERY_SETS,
-      description: `Reserva gastronómica y cita recomendada en ${brandName}`,
+      description: `Reserva gastronómica en ${brandName}`,
     };
   }
 
@@ -299,10 +319,10 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
     const cleanTitle = cleanQueryToTitle(descriptiveSegment);
 
     const finalTitle = matchedDestName
-      ? `Escapada a ${matchedDestName} · ${brandName}`
+      ? `Escapada a ${matchedDestName}`
       : cleanTitle
       ? `${cleanTitle} · ${brandName}`
-      : `Viaje y Experiencia · ${brandName}`;
+      : `Viaje y Escapada · ${brandName}`;
 
     return {
       title: finalTitle,
@@ -312,7 +332,7 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       estimatedPrice: matchedPrice,
       imageUrl: TRAVEL_GALLERY_SETS[0],
       galleryImages: TRAVEL_GALLERY_SETS,
-      description: `Plan de viaje, alojamiento o cita especial`,
+      description: `Plan de viaje o alojamiento guardado`,
     };
   }
 

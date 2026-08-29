@@ -513,10 +513,71 @@ export default function WishesScreen() {
             </View>
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>Enlace web o tienda (autocompleta los datos)</Text>
+              {/* ── 1. SELECTOR PRINCIPAL DE CATEGORÍA ── */}
+              <View style={styles.modalCategorySection}>
+                <Text style={styles.inputLabel}>Tipo de deseo o rincón</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.categoryChipsScroll}
+                >
+                  {[
+                    { id: 'restaurant', label: '🍽️ Restaurante' },
+                    { id: 'fashion', label: '👗 Moda & Regalo' },
+                    { id: 'trip', label: '✈️ Viaje & Cita' },
+                    { id: 'home', label: '🏡 Hogar & Deco' },
+                    { id: 'beauty', label: '💄 Belleza' },
+                    { id: 'experience', label: '🎟️ Experiencia' },
+                  ].map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[
+                        styles.categoryChoiceChip,
+                        newType === item.id && styles.categoryChoiceChipActive,
+                      ]}
+                      onPress={() => {
+                        triggerHaptic('selection');
+                        setNewType(item.id as WishlistItemType);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryChoiceChipText,
+                          newType === item.id && styles.categoryChoiceChipTextActive,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* ── 2. ENLACE O TIENDA AUTOCOMPLETABLE ── */}
+              <Text style={styles.inputLabel}>
+                {newType === 'restaurant'
+                  ? 'Enlace de Google Maps / Apple Maps / Web del restaurante'
+                  : newType === 'trip'
+                  ? 'Enlace de Booking, Airbnb, vuelo o destino'
+                  : newType === 'home'
+                  ? 'Enlace de la tienda de decoración (IKEA, Zara Home...)'
+                  : newType === 'experience'
+                  ? 'Enlace del evento, spa o entradas'
+                  : 'Enlace web o tienda (autocompleta los datos)'}
+              </Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="Pega un enlace de Sézane, Zara, Booking, Amazon..."
+                placeholder={
+                  newType === 'restaurant'
+                    ? 'Pega enlace de Google Maps, TheFork o web...'
+                    : newType === 'trip'
+                    ? 'Pega enlace de Booking, Airbnb, vuelo o destino...'
+                    : newType === 'home'
+                    ? 'Pega enlace de Zara Home, IKEA, Kave Home...'
+                    : newType === 'experience'
+                    ? 'Pega enlace del plan, entradas o concierto...'
+                    : 'Pega un enlace de Sézane, Louis Vuitton, Zara, Nike...'
+                }
                 placeholderTextColor={Colors.light.textMuted}
                 value={newUrl}
                 onChangeText={handleUrlChange}
@@ -539,38 +600,103 @@ export default function WishesScreen() {
                 </View>
               )}
 
-              <Text style={styles.inputLabel}>Título o idea *</Text>
+              {/* ── 3. CAMPOS ADAPTADOS SEGÚN EL TIPO SELECCIONADO ── */}
+              <Text style={styles.inputLabel}>
+                {newType === 'restaurant'
+                  ? 'Nombre del restaurante o local *'
+                  : newType === 'trip'
+                  ? 'Destino o Escapada *'
+                  : newType === 'home'
+                  ? 'Mueble o elemento deco *'
+                  : newType === 'experience'
+                  ? 'Experiencia o Plan *'
+                  : 'Prenda, regalo o idea *'}
+              </Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="ej. Bolso de piel café / Cena japonesa en barra"
+                placeholder={
+                  newType === 'restaurant'
+                    ? 'ej. Don Salvatore / Desde 1911 / Sacha'
+                    : newType === 'trip'
+                    ? 'ej. Escapada a Menorca / Cabaña en Dolomitas'
+                    : newType === 'home'
+                    ? 'ej. Lámpara de sobremesa lino'
+                    : newType === 'experience'
+                    ? 'ej. Concierto a la luz de las velas'
+                    : 'ej. Bolso Claude Piel Caramelo'
+                }
                 placeholderTextColor={Colors.light.textMuted}
                 value={newTitle}
                 onChangeText={setNewTitle}
               />
 
-              <View style={styles.rowTwoInputs}>
-                <View style={{ flex: 1, marginRight: Spacing.sm }}>
-                  <Text style={styles.inputLabel}>Marca o Tienda</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="ej. Sézane, Massimo Dutti"
-                    placeholderTextColor={Colors.light.textMuted}
-                    value={newBrand}
-                    onChangeText={setNewBrand}
-                  />
+              {/* FILA SECUNDARIA DINÁMICA: RESTAURANTE vs MODA/VIAJE */}
+              {newType === 'restaurant' ? (
+                <View style={styles.rowTwoInputs}>
+                  <View style={{ flex: 1, marginRight: Spacing.sm }}>
+                    <Text style={styles.inputLabel}>Ubicación o Barrio</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="ej. Ruzafa, Valencia"
+                      placeholderTextColor={Colors.light.textMuted}
+                      value={newBrand}
+                      onChangeText={setNewBrand}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Tipo de cocina / Ocasión</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="ej. Italiano romántico"
+                      placeholderTextColor={Colors.light.textMuted}
+                      value={newDescription}
+                      onChangeText={setNewDescription}
+                    />
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Precio aprox. (€)</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="ej. 120"
-                    placeholderTextColor={Colors.light.textMuted}
-                    value={newPrice}
-                    onChangeText={setNewPrice}
-                    keyboardType="numeric"
-                  />
+              ) : (
+                <View style={styles.rowTwoInputs}>
+                  <View style={{ flex: 1, marginRight: Spacing.sm }}>
+                    <Text style={styles.inputLabel}>
+                      {newType === 'trip'
+                        ? 'Alojamiento o Transporte'
+                        : newType === 'home'
+                        ? 'Tienda de deco'
+                        : newType === 'experience'
+                        ? 'Lugar o Proveedor'
+                        : 'Marca o Tienda'}
+                    </Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder={
+                        newType === 'trip'
+                          ? 'ej. Hotel Boutique / Airbnb'
+                          : newType === 'home'
+                          ? 'ej. Zara Home, IKEA'
+                          : newType === 'experience'
+                          ? 'ej. Auditorio / Balneario'
+                          : 'ej. Sézane, Massimo Dutti'
+                      }
+                      placeholderTextColor={Colors.light.textMuted}
+                      value={newBrand}
+                      onChangeText={setNewBrand}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>
+                      {newType === 'trip' ? 'Presupuesto aprox. (€)' : 'Precio aprox. (€)'}
+                    </Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder={newType === 'trip' ? 'ej. 350' : 'ej. 120'}
+                      placeholderTextColor={Colors.light.textMuted}
+                      value={newPrice}
+                      onChangeText={setNewPrice}
+                      keyboardType="numeric"
+                    />
+                  </View>
                 </View>
-              </View>
+              )}
 
               {/* INTERACTIVE MULTI-IMAGE GALLERY SELECTOR */}
               {newGalleryImages.length > 0 && (
@@ -618,20 +744,38 @@ export default function WishesScreen() {
               <PhotoUploadField
                 imageUri={newImageUrl}
                 onImageChange={handleCustomImageAdded}
-                label={newGalleryImages.length > 0 ? '+ Añadir otra foto a la galería' : 'Foto del deseo o captura'}
+                label={
+                  newGalleryImages.length > 0
+                    ? '+ Añadir otra foto a la galería'
+                    : newType === 'restaurant'
+                    ? 'Foto del local, plato o carta'
+                    : newType === 'trip'
+                    ? 'Foto del destino o alojamiento'
+                    : 'Foto del deseo o captura'
+                }
                 placeholderText="Toca para subir foto desde la cámara o galería"
               />
 
-              <Text style={styles.inputLabel}>Notas o detalles</Text>
-              <TextInput
-                style={[styles.textInput, styles.textArea]}
-                placeholder="ej. En color caramelo, para una ocasión especial"
-                placeholderTextColor={Colors.light.textMuted}
-                value={newDescription}
-                onChangeText={setNewDescription}
-                multiline
-                numberOfLines={3}
-              />
+              {newType !== 'restaurant' && (
+                <>
+                  <Text style={styles.inputLabel}>Notas o detalles</Text>
+                  <TextInput
+                    style={[styles.textInput, styles.textArea]}
+                    placeholder={
+                      newType === 'trip'
+                        ? 'ej. Para primavera o fin de semana largo'
+                        : newType === 'home'
+                        ? 'ej. Para el salón junto a la ventana'
+                        : 'ej. En color caramelo, para una ocasión especial'
+                    }
+                    placeholderTextColor={Colors.light.textMuted}
+                    value={newDescription}
+                    onChangeText={setNewDescription}
+                    multiline
+                    numberOfLines={3}
+                  />
+                </>
+              )}
 
               {/* TOGGLE ADVANCED */}
               <TouchableOpacity
@@ -639,7 +783,7 @@ export default function WishesScreen() {
                 onPress={() => setShowAdvancedFields(!showAdvancedFields)}
               >
                 <Text style={styles.toggleAdvancedText}>
-                  {showAdvancedFields ? '▲ Ocultar opciones extra' : '▼ Añadir categoría, precio y ocasión'}
+                  {showAdvancedFields ? '▲ Ocultar estado emocional' : '▼ Estado emocional e ilusión'}
                 </Text>
               </TouchableOpacity>
 
@@ -1258,5 +1402,33 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     lineHeight: 11,
+  },
+  modalCategorySection: {
+    marginBottom: Spacing.md,
+  },
+  categoryChipsScroll: {
+    gap: Spacing.xs,
+    paddingVertical: 4,
+  },
+  categoryChoiceChip: {
+    paddingVertical: 7,
+    paddingHorizontal: 13,
+    borderRadius: 4, // Squared clean chip
+    backgroundColor: Colors.light.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  categoryChoiceChipActive: {
+    backgroundColor: Colors.light.primaryLight,
+    borderColor: Colors.light.primary,
+  },
+  categoryChoiceChipText: {
+    fontSize: 12.5,
+    fontWeight: '500',
+    color: Colors.light.textSecondary,
+  },
+  categoryChoiceChipTextActive: {
+    color: Colors.light.primaryDark,
+    fontWeight: '700',
   },
 });
