@@ -351,9 +351,7 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
         'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=1000&auto=format&fit=crop',
       ];
     } else {
-      images = [
-        'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1000&auto=format&fit=crop',
-      ];
+      images = [];
     }
 
     return {
@@ -362,7 +360,7 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       type: 'fashion',
       domain: hostname,
       estimatedPrice: price,
-      imageUrl: images[0],
+      imageUrl: images.length > 0 ? images[0] : undefined,
       galleryImages: images,
       description: `Prenda de colección ${brandName}`,
     };
@@ -379,12 +377,25 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
     let price = 42.99;
     let images: string[] = [];
 
-    if (lowerUrl.includes('kayali') || lowerUrl.includes('marshmallow')) {
+    if (
+      lowerUrl.includes('sol-de-janeiro') ||
+      lowerUrl.includes('rosa-charmosa') ||
+      lowerUrl.includes('rosa-chamosa') ||
+      lowerUrl.includes('cheirosa') ||
+      lowerUrl.includes('bum-bum') ||
+      lowerUrl.includes('delicia') ||
+      lowerUrl.includes('beija-flor')
+    ) {
+      brand = 'Sol de Janeiro · Sephora';
+      price = 48.0;
+      images = [
+        'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=1000&auto=format&fit=crop',
+      ];
+    } else if (lowerUrl.includes('kayali') || lowerUrl.includes('marshmallow')) {
       brand = 'KAYALI · Sephora';
       price = 42.99;
       images = [
         'https://images.unsplash.com/photo-1608248597359-25f0a0d4c94d?w=1000&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=1000&auto=format&fit=crop',
       ];
     } else if (lowerUrl.includes('rare-beauty') || lowerUrl.includes('rare')) {
       brand = 'Rare Beauty · Sephora';
@@ -392,31 +403,32 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       images = [
         'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=1000&auto=format&fit=crop',
       ];
-    } else if (lowerUrl.includes('sol-de-janeiro') || lowerUrl.includes('cheirosa')) {
-      brand = 'Sol de Janeiro · Sephora';
-      price = 38.0;
+    } else if (lowerUrl.includes('gisou')) {
+      brand = 'Gisou · Sephora';
+      price = 41.0;
       images = [
-        'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1608248597359-25f0a0d4c94d?w=1000&auto=format&fit=crop',
+      ];
+    } else if (lowerUrl.includes('fenty')) {
+      brand = 'Fenty Beauty · Sephora';
+      price = 24.99;
+      images = [
+        'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=1000&auto=format&fit=crop',
+      ];
+    } else if (lowerUrl.includes('dior')) {
+      brand = 'Dior · Sephora';
+      price = 44.0;
+      images = [
+        'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=1000&auto=format&fit=crop',
       ];
     } else if (lowerUrl.includes('perfume') || lowerUrl.includes('fragrance') || lowerUrl.includes('eau-de-parfum')) {
       price = 89.0;
       images = [
         'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=1000&auto=format&fit=crop',
       ];
-    } else if (lowerUrl.includes('crema') || lowerUrl.includes('serum') || lowerUrl.includes('hidratante')) {
-      price = 45.0;
-      images = [
-        'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=1000&auto=format&fit=crop',
-      ];
-    } else if (lowerUrl.includes('labial') || lowerUrl.includes('lipstick') || lowerUrl.includes('gloss')) {
-      price = 24.0;
-      images = [
-        'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=1000&auto=format&fit=crop',
-      ];
     } else {
-      images = [
-        'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1000&auto=format&fit=crop',
-      ];
+      // Clean fallback if no specific line match: let user upload exact photo
+      images = [];
     }
 
     return {
@@ -425,7 +437,7 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       type: 'beauty',
       domain: hostname,
       estimatedPrice: price,
-      imageUrl: images[0],
+      imageUrl: images.length > 0 ? images[0] : undefined,
       galleryImages: images,
       description: `Tratamiento y belleza en ${brand}`,
     };
