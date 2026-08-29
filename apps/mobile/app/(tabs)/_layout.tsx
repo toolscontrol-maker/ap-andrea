@@ -17,9 +17,16 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors.light.primary,
         tabBarInactiveTintColor: Colors.light.textMuted,
         tabBarStyle: {
-          backgroundColor: Colors.light.surfaceElevated,
-          borderTopColor: Colors.light.border,
+          backgroundColor: Platform.OS === 'web' ? 'rgba(253, 252, 250, 0.85)' : Colors.light.surfaceElevated,
+          ...(Platform.OS === 'web'
+            ? ({
+                backdropFilter: 'blur(25px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(25px) saturate(180%)',
+              } as any)
+            : {}),
+          borderTopColor: 'rgba(20, 19, 18, 0.08)',
           borderTopWidth: 1,
+          borderRadius: 0,
           height: Layout.tabBarHeight,
           paddingBottom: Platform.OS === 'web' ? 12 : 14,
           paddingTop: 8,

@@ -7,7 +7,8 @@ import {
   Modal,
   TextInput,
   ScrollView,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AndreaMap } from '../../../src/components/map/AndreaMap';
@@ -410,9 +411,19 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalCard: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: Radii['2xl'],
-    borderTopRightRadius: Radii['2xl'],
+    backgroundColor: Platform.OS === 'web' ? 'rgba(253, 252, 250, 0.90)' : '#FFFFFF',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(30px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+        } as any)
+      : {}),
+    borderTopLeftRadius: 4, // Squared corners
+    borderTopRightRadius: 4, // Squared corners
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.75)',
     maxHeight: '85%',
     padding: Spacing.lg,
   },

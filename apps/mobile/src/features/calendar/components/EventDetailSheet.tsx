@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, Alert, Platform } from 'react-native';
 import { SanitizedEventItem } from '../domain/calendar.types';
 import { formatDateNice, getDaysUntil } from '../utils/calendarDateUtils';
 import { triggerHaptic } from '../../../utils/haptics';
@@ -177,9 +177,19 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: Radii['2xl'],
-    borderTopRightRadius: Radii['2xl'],
+    backgroundColor: Platform.OS === 'web' ? 'rgba(253, 252, 250, 0.90)' : '#FFFFFF',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(30px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+        } as any)
+      : {}),
+    borderTopLeftRadius: 4, // Squared corners
+    borderTopRightRadius: 4, // Squared corners
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.75)',
     maxHeight: '90%',
     paddingTop: Spacing.md,
     paddingBottom: Spacing['3xl'],

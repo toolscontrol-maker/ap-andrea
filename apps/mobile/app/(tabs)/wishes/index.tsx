@@ -8,7 +8,8 @@ import {
   ScrollView,
   TextInput,
   Modal,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDev } from '../../../src/context/DevContext';
@@ -1004,9 +1005,19 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end'
   },
   modalCard: {
-    backgroundColor: Colors.light.surface,
-    borderTopLeftRadius: Radii['2xl'],
-    borderTopRightRadius: Radii['2xl'],
+    backgroundColor: Platform.OS === 'web' ? 'rgba(253, 252, 250, 0.88)' : Colors.light.surface,
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(30px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+        } as any)
+      : {}),
+    borderTopLeftRadius: 4, // Squared corners
+    borderTopRightRadius: 4, // Squared corners
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.75)',
     padding: Spacing.xl,
     maxHeight: '90%'
   },

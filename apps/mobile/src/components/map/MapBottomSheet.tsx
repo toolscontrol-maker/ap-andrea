@@ -124,11 +124,17 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 480,
-    backgroundColor: 'rgba(8, 18, 36, 0.94)',
-    borderRadius: Radii['2xl'],
+    backgroundColor: 'rgba(8, 18, 36, 0.88)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(30px) saturate(190%)',
+          WebkitBackdropFilter: 'blur(30px) saturate(190%)',
+        } as any)
+      : {}),
+    borderRadius: 4, // Clean squared corners
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.14)',
+    borderColor: 'rgba(255, 255, 255, 0.22)',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.7,
