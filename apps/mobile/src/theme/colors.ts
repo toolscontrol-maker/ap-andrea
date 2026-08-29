@@ -1,71 +1,79 @@
 /**
- * Andrea Design System — Luxury Aesthetic Palettes, Gradients & Ambient Glows
- * Inspired by Apple Design Awards, Opal, Linear & Amie.
+ * Andrea Design System — High-Fashion Editorial & Apple Glass Palette
+ * Inspired by Acne Studios, Zara Studio, Totême, and Apple iOS 18 HIG.
+ * Monochromatic elegance, pure obsidian typography, vintage HTML hairlines, and frosted glass.
  */
 
 export const Colors = {
   light: {
-    // 1. Atmosphere & Canvas
-    background: '#FAF6F0',        // Warm Linen Cream
-    backgroundWarm: '#F5ECE1',
+    // 1. Atmosphere & Canvas (Acne / Zara Studio Atelier Paper)
+    background: '#FAF9F6',        // Warm Editorial Atelier Off-White
+    backgroundWarm: '#F3F2EE',    // Pale Stone Canvas
+    backgroundMuted: '#EBE9E4',   // Inset Grouped Canvas
     surface: '#FFFFFF',           // Crisp Opal Surface
-    surfaceGlass: 'rgba(255, 255, 255, 0.85)',
+    surfaceGlass: 'rgba(250, 249, 246, 0.82)', // Frosted glass with high blur
+    surfaceGlassElevated: 'rgba(255, 255, 255, 0.90)',
     surfaceElevated: '#FFFFFF',
-    surfaceSubtle: '#F4ECE4',
+    surfaceSubtle: '#F6F5F1',
     surfaceHighlight: '#FFFDF9',
+    surfaceDark: '#121212',       // Inverted Noir Capsule
 
-    // 2. Emotional Coral & Rose Glow (Nuestro Diario / Sorpresas)
-    primary: '#E86A58',           // Rich Velvet Coral
-    primaryLight: '#FBECE8',
-    primaryDark: '#C74A38',
-    primaryGlow: 'rgba(232, 106, 88, 0.28)',
-    gradientPrimary: ['#FF7E6B', '#E85B47'],
+    // 2. Monochromatic Primary & Obsidian Contrast (Zero Rainbow)
+    primary: '#111111',           // Pure Deep Obsidian
+    primaryLight: '#F0EFEA',      // Soft Atelier Stone Pill
+    primaryDark: '#000000',       // Pure Pitch Black
+    primaryGlow: 'rgba(17, 17, 17, 0.08)',
+    gradientPrimary: ['#1A1A1A', '#0D0D0D'],
 
-    // 3. Ethereal Lavender & AI Violet (AYA Space)
-    secondary: '#8E77C6',         // Velvet Lavender
-    secondaryLight: '#EFEBF8',
-    secondaryDark: '#6850A3',
-    secondaryGlow: 'rgba(142, 119, 198, 0.28)',
-    gradientSecondary: ['#A48EE0', '#7B62BA'],
+    // 3. Secondary Editorial Tone
+    secondary: '#3D3B39',         // Deep Muted Charcoal
+    secondaryLight: '#EAE8E3',
+    secondaryDark: '#1E1D1C',
+    secondaryGlow: 'rgba(61, 59, 57, 0.12)',
+    gradientSecondary: ['#3D3B39', '#242321'],
 
-    // 4. Calming Sage Green
-    sage: '#6D9E79',              // Nordic Sage
-    sageLight: '#EBF4ED',
-    sageDark: '#4D7D59',
-    sageGlow: 'rgba(109, 158, 121, 0.24)',
+    // 4. Quiet Luxury Accents (Subtle, Muted, Never Gaudy)
+    sage: '#5E7063',              // Muted Atelier Olive Sage
+    sageLight: '#EEF2EF',
+    sageDark: '#3A483E',
+    sageGlow: 'rgba(94, 112, 99, 0.15)',
 
-    // 5. Warm Golden Butter & Candlelight (Ilusión / Preguntas)
-    butter: '#E5A93C',            // Warm Honey Gold
-    butterLight: '#FCF5E5',
-    butterDark: '#B87E15',
-    butterGlow: 'rgba(229, 169, 60, 0.3)',
-    gradientButter: ['#F5C25D', '#E5A93C'],
+    butter: '#8C734B',            // Vintage Muted Warm Bronze
+    butterLight: '#F7F3EB',
+    butterDark: '#5E4C2F',
+    butterGlow: 'rgba(140, 115, 75, 0.15)',
+    gradientButter: ['#9C8257', '#7D643E'],
 
-    // 6. Deep Atlantic Mist & Voyage Blue (Mapa & Recuerdos)
-    mistBlue: '#4A7C9B',          // Deep Fjords Blue
-    mistBlueLight: '#E6EFF4',
-    mistBlueDark: '#2C5772',
-    mistBlueGlow: 'rgba(74, 124, 155, 0.28)',
-    gradientMist: ['#5E94B5', '#3A6A87'],
+    mistBlue: '#4A5B68',          // Slate Architectural Mist
+    mistBlueLight: '#ECEFF2',
+    mistBlueDark: '#2C3842',
+    mistBlueGlow: 'rgba(74, 91, 104, 0.15)',
+    gradientMist: ['#596E7D', '#3D4C57'],
 
-    // 7. Luxury Editorial Typography
-    text: '#2B2129',              // Obsidian Plum (Deep, warm luxury text)
-    textSecondary: '#6B5E68',      // Mallow Slate
-    textMuted: '#9B8E98',          // Soft Warm Gray
-    textLight: '#C9BFC7',
-    textGold: '#946714',
+    accentRose: '#C25E5E',        // Muted Terracotta Rose for couple hearts
+    accentRoseLight: '#F9ECEC',
+    accentGold: '#947B4F',        // Antique Specular Gold for star badges
+
+    // 5. High-Fashion Editorial Typography
+    text: '#111111',              // Pure Obsidian Black
+    textSecondary: '#5A5855',      // Editorial Charcoal Taupe
+    textMuted: '#8E8C88',          // Atelier Stone Gray
+    textLight: '#B8B6B2',         // Hairline Text / Placeholder
+    textGold: '#8C734B',          // Muted Bronze
     textInverse: '#FFFFFF',
-    error: '#D9534F',
+    textMono: '#222222',          // Vintage HTML Monospace Text
+    error: '#B83232',
 
-    // 8. Bevels, Glass Borders & Ambient Shadows
-    border: 'rgba(43, 33, 41, 0.07)',
-    borderStrong: 'rgba(43, 33, 41, 0.12)',
-    borderGlass: 'rgba(255, 255, 255, 0.65)',
-    borderGold: 'rgba(229, 169, 60, 0.35)',
-    divider: 'rgba(43, 33, 41, 0.05)',
+    // 6. Hairlines, Glass Borders & Ambient Shadows (Vintage HTML + Apple Specular)
+    border: 'rgba(17, 17, 17, 0.08)',
+    borderStrong: 'rgba(17, 17, 17, 0.18)',
+    borderGlass: 'rgba(255, 255, 255, 0.85)',
+    borderGold: 'rgba(140, 115, 75, 0.25)',
+    borderDark: '#111111',
+    divider: 'rgba(17, 17, 17, 0.06)',
 
-    cardShadow: 'rgba(43, 33, 41, 0.05)',
-    modalBackdrop: 'rgba(25, 17, 23, 0.55)',
+    cardShadow: 'rgba(17, 17, 17, 0.04)',
+    modalBackdrop: 'rgba(17, 17, 17, 0.60)',
   },
 } as const;
 

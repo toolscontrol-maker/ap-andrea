@@ -14,27 +14,28 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.light.primary,
-        tabBarInactiveTintColor: Colors.light.textMuted,
+        tabBarActiveTintColor: '#111111',
+        tabBarInactiveTintColor: '#8E8C88',
         tabBarStyle: {
-          backgroundColor: Platform.OS === 'web' ? 'rgba(253, 252, 250, 0.85)' : Colors.light.surfaceElevated,
+          backgroundColor: Platform.OS === 'web' ? 'rgba(250, 249, 246, 0.85)' : '#FFFFFF',
           ...(Platform.OS === 'web'
             ? ({
-                backdropFilter: 'blur(25px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(25px) saturate(180%)',
+                backdropFilter: 'blur(30px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(30px) saturate(180%)',
               } as any)
             : {}),
-          borderTopColor: 'rgba(20, 19, 18, 0.08)',
+          borderTopColor: 'rgba(17, 17, 17, 0.07)',
           borderTopWidth: 1,
           borderRadius: 0,
           height: Layout.tabBarHeight,
           paddingBottom: Platform.OS === 'web' ? 12 : 14,
           paddingTop: 8,
-          ...Shadows.md,
+          ...Shadows.glass,
         },
         tabBarLabelStyle: {
-          ...Typography.captionBold,
-          fontSize: 10.5,
+          ...Typography.vintageTag,
+          fontSize: 9,
+          letterSpacing: 1.4,
           marginTop: 2,
         },
         headerShown: false,
@@ -46,9 +47,9 @@ export default function TabLayout() {
           title: 'Nido',
           tabBarIcon: ({ color, focused }) => (
             <IconHome
-              size={20}
+              size={19}
               color={color}
-              strokeWidth={focused ? 2.2 : 1.75}
+              strokeWidth={focused ? 2.2 : 1.6}
             />
           ),
         }}
@@ -59,9 +60,9 @@ export default function TabLayout() {
           title: 'Deseos',
           tabBarIcon: ({ color, focused }) => (
             <IconHeart
-              size={20}
+              size={19}
               color={color}
-              strokeWidth={focused ? 2.2 : 1.75}
+              strokeWidth={focused ? 2.2 : 1.6}
             />
           ),
         }}
@@ -72,9 +73,9 @@ export default function TabLayout() {
           title: 'Agenda',
           tabBarIcon: ({ color, focused }) => (
             <IconCalendar
-              size={20}
+              size={19}
               color={color}
-              strokeWidth={focused ? 2.2 : 1.75}
+              strokeWidth={focused ? 2.2 : 1.6}
             />
           ),
         }}
@@ -85,9 +86,9 @@ export default function TabLayout() {
           title: 'Mapa',
           tabBarIcon: ({ color, focused }) => (
             <IconMapPin
-              size={20}
+              size={19}
               color={color}
-              strokeWidth={focused ? 2.2 : 1.75}
+              strokeWidth={focused ? 2.2 : 1.6}
             />
           ),
         }}
@@ -98,9 +99,9 @@ export default function TabLayout() {
           title: 'Cuenta',
           tabBarIcon: ({ color, focused }) => (
             <IconUser
-              size={20}
+              size={19}
               color={color}
-              strokeWidth={focused ? 2.2 : 1.75}
+              strokeWidth={focused ? 2.2 : 1.6}
             />
           ),
         }}

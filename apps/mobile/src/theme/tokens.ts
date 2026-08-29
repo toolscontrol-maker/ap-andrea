@@ -1,8 +1,10 @@
 /**
- * Andrea Design System — Core Tokens (Apple HIG & Quiet Luxury Standards)
- * Inspired by Apple Design Awards, Apple Journal, Things 3 & Flighty.
- * 8-point geometric scale, G2 continuous squircle curvature, Materials & SF Pro optical tracking.
+ * Andrea Design System — Core Tokens (Apple HIG × Vintage HTML / Acne Studios Standards)
+ * Monochromatic hierarchy, high-fashion negative letter-spacing, vintage HTML metadata tags,
+ * generous editorial spacing rhythm, and continuous squircle geometry.
  */
+
+import { Platform } from 'react-native';
 
 export const Spacing = {
   none: 0,
@@ -21,12 +23,12 @@ export const Spacing = {
 
 export const Radii = {
   none: 0,
-  xs: 8,      // Micro tags, badges
-  sm: 12,     // Inputs, chips, inner items
-  md: 16,     // Buttons, interactive pills
-  lg: 20,     // Inset cards, medium widgets
+  xs: 6,      // Micro tags, vintage badges
+  sm: 10,     // Chips, inner items
+  md: 14,     // Buttons, interactive pills
+  lg: 18,     // Inset cards, medium widgets
   xl: 24,     // Feature cards, photo frames
-  '2xl': 28,  // Modal sheets, bottom sheets
+  '2xl': 28,  // Modal sheets, bottom drawers
   '3xl': 32,  // Hero cards, dialog containers
   '4xl': 36,  // Large bottom drawers
   full: 9999, // Circular buttons, action pills
@@ -35,116 +37,98 @@ export const Radii = {
 export const Typography = {
   display: {
     fontSize: 34,
-    lineHeight: 41,
+    lineHeight: 40,
     fontWeight: '800' as const,
-    letterSpacing: -0.8,
+    letterSpacing: -1.2,
   },
   h1: {
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 26,
+    lineHeight: 32,
     fontWeight: '700' as const,
-    letterSpacing: -0.6,
+    letterSpacing: -0.8,
   },
   h2: {
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 20,
+    lineHeight: 26,
     fontWeight: '700' as const,
-    letterSpacing: -0.4,
+    letterSpacing: -0.5,
   },
   h3: {
-    fontSize: 20,
-    lineHeight: 25,
-    fontWeight: '600' as const,
-    letterSpacing: -0.2,
-  },
-  headline: {
     fontSize: 17,
     lineHeight: 22,
     fontWeight: '600' as const,
-    letterSpacing: -0.4,
-  },
-  bodyLarge: {
-    fontSize: 17,
-    lineHeight: 22,
-    fontWeight: '400' as const,
-    letterSpacing: -0.4,
-  },
-  body: {
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: '400' as const,
-    letterSpacing: -0.2,
-  },
-  bodyMedium: {
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: '600' as const,
-    letterSpacing: -0.2,
-  },
-  callout: {
-    fontSize: 16,
-    lineHeight: 21,
-    fontWeight: '400' as const,
     letterSpacing: -0.3,
   },
-  subheadline: {
+  headline: {
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: '600' as const,
+    letterSpacing: -0.3,
+  },
+  bodyLarge: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '400' as const,
+    letterSpacing: -0.2,
+  },
+  body: {
+    fontSize: 14.5,
+    lineHeight: 20,
+    fontWeight: '400' as const,
+    letterSpacing: -0.15,
+  },
+  bodyMedium: {
+    fontSize: 14.5,
+    lineHeight: 20,
+    fontWeight: '600' as const,
+    letterSpacing: -0.15,
+  },
+  callout: {
     fontSize: 15,
     lineHeight: 20,
     fontWeight: '400' as const,
     letterSpacing: -0.2,
   },
-  footnote: {
-    fontSize: 13,
-    lineHeight: 18,
+  subheadline: {
+    fontSize: 14,
+    lineHeight: 19,
     fontWeight: '400' as const,
     letterSpacing: -0.1,
   },
-  caption: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '500' as const,
+  footnote: {
+    fontSize: 12.5,
+    lineHeight: 17,
+    fontWeight: '400' as const,
     letterSpacing: 0,
+  },
+  caption: {
+    fontSize: 11.5,
+    lineHeight: 15,
+    fontWeight: '500' as const,
+    letterSpacing: 0.2,
   },
   captionBold: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700' as const,
-    letterSpacing: 0,
-  },
-  overline: {
     fontSize: 11,
-    lineHeight: 13,
+    lineHeight: 15,
     fontWeight: '700' as const,
-    letterSpacing: 0.6,
+    letterSpacing: 1.2,
     textTransform: 'uppercase' as const,
   },
-} as const;
-
-export const Materials = {
-  ultraThin: {
-    backgroundColor: 'rgba(255, 255, 255, 0.45)',
-    borderColor: 'rgba(255, 255, 255, 0.20)',
-    borderWidth: 1,
+  // Vintage HTML & Technical Micro-Grotesque Tags
+  vintageTag: {
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '700' as const,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase' as const,
+    fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
   },
-  thin: {
-    backgroundColor: 'rgba(255, 255, 255, 0.70)',
-    borderColor: 'rgba(255, 255, 255, 0.18)',
-    borderWidth: 1,
-  },
-  regular: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    borderWidth: 1,
-  },
-  thick: {
-    backgroundColor: 'rgba(255, 255, 255, 0.94)',
-    borderColor: 'rgba(0, 0, 0, 0.06)',
-    borderWidth: 1,
-  },
-  darkGlass: {
-    backgroundColor: 'rgba(12, 24, 48, 0.80)',
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    borderWidth: 1,
+  overline: {
+    fontSize: 10.5,
+    lineHeight: 14,
+    fontWeight: '700' as const,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase' as const,
   },
 } as const;
 
@@ -157,56 +141,48 @@ export const Shadows = {
     elevation: 0,
   },
   subtle: {
-    shadowColor: 'rgba(30, 20, 35, 0.04)',
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
+    shadowOpacity: 0.03,
     shadowRadius: 8,
     elevation: 1,
   },
   sm: {
-    shadowColor: 'rgba(30, 20, 35, 0.06)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 2,
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 1,
   },
   md: {
-    shadowColor: 'rgba(30, 20, 35, 0.08)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 1,
-    shadowRadius: 20,
-    elevation: 4,
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 2,
   },
   lg: {
-    shadowColor: 'rgba(30, 20, 35, 0.12)',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 1,
-    shadowRadius: 32,
-    elevation: 8,
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 4,
   },
-} as const;
-
-export const SpringPresets = {
-  interactiveTap: {
-    stiffness: 400,
-    damping: 25,
-    mass: 0.8,
-  },
-  sheetSlide: {
-    stiffness: 300,
-    damping: 30,
-    mass: 1.0,
-  },
-  segmentSnap: {
-    stiffness: 500,
-    damping: 35,
-    mass: 0.6,
+  glass: {
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.06,
+    shadowRadius: 28,
+    elevation: 3,
   },
 } as const;
 
 export const Layout = {
-  maxContentWidth: 680,
-  screenPaddingHorizontal: Spacing.lg,
-  screenPaddingVertical: Spacing.lg,
+  headerHeight: 52,
   tabBarHeight: 68,
+  screenPadding: Spacing.md,
+  screenPaddingHorizontal: Spacing.md,
+  cardGap: Spacing.sm,
+  sectionGap: Spacing.xl,
+  maxContentWidth: 480, // High-fashion central runway constraint
 } as const;

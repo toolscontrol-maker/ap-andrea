@@ -25,7 +25,7 @@ import { EmptyState } from '../../../src/components/ui/EmptyState';
 import { PhotoUploadField } from '../../../src/components/ui/PhotoUploadField';
 import { IconSparkles } from '../../../src/components/ui/Icons';
 import { Colors } from '../../../src/theme/colors';
-import { Spacing, Radii, Shadows } from '../../../src/theme/tokens';
+import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
 import { WishlistItem, WishlistStatus, WishlistItemType, Place } from '@andrea/types';
 import { extractLinkMetadata } from '../../../src/utils/linkMetadata';
 import { triggerHaptic } from '../../../src/utils/haptics';
@@ -315,17 +315,24 @@ export default function WishesScreen() {
     <ScreenWrapper>
       {/* HEADER EDITORIAL */}
       <View style={styles.headerContainer}>
-        <View style={styles.headerTextGroup}>
-          <Text style={styles.headerTitle}>Deseos & Rincones</Text>
-          <Text style={styles.headerSubtitle}>Para ahora, para después o para algún día</Text>
+        <View style={styles.headerTopMeta}>
+          <Text style={styles.vintageHeaderTag}>[ WISHBOOK // ARCHIVE 2026 ]</Text>
+          <Text style={styles.vintageHeaderDate}>CATÁLOGO COMPARTIDO</Text>
         </View>
-        <TouchableOpacity
-          style={styles.btnQuickAdd}
-          activeOpacity={0.85}
-          onPress={() => setIsAddModalOpen(true)}
-        >
-          <Text style={styles.btnQuickAddText}>+ Guardar deseo</Text>
-        </TouchableOpacity>
+
+        <View style={styles.headerMainRow}>
+          <View style={styles.headerTextGroup}>
+            <Text style={styles.headerTitle}>Deseos & Rincones</Text>
+            <Text style={styles.headerSubtitle}>Para ahora, para después o para algún día</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.btnQuickAdd}
+            activeOpacity={0.85}
+            onPress={() => setIsAddModalOpen(true)}
+          >
+            <Text style={styles.btnQuickAddText}>+ Guardar deseo</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* FILTER PILLS */}
@@ -339,7 +346,7 @@ export default function WishesScreen() {
           onPress={() => setActiveFilter('all')}
         >
           <Text style={[styles.filterChipText, activeFilter === 'all' && styles.filterChipTextActive]}>
-            Todos ({wishes.length})
+            TODOS ({wishes.length})
           </Text>
         </TouchableOpacity>
 
@@ -348,7 +355,7 @@ export default function WishesScreen() {
           onPress={() => setActiveFilter('restaurants')}
         >
           <Text style={[styles.filterChipText, activeFilter === 'restaurants' && styles.filterChipTextActive]}>
-            Restaurantes
+            RESTAURANTES
           </Text>
         </TouchableOpacity>
 
@@ -357,7 +364,7 @@ export default function WishesScreen() {
           onPress={() => setActiveFilter('fashion')}
         >
           <Text style={[styles.filterChipText, activeFilter === 'fashion' && styles.filterChipTextActive]}>
-            Moda & Belleza
+            MODA & BELLEZA
           </Text>
         </TouchableOpacity>
 
@@ -366,7 +373,7 @@ export default function WishesScreen() {
           onPress={() => setActiveFilter('trips')}
         >
           <Text style={[styles.filterChipText, activeFilter === 'trips' && styles.filterChipTextActive]}>
-            Viajes & Citas
+            VIAJES & CITAS
           </Text>
         </TouchableOpacity>
 
@@ -375,7 +382,7 @@ export default function WishesScreen() {
           onPress={() => setActiveFilter('home')}
         >
           <Text style={[styles.filterChipText, activeFilter === 'home' && styles.filterChipTextActive]}>
-            Hogar
+            HOGAR
           </Text>
         </TouchableOpacity>
 
@@ -384,7 +391,7 @@ export default function WishesScreen() {
           onPress={() => setActiveFilter('fulfilled')}
         >
           <Text style={[styles.filterChipText, activeFilter === 'fulfilled' && styles.filterChipTextActive]}>
-            Cumplidos
+            CUMPLIDOS
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -491,6 +498,15 @@ export default function WishesScreen() {
                     )}
 
                     <View style={styles.wishCardContent}>
+                      {/* VINTAGE HTML CARD HEADER */}
+                      <View style={styles.cardTechnicalHeader}>
+                        <Text style={styles.cardTechnicalIndex}>[ 0{index + 1} ]</Text>
+                        <Text style={styles.cardTechnicalRef}>REF. {wish.type?.toUpperCase() || 'ITEM'}</Text>
+                        <Text style={styles.cardTechnicalStatus}>
+                          {wish.status === 'fulfilled' ? '● CUMPLIDO' : wish.status === 'planned' ? '✦ ESPECIAL' : '○ DESEO'}
+                        </Text>
+                      </View>
+
                       <View style={styles.wishTopRow}>
                         <View style={styles.wishBadgeRow}>
                           {getStatusBadge(wish.status)}
@@ -985,67 +1001,110 @@ export default function WishesScreen() {
 
 const styles = StyleSheet.create({
   headerContainer: {
+    marginBottom: Spacing.xl,
+    paddingTop: Spacing.xs,
+  },
+  headerTopMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+    paddingBottom: Spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17, 17, 17, 0.06)',
+  },
+  vintageHeaderTag: {
+    ...Typography.vintageTag,
+    color: Colors.light.text,
+  },
+  vintageHeaderDate: {
+    ...Typography.vintageTag,
+    color: Colors.light.textMuted,
+  },
+  headerMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
-    paddingTop: Spacing.sm
+    paddingTop: Spacing.xs,
   },
   headerTextGroup: {
     flex: 1,
-    paddingRight: Spacing.md
+    paddingRight: Spacing.md,
   },
   headerTitle: {
+    ...Typography.display,
     fontSize: 26,
-    fontWeight: '700',
     color: Colors.light.text,
-    letterSpacing: -0.5
   },
   headerSubtitle: {
+    ...Typography.body,
     fontSize: 13,
     color: Colors.light.textSecondary,
-    marginTop: 2
+    marginTop: 2,
   },
   btnQuickAdd: {
-    backgroundColor: Colors.light.primary,
-    paddingVertical: 10,
+    backgroundColor: '#111111',
+    paddingVertical: 9,
     paddingHorizontal: 16,
     borderRadius: Radii.full,
-    ...Shadows.sm
+    ...Shadows.sm,
   },
   btnQuickAddText: {
-    color: Colors.light.textInverse,
-    fontWeight: '600',
-    fontSize: 13
+    ...Typography.captionBold,
+    color: '#FFFFFF',
+    fontSize: 11.5,
   },
   filterScroll: {
     paddingBottom: Spacing.md,
-    gap: Spacing.xs
+    gap: Spacing.xs,
   },
   filterChip: {
-    paddingVertical: 7,
-    paddingHorizontal: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 13,
     borderRadius: Radii.full,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: Colors.light.border,
-    marginRight: Spacing.xs
+    borderColor: 'rgba(17, 17, 17, 0.08)',
+    marginRight: Spacing.xs,
   },
   filterChipActive: {
-    backgroundColor: Colors.light.text,
-    borderColor: Colors.light.text
+    backgroundColor: '#111111',
+    borderColor: '#111111',
   },
   filterChipText: {
-    fontSize: 12.5,
-    fontWeight: '500',
-    color: Colors.light.textSecondary
+    ...Typography.vintageTag,
+    fontSize: 9.5,
+    color: Colors.light.textSecondary,
   },
   filterChipTextActive: {
-    color: Colors.light.textInverse,
-    fontWeight: '600'
+    color: '#FFFFFF',
+  },
+  cardTechnicalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: Spacing.xs,
+    marginBottom: Spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17, 17, 17, 0.06)',
+  },
+  cardTechnicalIndex: {
+    ...Typography.vintageTag,
+    color: Colors.light.text,
+    fontSize: 9.5,
+  },
+  cardTechnicalRef: {
+    ...Typography.vintageTag,
+    color: Colors.light.textMuted,
+    fontSize: 9,
+  },
+  cardTechnicalStatus: {
+    ...Typography.vintageTag,
+    color: Colors.light.textSecondary,
+    fontSize: 9,
   },
   sectionBlock: {
-    marginTop: Spacing.lg
+    marginTop: Spacing.xl,
   },
   restaurantsScroll: {
     paddingVertical: Spacing.xs,
