@@ -94,16 +94,11 @@ export default function WishesScreen() {
           triggerHaptic('selection');
           setExtractedSource(meta.brand || meta.domain || 'tienda');
 
-          // Autofill empty or default fields
-          if (!newTitle.trim() || newTitle === 'Nuevo deseo') {
-            if (meta.title) setNewTitle(meta.title);
-          }
-          if (meta.brand && !newBrand.trim()) {
-            setNewBrand(meta.brand);
-          }
-          if (meta.type) {
-            setNewType(meta.type);
-          }
+          // Always autofill exact metadata from link
+          if (meta.title) setNewTitle(meta.title);
+          if (meta.brand) setNewBrand(meta.brand);
+          if (meta.type) setNewType(meta.type);
+          if (meta.estimatedPrice) setNewPrice(meta.estimatedPrice.toString());
           if (meta.galleryImages && meta.galleryImages.length > 0) {
             setNewGalleryImages(meta.galleryImages);
             setNewImageUrl(meta.galleryImages[0]);
@@ -111,7 +106,7 @@ export default function WishesScreen() {
             setNewGalleryImages([meta.imageUrl]);
             setNewImageUrl(meta.imageUrl);
           }
-          if (meta.description && !newDescription.trim()) {
+          if (meta.description) {
             setNewDescription(meta.description);
           }
         }
