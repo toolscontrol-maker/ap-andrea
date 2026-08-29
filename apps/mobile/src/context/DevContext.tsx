@@ -657,6 +657,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
       sourceUrl: wish.sourceUrl,
       sourceDomain: wish.sourceUrl ? new URL(wish.sourceUrl).hostname.replace('www.', '') : undefined,
       externalImageUrl: wish.externalImageUrl,
+      images: wish.images || (wish.externalImageUrl ? [wish.externalImageUrl] : undefined),
       brand: wish.brand,
       estimatedPrice: wish.estimatedPrice,
       currency: 'EUR',

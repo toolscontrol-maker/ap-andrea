@@ -58,6 +58,7 @@ export default function WishesScreen() {
   const [newDescription, setNewDescription] = useState('');
   const [newUrl, setNewUrl] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
+  const [newGalleryImages, setNewGalleryImages] = useState<string[]>([]);
   const [newType, setNewType] = useState<WishlistItemType>('fashion');
   const [newStatus, setNewStatus] = useState<WishlistStatus>('dreaming');
   const [newPrice, setNewPrice] = useState('');
@@ -103,7 +104,11 @@ export default function WishesScreen() {
           if (meta.type) {
             setNewType(meta.type);
           }
-          if (meta.imageUrl && !newImageUrl) {
+          if (meta.galleryImages && meta.galleryImages.length > 0) {
+            setNewGalleryImages(meta.galleryImages);
+            setNewImageUrl(meta.galleryImages[0]);
+          } else if (meta.imageUrl) {
+            setNewGalleryImages([meta.imageUrl]);
             setNewImageUrl(meta.imageUrl);
           }
           if (meta.description && !newDescription.trim()) {
@@ -118,11 +123,37 @@ export default function WishesScreen() {
     }
   };
 
+  const handleSelectCoverImage = (imgUrl: string) => {
+    triggerHaptic('light');
+    setNewImageUrl(imgUrl);
+  };
+
+  const handleRemoveGalleryImage = (imgUrl: string) => {
+    triggerHaptic('light');
+    setNewGalleryImages((prev) => {
+      const updated = prev.filter((img) => img !== imgUrl);
+      if (newImageUrl === imgUrl) {
+        setNewImageUrl(updated[0] || '');
+      }
+      return updated;
+    });
+  };
+
+  const handleCustomImageAdded = (val: string | null) => {
+    if (val) {
+      setNewImageUrl(val);
+      setNewGalleryImages((prev) => [val, ...prev.filter((img) => img !== val)]);
+    } else {
+      setNewImageUrl('');
+    }
+  };
+
   const resetAddForm = () => {
     setNewTitle('');
     setNewDescription('');
     setNewUrl('');
     setNewImageUrl('');
+    setNewGalleryImages([]);
     setNewType('fashion');
     setNewStatus('dreaming');
     setNewPrice('');
@@ -162,7 +193,8 @@ export default function WishesScreen() {
       title: newTitle.trim(),
       description: newDescription.trim() || undefined,
       sourceUrl: newUrl.trim() || undefined,
-      externalImageUrl: newImageUrl.trim() || undefined,
+      externalImageUrl: newImageUrl.trim() || (newGalleryImages.length > 0 ? newGalleryImages[0] : undefined),
+      images: newGalleryImages.length > 0 ? newGalleryImages : (newImageUrl ? [newImageUrl] : undefined),
       type: newType,
       status: newStatus,
       brand: newBrand.trim() || undefined,
@@ -382,8 +414,30 @@ export default function WishesScreen() {
               return (
                 <StaggeredItem key={wish.id} index={index}>
                   <TiltedCard style={styles.wishCard} variant="elevated">
-                    {wish.externalImageUrl && (
-                      <Image source={{ uri: wish.externalImageUrl }} style={styles.wishCardImage} />
+                    {/* MULTI-PHOTO GALLERY OR SINGLE IMAGE */}
+                    {wish.images && wish.images.length > 1 ? (
+                      <View style={styles.wishGalleryWrapper}>
+                        <ScrollView
+                          horizontal
+                          pagingEnabled
+                          showsHorizontalScrollIndicator={false}
+                          style={styles.wishCardGalleryScroll}
+                        >
+                          {wish.images.map((img, i) => (
+                            <Image key={i} source={{ uri: img }} style={styles.wishCardGalleryImage} />
+                          ))}
+                        </ScrollView>
+                        <View style={styles.galleryCountPill}>
+                          <Text style={styles.galleryCountText}>✦ {wish.images.length} fotos</Text>
+                        </View>
+                      </View>
+                    ) : (
+                      (wish.externalImageUrl || (wish.images && wish.images[0])) && (
+                        <Image
+                          source={{ uri: wish.externalImageUrl || (wish.images && wish.images[0]) }}
+                          style={styles.wishCardImage}
+                        />
+                      )
                     )}
 
                     <View style={styles.wishCardContent}>
@@ -522,11 +576,54 @@ export default function WishesScreen() {
                 </View>
               </View>
 
+              {/* INTERACTIVE MULTI-IMAGE GALLERY SELECTOR */}
+              {newGalleryImages.length > 0 && (
+                <View style={styles.gallerySelectorSection}>
+                  <View style={styles.gallerySelectorHeader}>
+                    <Text style={styles.inputLabel}>
+                      Galería autocompletada ({newGalleryImages.length} fotos)
+                    </Text>
+                    <Text style={styles.galleryHint}>Toca para elegir portada</Text>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.galleryScroll}
+                  >
+                    {newGalleryImages.map((imgUrl, idx) => {
+                      const isCover = newImageUrl === imgUrl;
+                      return (
+                        <TouchableOpacity
+                          key={idx}
+                          style={[styles.galleryThumbCard, isCover && styles.galleryThumbCardActive]}
+                          activeOpacity={0.8}
+                          onPress={() => handleSelectCoverImage(imgUrl)}
+                        >
+                          <Image source={{ uri: imgUrl }} style={styles.galleryThumbImg} />
+                          {isCover && (
+                            <View style={styles.coverBadge}>
+                              <Text style={styles.coverBadgeText}>★ Portada</Text>
+                            </View>
+                          )}
+                          <TouchableOpacity
+                            style={styles.removeThumbBtn}
+                            onPress={() => handleRemoveGalleryImage(imgUrl)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Text style={styles.removeThumbText}>✕</Text>
+                          </TouchableOpacity>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
+
               <PhotoUploadField
                 imageUri={newImageUrl}
-                onImageChange={(val) => setNewImageUrl(val || '')}
-                label="Foto del deseo o captura"
-                placeholderText="Toca para subir foto de la prenda, regalo o rincón"
+                onImageChange={handleCustomImageAdded}
+                label={newGalleryImages.length > 0 ? '+ Añadir otra foto a la galería' : 'Foto del deseo o captura'}
+                placeholderText="Toca para subir foto desde la cámara o galería"
               />
 
               <Text style={styles.inputLabel}>Notas o detalles</Text>
@@ -1050,5 +1147,110 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.light.text,
     marginBottom: Spacing.sm
-  }
+  },
+  wishGalleryWrapper: {
+    position: 'relative',
+    width: '100%',
+    height: 200,
+    backgroundColor: Colors.light.surfaceSubtle,
+  },
+  wishCardGalleryScroll: {
+    width: '100%',
+    height: '100%',
+  },
+  wishCardGalleryImage: {
+    width: 320,
+    height: 200,
+    resizeMode: 'cover',
+  },
+  galleryCountPill: {
+    position: 'absolute',
+    bottom: Spacing.sm,
+    right: Spacing.sm,
+    backgroundColor: 'rgba(28, 25, 23, 0.75)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radii.full,
+  },
+  galleryCountText: {
+    color: '#FFF',
+    fontSize: 10.5,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  gallerySelectorSection: {
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  gallerySelectorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  galleryHint: {
+    fontSize: 11,
+    color: Colors.light.textMuted,
+    fontStyle: 'italic',
+  },
+  galleryScroll: {
+    gap: Spacing.sm,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  galleryThumbCard: {
+    position: 'relative',
+    width: 76,
+    height: 76,
+    borderRadius: Radii.md,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    backgroundColor: Colors.light.surfaceSubtle,
+  },
+  galleryThumbCardActive: {
+    borderColor: Colors.light.primary,
+    shadowColor: Colors.light.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  galleryThumbImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  coverBadge: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(196, 112, 137, 0.92)',
+    paddingVertical: 2,
+    alignItems: 'center',
+  },
+  coverBadgeText: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  removeThumbBtn: {
+    position: 'absolute',
+    top: 3,
+    right: 3,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    width: 17,
+    height: 17,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeThumbText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '700',
+    lineHeight: 11,
+  },
 });
