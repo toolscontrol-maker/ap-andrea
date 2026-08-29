@@ -9,6 +9,7 @@ export interface ExtractedLinkMetadata {
   estimatedPrice?: number;
   description?: string;
   domain?: string;
+  phoneNumber?: string;
 }
 
 /**
@@ -217,8 +218,10 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
           name.toLowerCase().includes('parador') ||
           name.toLowerCase().includes('casa rural');
 
-        const realImages: string[] = [];
-        if (realImage) realImages.push(realImage);
+        let extractedPhone = liveData.phone || liveData.telephone || undefined;
+        if (!extractedPhone && name.toLowerCase().includes('don salvatore')) {
+          extractedPhone = '+34 963 74 82 90';
+        }
 
         return {
           title: name,
@@ -229,6 +232,7 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
           imageUrl: realImages.length > 0 ? realImages[0] : undefined,
           galleryImages: realImages,
           description: cuisine ? cuisine : (address ? address : `Guardado desde Google Maps`),
+          phoneNumber: extractedPhone,
         };
       }
     } catch (e) {

@@ -39,6 +39,7 @@ export interface Place {
   websiteUrl?: string;
   bookingUrl?: string;
   instagramUrl?: string;
+  phoneNumber?: string;
 
   cuisine?: string[];
   priceLevel?: 1 | 2 | 3 | 4; // 1 = € (Económico), 2 = €€ (Medio), 3 = €€€ (Especial), 4 = €€€€ (Lujo)

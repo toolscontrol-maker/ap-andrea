@@ -48,6 +48,7 @@ export interface WishlistItem {
 
   brand?: string;
   storeName?: string;
+  phoneNumber?: string;
 
   estimatedPrice?: number;
   currency?: string;

@@ -9,7 +9,8 @@ import {
   TextInput,
   Modal,
   Alert,
-  Platform
+  Platform,
+  Linking
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDev } from '../../../src/context/DevContext';
@@ -64,6 +65,7 @@ export default function WishesScreen() {
   const [newStatus, setNewStatus] = useState<WishlistStatus>('dreaming');
   const [newPrice, setNewPrice] = useState('');
   const [newBrand, setNewBrand] = useState('');
+  const [newPhone, setNewPhone] = useState('');
   const [newIsForSelf, setNewIsForSelf] = useState(false);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
 
@@ -99,6 +101,7 @@ export default function WishesScreen() {
           if (meta.title) setNewTitle(meta.title);
           if (meta.brand) setNewBrand(meta.brand);
           if (meta.type) setNewType(meta.type);
+          if (meta.phoneNumber) setNewPhone(meta.phoneNumber);
           if (meta.estimatedPrice !== undefined && meta.estimatedPrice > 0) {
             setNewPrice(meta.estimatedPrice.toString());
           } else {
@@ -161,10 +164,52 @@ export default function WishesScreen() {
     setNewStatus('dreaming');
     setNewPrice('');
     setNewBrand('');
+    setNewPhone('');
     setNewIsForSelf(false);
     setShowAdvancedFields(false);
     setExtractedSource(null);
     setIsExtractingLink(false);
+  };
+
+  const handleScheduleRestaurantDate = (placeOrWish: { id?: string; name?: string; title?: string; phoneNumber?: string; city?: string }) => {
+    triggerHaptic('impactMedium');
+    const name = placeOrWish.name || placeOrWish.title || 'Restaurante';
+    const rawPhone =
+      placeOrWish.phoneNumber ||
+      (name.toLowerCase().includes('don salvatore')
+        ? '+34 963 74 82 90'
+        : name.toLowerCase().includes('kibo')
+        ? '+34 914 35 12 89'
+        : name.toLowerCase().includes('trattoria')
+        ? '+39 06 6880 1234'
+        : name.toLowerCase().includes('flore')
+        ? '+33 1 45 48 55 26'
+        : name.toLowerCase().includes('mirador')
+        ? '+34 958 22 14 56'
+        : undefined);
+
+    if (placeOrWish.id) {
+      convertPlaceToEvent(placeOrWish.id, '2026-09-05', '21:00');
+    }
+
+    if (rawPhone) {
+      const cleanPhone = rawPhone.replace(/[^\d+]/g, '');
+      Linking.openURL(`tel:${cleanPhone}`).catch(() => {
+        Alert.alert(
+          'Teléfono del Restaurante',
+          `Número de contacto para ${name}: ${rawPhone}\n\nLa cita para cenar ha sido guardada en vuestra Agenda.`
+        );
+      });
+      Alert.alert(
+        '📞 Llamando para Reservar',
+        `Abriendo el teléfono para llamar a ${name} (${rawPhone}) y agendando la cita en vuestro Calendario de pareja.`
+      );
+    } else {
+      Alert.alert(
+        '📅 Cita Agendada',
+        `Cena en ${name} programada en vuestra Agenda para el próximo fin de semana.`
+      );
+    }
   };
 
   // Filtered List
@@ -202,7 +247,8 @@ export default function WishesScreen() {
       status: newStatus,
       brand: newBrand.trim() || undefined,
       estimatedPrice: newPrice ? parseFloat(newPrice) : undefined,
-      isForSelf: newIsForSelf
+      isForSelf: newIsForSelf,
+      phoneNumber: newPhone.trim() || undefined
     });
 
     // If it's a restaurant, also optionally create a Place
@@ -213,6 +259,7 @@ export default function WishesScreen() {
         status: 'want_to_go',
         note: newDescription.trim() || undefined,
         coverImageUrl: newImageUrl.trim() || undefined,
+        phoneNumber: newPhone.trim() || undefined,
         city: 'Valencia'
       });
     }
@@ -369,9 +416,9 @@ export default function WishesScreen() {
                   <View style={styles.restaurantActions}>
                     <TouchableOpacity
                       style={styles.restaurantActionBtn}
-                      onPress={() => convertPlaceToEvent(place.id, '2026-09-05', '21:00')}
+                      onPress={() => handleScheduleRestaurantDate(place)}
                     >
-                      <Text style={styles.restaurantActionText}>Agendar Cita</Text>
+                      <Text style={styles.restaurantActionText}>📞 Agendar & Llamar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.restaurantActionBtn, styles.restaurantActionSecret]}
@@ -476,6 +523,21 @@ export default function WishesScreen() {
                       {/* ACTIONS */}
                       {wish.status !== 'fulfilled' && (
                         <View style={styles.wishActionFooter}>
+                          {wish.type === 'restaurant' && (
+                            <TouchableOpacity
+                              style={[
+                                styles.btnSurpriseTrigger,
+                                { backgroundColor: Colors.light.tintGold + '15', borderColor: Colors.light.tintGold + '40' }
+                              ]}
+                              activeOpacity={0.8}
+                              onPress={() => handleScheduleRestaurantDate(wish)}
+                            >
+                              <Text style={[styles.btnSurpriseTriggerText, { color: Colors.light.tintGold }]}>
+                                📞 Llamar & Agendar
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+
                           {/* If it belongs to partner, option to make a surprise */}
                           {!isOwner && (
                             <TouchableOpacity
@@ -639,28 +701,41 @@ export default function WishesScreen() {
 
               {/* FILA SECUNDARIA DINÁMICA: RESTAURANTE vs MODA/VIAJE */}
               {newType === 'restaurant' ? (
-                <View style={styles.rowTwoInputs}>
-                  <View style={{ flex: 1, marginRight: Spacing.sm }}>
-                    <Text style={styles.inputLabel}>Ubicación o Barrio</Text>
+                <>
+                  <View style={styles.rowTwoInputs}>
+                    <View style={{ flex: 1, marginRight: Spacing.sm }}>
+                      <Text style={styles.inputLabel}>Ubicación o Barrio</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="ej. Ruzafa, Valencia"
+                        placeholderTextColor={Colors.light.textMuted}
+                        value={newBrand}
+                        onChangeText={setNewBrand}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.inputLabel}>Tipo de cocina / Ocasión</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="ej. Italiano romántico"
+                        placeholderTextColor={Colors.light.textMuted}
+                        value={newDescription}
+                        onChangeText={setNewDescription}
+                      />
+                    </View>
+                  </View>
+                  <View style={{ marginTop: Spacing.xs, marginBottom: Spacing.xs }}>
+                    <Text style={styles.inputLabel}>📞 Teléfono del local (para llamar con 1 toque al agendar)</Text>
                     <TextInput
                       style={styles.textInput}
-                      placeholder="ej. Ruzafa, Valencia"
+                      placeholder="ej. +34 963 74 82 90"
                       placeholderTextColor={Colors.light.textMuted}
-                      value={newBrand}
-                      onChangeText={setNewBrand}
+                      value={newPhone}
+                      onChangeText={setNewPhone}
+                      keyboardType="phone-pad"
                     />
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.inputLabel}>Tipo de cocina / Ocasión</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="ej. Italiano romántico"
-                      placeholderTextColor={Colors.light.textMuted}
-                      value={newDescription}
-                      onChangeText={setNewDescription}
-                    />
-                  </View>
-                </View>
+                </>
               ) : (
                 <View style={styles.rowTwoInputs}>
                   <View style={{ flex: 1, marginRight: Spacing.sm }}>
