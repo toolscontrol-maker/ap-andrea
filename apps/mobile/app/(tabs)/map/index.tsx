@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { Colors } from '../../../src/theme/colors';
 import { IconPlus, IconMapPin } from '../../../src/components/ui/Icons';
 import { Button } from '../../../src/components/ui/Button';
 import { PhotoUploadField } from '../../../src/components/ui/PhotoUploadField';
+import { StorageEngine } from '../../../src/services/storage';
 import { triggerHaptic } from '../../../src/utils/haptics';
 
 export default function MapScreen() {
@@ -29,8 +30,25 @@ export default function MapScreen() {
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState<boolean>(true);
 
-  // Dynamic places state
+  // Dynamic places state with local persistence
   const [allPlaces, setAllPlaces] = useState<AndreaMapPlace[]>(DEMO_MAP_PLACES);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    async function loadPlaces() {
+      const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v1', DEMO_MAP_PLACES);
+      if (saved && saved.length > 0) {
+        setAllPlaces(saved);
+      }
+      setIsLoaded(true);
+    }
+    loadPlaces();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    StorageEngine.setItem('andrea_map_places_v1', allPlaces);
+  }, [allPlaces, isLoaded]);
 
   // Add Place Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);

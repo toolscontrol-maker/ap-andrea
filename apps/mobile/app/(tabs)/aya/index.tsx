@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { useDev } from '../../../src/context/DevContext';
 import { Colors } from '../../../src/theme/colors';
@@ -8,7 +8,17 @@ import { AyaAuraOrb } from '../../../src/components/illustrations/AyaAuraOrb';
 import { AyaQuestionDeck } from '../../../src/components/AyaQuestionDeck';
 import { AyaMode, AyaChatMessage, AyaQuestionPrompt } from '@andrea/types';
 import { promptPhotoPicker } from '../../../src/utils/imagePicker';
+import { StorageEngine, STORAGE_KEYS } from '../../../src/services/storage';
 import { triggerHaptic } from '../../../src/utils/haptics';
+
+const INITIAL_AYA_MESSAGES: AyaChatMessage[] = [
+  {
+    id: 'welcome',
+    sender: 'aya',
+    text: `Bienvenid@ a AYA Space. Soy vuestra acompañante relacional. Estoy aquí para escucharos con ternura, ayudaros a entender vuestras dinámicas y profundizar en vuestra historia. Si te apetece, explora la Carta de Conexión de arriba o pregúntame lo que sientas.`,
+    timestamp: 'Ahora',
+  },
+];
 
 export default function AyaSpaceScreen() {
   const dev = useDev();
@@ -18,14 +28,24 @@ export default function AyaSpaceScreen() {
   const [loading, setLoading] = useState(false);
   const [showInsightsBoard, setShowInsightsBoard] = useState(false);
 
-  const [messages, setMessages] = useState<AyaChatMessage[]>([
-    {
-      id: 'welcome',
-      sender: 'aya',
-      text: `Hola, ${dev.currentDevUser.name}. Bienvenid@ a AYA Space. Soy vuestra acompañante relacional. Estoy aquí para escucharos con ternura, ayudaros a entender vuestras dinámicas y profundizar en vuestra historia. Si te apetece, explora la Carta de Conexión de arriba o pregúntame lo que sientas. ✨`,
-      timestamp: 'Ahora',
-    },
-  ]);
+  const [messages, setMessages] = useState<AyaChatMessage[]>(INITIAL_AYA_MESSAGES);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    async function loadMessages() {
+      const saved = await StorageEngine.getItem<AyaChatMessage[]>(STORAGE_KEYS.AYA_MESSAGES, INITIAL_AYA_MESSAGES);
+      if (saved && saved.length > 0) {
+        setMessages(saved);
+      }
+      setIsLoaded(true);
+    }
+    loadMessages();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    StorageEngine.setItem(STORAGE_KEYS.AYA_MESSAGES, messages);
+  }, [messages, isLoaded]);
 
   const handleSelectDeckQuestion = (prompt: AyaQuestionPrompt) => {
     const ayaMsg: AyaChatMessage = {

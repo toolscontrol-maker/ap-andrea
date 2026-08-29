@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
   MapPlace,
   CalendarEvent,
@@ -14,6 +14,7 @@ import {
   RitualSeed,
   WeeklyRitualSummary
 } from '@andrea/types';
+import { StorageEngine, STORAGE_KEYS } from '../services/storage';
 
 export interface DevUser {
   id: string;
@@ -520,6 +521,9 @@ export interface DevContextType {
 
   // Aya AI Actions
   getRandomAyaQuestion: () => AyaQuestionPrompt;
+
+  // Storage & Reset Actions
+  resetAllDataToDefaults: () => Promise<void>;
 }
 
 const DevContext = createContext<DevContextType | undefined>(undefined);
@@ -536,6 +540,85 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const [coupleEvents, setCoupleEvents] = useState<CoupleEvent[]>(INITIAL_COUPLE_EVENTS);
   const [ritualSeeds, setRitualSeeds] = useState<RitualSeed[]>(INITIAL_RITUAL_SEEDS);
   const [entries, setEntries] = useState<DiaryEntryUI[]>(INITIAL_ENTRIES);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // 1. Initial load from persistent storage
+  useEffect(() => {
+    async function loadStoredData() {
+      try {
+        const [
+          savedRole,
+          savedWishes,
+          savedPlacesData,
+          savedEvents,
+          savedSeeds,
+          savedEntries,
+        ] = await Promise.all([
+          StorageEngine.getItem<'user1' | 'user2'>(STORAGE_KEYS.ACTIVE_USER, 'user2'),
+          StorageEngine.getItem<WishlistItem[]>(STORAGE_KEYS.WISHES, INITIAL_WISHES),
+          StorageEngine.getItem<Place[]>(STORAGE_KEYS.PLACES, INITIAL_SAVED_PLACES),
+          StorageEngine.getItem<CoupleEvent[]>(STORAGE_KEYS.EVENTS, INITIAL_COUPLE_EVENTS),
+          StorageEngine.getItem<RitualSeed[]>(STORAGE_KEYS.SEEDS, INITIAL_RITUAL_SEEDS),
+          StorageEngine.getItem<DiaryEntryUI[]>('andrea_entries_v1', INITIAL_ENTRIES),
+        ]);
+
+        if (savedRole) setActiveRole(savedRole);
+        if (savedWishes && savedWishes.length > 0) setWishes(savedWishes);
+        if (savedPlacesData && savedPlacesData.length > 0) setSavedPlaces(savedPlacesData);
+        if (savedEvents && savedEvents.length > 0) setCoupleEvents(savedEvents);
+        if (savedSeeds && savedSeeds.length > 0) setRitualSeeds(savedSeeds);
+        if (savedEntries && savedEntries.length > 0) setEntries(savedEntries);
+      } catch (e) {
+        console.warn('Error loading persisted data:', e);
+      } finally {
+        setIsLoaded(true);
+      }
+    }
+
+    loadStoredData();
+  }, []);
+
+  // 2. Auto-save watchers
+  useEffect(() => {
+    if (!isLoaded) return;
+    StorageEngine.setItem(STORAGE_KEYS.ACTIVE_USER, activeRole);
+  }, [activeRole, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    StorageEngine.setItem(STORAGE_KEYS.WISHES, wishes);
+  }, [wishes, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    StorageEngine.setItem(STORAGE_KEYS.PLACES, savedPlaces);
+  }, [savedPlaces, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    StorageEngine.setItem(STORAGE_KEYS.EVENTS, coupleEvents);
+  }, [coupleEvents, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    StorageEngine.setItem(STORAGE_KEYS.SEEDS, ritualSeeds);
+  }, [ritualSeeds, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    StorageEngine.setItem('andrea_entries_v1', entries);
+  }, [entries, isLoaded]);
+
+  const resetAllDataToDefaults = async () => {
+    await StorageEngine.clearAllData();
+    setActiveRole('user2');
+    setWishes(INITIAL_WISHES);
+    setSavedPlaces(INITIAL_SAVED_PLACES);
+    setMapPlaces(SAMPLE_MAP_PLACES);
+    setCoupleEvents(INITIAL_COUPLE_EVENTS);
+    setRitualSeeds(INITIAL_RITUAL_SEEDS);
+    setEntries(INITIAL_ENTRIES);
+  };
 
   const currentDevUser = activeRole === 'user1' ? DEV_USERS.user1 : DEV_USERS.user2;
   const partnerDevUser = activeRole === 'user1' ? DEV_USERS.user2 : DEV_USERS.user1;
@@ -946,7 +1029,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
         addEntry,
         addSurprise,
         updateSurpriseStatus,
-        getRandomAyaQuestion
+        getRandomAyaQuestion,
+        resetAllDataToDefaults,
       }}
     >
       {children}
