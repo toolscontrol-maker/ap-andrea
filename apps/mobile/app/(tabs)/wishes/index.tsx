@@ -21,9 +21,12 @@ import { StaggeredItem } from '../../../src/components/ui/StaggeredList';
 import { SectionHeader } from '../../../src/components/ui/SectionHeader';
 import { EmptyState } from '../../../src/components/ui/EmptyState';
 import { PhotoUploadField } from '../../../src/components/ui/PhotoUploadField';
+import { IconSparkles } from '../../../src/components/ui/Icons';
 import { Colors } from '../../../src/theme/colors';
 import { Spacing, Radii, Shadows } from '../../../src/theme/tokens';
 import { WishlistItem, WishlistStatus, WishlistItemType, Place } from '@andrea/types';
+import { extractLinkMetadata } from '../../../src/utils/linkMetadata';
+import { triggerHaptic } from '../../../src/utils/haptics';
 
 type TabFilter = 'all' | 'restaurants' | 'fashion' | 'trips' | 'home' | 'fulfilled';
 
@@ -62,6 +65,74 @@ export default function WishesScreen() {
   const [newIsForSelf, setNewIsForSelf] = useState(false);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
 
+  // Smart Autocomplete State
+  const [isExtractingLink, setIsExtractingLink] = useState(false);
+  const [extractedSource, setExtractedSource] = useState<string | null>(null);
+
+  const handleUrlChange = async (url: string) => {
+    setNewUrl(url);
+    if (!url || url.trim().length < 5) {
+      setExtractedSource(null);
+      return;
+    }
+
+    const trimmed = url.trim();
+    if (
+      trimmed.includes('.') &&
+      (trimmed.startsWith('http') ||
+        trimmed.includes('www.') ||
+        trimmed.includes('.com') ||
+        trimmed.includes('.es') ||
+        trimmed.includes('.org') ||
+        trimmed.includes('.co'))
+    ) {
+      setIsExtractingLink(true);
+      try {
+        const meta = await extractLinkMetadata(trimmed);
+        if (meta) {
+          triggerHaptic('selection');
+          setExtractedSource(meta.brand || meta.domain || 'tienda');
+
+          // Autofill empty or default fields
+          if (!newTitle.trim() || newTitle === 'Nuevo deseo') {
+            if (meta.title) setNewTitle(meta.title);
+          }
+          if (meta.brand && !newBrand.trim()) {
+            setNewBrand(meta.brand);
+          }
+          if (meta.type) {
+            setNewType(meta.type);
+          }
+          if (meta.imageUrl && !newImageUrl) {
+            setNewImageUrl(meta.imageUrl);
+          }
+          if (meta.description && !newDescription.trim()) {
+            setNewDescription(meta.description);
+          }
+        }
+      } catch (err) {
+        console.warn('Error extracting link meta:', err);
+      } finally {
+        setIsExtractingLink(false);
+      }
+    }
+  };
+
+  const resetAddForm = () => {
+    setNewTitle('');
+    setNewDescription('');
+    setNewUrl('');
+    setNewImageUrl('');
+    setNewType('fashion');
+    setNewStatus('dreaming');
+    setNewPrice('');
+    setNewBrand('');
+    setNewIsForSelf(false);
+    setShowAdvancedFields(false);
+    setExtractedSource(null);
+    setIsExtractingLink(false);
+  };
+
   // Filtered List
   const filteredWishes = useMemo(() => {
     return wishes.filter((w) => {
@@ -85,6 +156,8 @@ export default function WishesScreen() {
       return;
     }
 
+    triggerHaptic('heavy');
+
     addWish({
       title: newTitle.trim(),
       description: newDescription.trim() || undefined,
@@ -105,20 +178,13 @@ export default function WishesScreen() {
         status: 'want_to_go',
         note: newDescription.trim() || undefined,
         coverImageUrl: newImageUrl.trim() || undefined,
-        city: 'Madrid'
+        city: 'Valencia'
       });
     }
 
-    // Reset Form
-    setNewTitle('');
-    setNewDescription('');
-    setNewUrl('');
-    setNewImageUrl('');
-    setNewPrice('');
-    setNewBrand('');
-    setNewIsForSelf(false);
-    setShowAdvancedFields(false);
+    resetAddForm();
     setIsAddModalOpen(false);
+    Alert.alert('Deseo Guardado', 'Se ha añadido a vuestro catálogo.');
   };
 
   const handleOpenFulfill = (wish: WishlistItem) => {
@@ -397,24 +463,64 @@ export default function WishesScreen() {
             </View>
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              <Text style={styles.inputLabel}>Enlace web o tienda (autocompleta los datos)</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Pega un enlace de Sézane, Zara, Booking, Amazon..."
+                placeholderTextColor={Colors.light.textMuted}
+                value={newUrl}
+                onChangeText={handleUrlChange}
+                autoCapitalize="none"
+              />
+
+              {isExtractingLink && (
+                <View style={styles.extractingRow}>
+                  <IconSparkles size={13} color={Colors.light.primary} />
+                  <Text style={styles.extractingText}>Extrayendo datos de la prenda o plan...</Text>
+                </View>
+              )}
+
+              {extractedSource && !isExtractingLink && (
+                <View style={styles.autocompleteBadge}>
+                  <IconSparkles size={13} color={Colors.light.primary} />
+                  <Text style={styles.autocompleteBadgeText}>
+                    Sugerencias cargadas desde {extractedSource} · Puedes editarlas libremente
+                  </Text>
+                </View>
+              )}
+
               <Text style={styles.inputLabel}>Título o idea *</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="ej. Bolso negro de piel / Cena japonesa en barra"
+                placeholder="ej. Bolso de piel café / Cena japonesa en barra"
                 placeholderTextColor={Colors.light.textMuted}
                 value={newTitle}
                 onChangeText={setNewTitle}
               />
 
-              <Text style={styles.inputLabel}>Enlace web (opcional)</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="https://..."
-                placeholderTextColor={Colors.light.textMuted}
-                value={newUrl}
-                onChangeText={setNewUrl}
-                autoCapitalize="none"
-              />
+              <View style={styles.rowTwoInputs}>
+                <View style={{ flex: 1, marginRight: Spacing.sm }}>
+                  <Text style={styles.inputLabel}>Marca o Tienda</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="ej. Sézane, Massimo Dutti"
+                    placeholderTextColor={Colors.light.textMuted}
+                    value={newBrand}
+                    onChangeText={setNewBrand}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>Precio aprox. (€)</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="ej. 120"
+                    placeholderTextColor={Colors.light.textMuted}
+                    value={newPrice}
+                    onChangeText={setNewPrice}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
 
               <PhotoUploadField
                 imageUri={newImageUrl}
@@ -426,7 +532,7 @@ export default function WishesScreen() {
               <Text style={styles.inputLabel}>Notas o detalles</Text>
               <TextInput
                 style={[styles.textInput, styles.textArea]}
-                placeholder="ej. En talla M, visto en Instagram o para probar este mes"
+                placeholder="ej. En color caramelo, para una ocasión especial"
                 placeholderTextColor={Colors.light.textMuted}
                 value={newDescription}
                 onChangeText={setNewDescription}
@@ -901,6 +1007,38 @@ const styles = StyleSheet.create({
   rowTwoInputs: {
     flexDirection: 'row',
     marginTop: Spacing.xs
+  },
+  extractingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+    marginBottom: 4,
+    paddingHorizontal: Spacing.xs,
+  },
+  extractingText: {
+    fontSize: 12,
+    color: Colors.light.primary,
+    fontWeight: '500',
+  },
+  autocompleteBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.light.primaryLight,
+    borderWidth: 1,
+    borderColor: 'rgba(196, 112, 137, 0.25)',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: Radii.md,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  autocompleteBadgeText: {
+    fontSize: 11.5,
+    color: Colors.light.primaryDark,
+    fontWeight: '600',
+    flex: 1,
   },
   modalFooter: {
     flexDirection: 'row',
