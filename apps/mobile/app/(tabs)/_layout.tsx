@@ -7,7 +7,7 @@ import {
   IconHeart,
   IconCalendar,
   IconMapPin,
-  IconSparkles
+  IconUser
 } from '../../src/components/ui/Icons';
 
 export default function TabLayout() {
@@ -93,11 +93,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="aya"
+        name="account"
         options={{
-          title: 'Andrea',
+          title: 'Cuenta',
           tabBarIcon: ({ color, focused }) => (
-            <IconSparkles
+            <IconUser
               size={20}
               color={color}
               strokeWidth={focused ? 2.2 : 1.75}
@@ -105,7 +105,13 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* Retain surprises route internally without displaying separate tab */}
+      {/* Retain aya & surprises routes internally without displaying separate tabs */}
+      <Tabs.Screen
+        name="aya"
+        options={{
+          href: null,
+        }}
+      />
       <Tabs.Screen
         name="surprises"
         options={{
