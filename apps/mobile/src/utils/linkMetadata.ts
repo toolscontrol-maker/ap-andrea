@@ -12,6 +12,17 @@ export interface ExtractedLinkMetadata {
 }
 
 /**
+ * Safely proxy Google Photos and 3rd party protected CDN images to avoid 403 Forbidden hotlink blocks
+ */
+export function sanitizeImageHotlink(url?: string): string {
+  if (!url || typeof url !== 'string') return '';
+  if (url.includes('googleusercontent.com') || url.includes('ggpht.com')) {
+    return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&w=1200&q=88&output=webp`;
+  }
+  return url;
+}
+
+/**
  * Filter out tracking pixels, icons, transparent spacers, and tiny logos
  */
 function isValidProductImage(src: string): boolean {
@@ -194,7 +205,8 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
         const name = parts[0].trim();
         const address = parts.length > 1 ? parts.slice(1).join('·').trim() : '';
         const cuisine = (liveData.description || '').replace(/^[★☆\s\d\.\,\-]+·\s*/, '').trim();
-        const realImage = liveData.image?.url || liveData.logo?.url;
+        const rawImage = liveData.image?.url || liveData.logo?.url;
+        const realImage = rawImage ? sanitizeImageHotlink(rawImage) : undefined;
 
         const isHotel =
           name.toLowerCase().includes('hotel') ||

@@ -5,6 +5,7 @@ import { Radii, Spacing, Typography } from '../../theme/tokens';
 import { IconCamera, IconPlus } from './Icons';
 import { promptPhotoPicker, PickedImageResult } from '../../utils/imagePicker';
 import { triggerHaptic } from '../../utils/haptics';
+import { sanitizeImageHotlink } from '../../utils/linkMetadata';
 
 interface PhotoUploadFieldProps {
   imageUri?: string | null;
@@ -50,7 +51,11 @@ export function PhotoUploadField({
       >
         {imageUri ? (
           <View style={styles.imagePreviewWrapper}>
-            <Image source={{ uri: imageUri }} style={styles.imagePreview} resizeMode="cover" />
+            <Image
+              source={{ uri: sanitizeImageHotlink(imageUri) }}
+              style={styles.imagePreview}
+              resizeMode="cover"
+            />
             <TouchableOpacity style={styles.removeBtn} onPress={handleRemove} activeOpacity={0.7}>
               <Text style={styles.removeBtnText}>✕</Text>
             </TouchableOpacity>
