@@ -11,16 +11,18 @@ import {
 } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Radii, Shadows, Spacing, Typography } from '../../theme/tokens';
-import { IconHeart, IconSparkles } from './Icons';
+import { IconHeart, IconSparkles, IconCamera } from './Icons';
 import { triggerHaptic } from '../../utils/haptics';
 
 export interface ConnectedCoupleHeartProps {
   user1Name: string;
   user1Avatar?: string;
   user1PhotoUrl?: string;
+  onEditAvatar1?: () => void;
   user2Name: string;
   user2Avatar?: string;
   user2PhotoUrl?: string;
+  onEditAvatar2?: () => void;
   currentUserName: string;
   daysTogether: number;
   startDateFormatted?: string;
@@ -40,9 +42,11 @@ export function ConnectedCoupleHeart({
   user1Name,
   user1Avatar = 'Á',
   user1PhotoUrl = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+  onEditAvatar1,
   user2Name,
   user2Avatar = 'A',
   user2PhotoUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+  onEditAvatar2,
   currentUserName,
   daysTogether,
   startDateFormatted = '15 de Febrero de 2025',
@@ -344,7 +348,11 @@ export function ConnectedCoupleHeart({
             },
           ]}
         />
-        <View style={styles.avatarContainer}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={onEditAvatar1}
+          style={styles.avatarContainer}
+        >
           {!img1Error && user1PhotoUrl ? (
             <Image
               source={{ uri: user1PhotoUrl }}
@@ -357,12 +365,17 @@ export function ConnectedCoupleHeart({
             </View>
           )}
           <View style={styles.presenceBeacon} />
-        </View>
-        <View style={styles.namePill}>
+          {Boolean(onEditAvatar1) && (
+            <View style={styles.editCameraBadge}>
+              <IconCamera size={10} color="#FFFFFF" />
+            </View>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity activeOpacity={0.7} onPress={onEditAvatar1} style={styles.namePill}>
           <Text style={styles.namePillText} numberOfLines={1}>
             {user1Name}
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* ── CENTER ANIMATED HEART CONNECTOR ── */}
@@ -450,7 +463,11 @@ export function ConnectedCoupleHeart({
             },
           ]}
         />
-        <View style={styles.avatarContainer}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={onEditAvatar2}
+          style={styles.avatarContainer}
+        >
           {!img2Error && user2PhotoUrl ? (
             <Image
               source={{ uri: user2PhotoUrl }}
@@ -463,12 +480,17 @@ export function ConnectedCoupleHeart({
             </View>
           )}
           <View style={[styles.presenceBeacon, { backgroundColor: '#E05666' }]} />
-        </View>
-        <View style={styles.namePill}>
+          {Boolean(onEditAvatar2) && (
+            <View style={[styles.editCameraBadge, { backgroundColor: Colors.light.secondary }]}>
+              <IconCamera size={10} color="#FFFFFF" />
+            </View>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity activeOpacity={0.7} onPress={onEditAvatar2} style={styles.namePill}>
           <Text style={styles.namePillText} numberOfLines={1}>
             {user2Name}
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* ── HEARTBEAT SENT INTERACTIVE TOAST ── */}
@@ -578,6 +600,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#27AE60',
     borderWidth: 2.5,
     borderColor: '#FFFFFF',
+  },
+  editCameraBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.light.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    ...Shadows.sm,
   },
   namePill: {
     marginTop: Spacing.xs + 2,

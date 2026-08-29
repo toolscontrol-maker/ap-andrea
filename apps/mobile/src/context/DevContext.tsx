@@ -20,6 +20,7 @@ export interface DevUser {
   id: string;
   name: string;
   avatar: string;
+  avatarPhoto?: string;
   roleDescription: string;
 }
 
@@ -28,12 +29,14 @@ export const DEV_USERS: { user1: DevUser; user2: DevUser } = {
     id: '11111111-aaaa-bbbb-cccc-111111111111',
     name: 'Ángel',
     avatar: 'Á',
+    avatarPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
     roleDescription: 'Quien suele iniciar planes y documentar detalles'
   },
   user2: {
     id: '22222222-dddd-eeee-ffff-222222222222',
     name: 'Andrea',
     avatar: 'A',
+    avatarPhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
     roleDescription: 'Quien da significado y aporta calidez espontánea'
   }
 };
@@ -559,6 +562,8 @@ export interface DevContextType {
   activeRole: 'user1' | 'user2';
   currentDevUser: DevUser;
   partnerDevUser: DevUser;
+  users: { user1: DevUser; user2: DevUser };
+  updateUserProfile: (userId: string, updates: Partial<DevUser>) => Promise<void>;
   isPremium: boolean;
   user1Consent: boolean;
   user2Consent: boolean;
@@ -619,6 +624,7 @@ const DevContext = createContext<DevContextType | undefined>(undefined);
 
 export function DevProvider({ children }: { children: ReactNode }) {
   const [activeRole, setActiveRole] = useState<'user1' | 'user2'>('user2'); // Default to Andrea
+  const [users, setUsers] = useState<{ user1: DevUser; user2: DevUser }>(DEV_USERS);
   const [isPremium, setIsPremium] = useState<boolean>(true);
   const [user1Consent, setUser1Consent] = useState<boolean>(true);
   const [user2Consent, setUser2Consent] = useState<boolean>(true);
@@ -642,6 +648,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
           savedEvents,
           savedSeeds,
           savedEntries,
+          savedUsers,
         ] = await Promise.all([
           StorageEngine.getItem<'user1' | 'user2'>(STORAGE_KEYS.ACTIVE_USER, 'user2'),
           StorageEngine.getItem<WishlistItem[]>(STORAGE_KEYS.WISHES, INITIAL_WISHES),
@@ -649,6 +656,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
           StorageEngine.getItem<CoupleEvent[]>(STORAGE_KEYS.EVENTS, INITIAL_COUPLE_EVENTS),
           StorageEngine.getItem<RitualSeed[]>(STORAGE_KEYS.SEEDS, INITIAL_RITUAL_SEEDS),
           StorageEngine.getItem<DiaryEntryUI[]>('andrea_entries_v1', INITIAL_ENTRIES),
+          StorageEngine.getItem<{ user1: DevUser; user2: DevUser }>('andrea_users_v1', DEV_USERS),
         ]);
 
         if (savedRole) setActiveRole(savedRole);
@@ -657,6 +665,12 @@ export function DevProvider({ children }: { children: ReactNode }) {
         if (savedEvents && savedEvents.length > 0) setCoupleEvents(savedEvents);
         if (savedSeeds && savedSeeds.length > 0) setRitualSeeds(savedSeeds);
         if (savedEntries && savedEntries.length > 0) setEntries(savedEntries);
+        if (savedUsers && (savedUsers.user1 || savedUsers.user2)) {
+          setUsers((prev) => ({
+            user1: { ...prev.user1, ...(savedUsers.user1 || {}) },
+            user2: { ...prev.user2, ...(savedUsers.user2 || {}) },
+          }));
+        }
       } catch (e) {
         console.warn('Error loading persisted data:', e);
       } finally {
@@ -666,6 +680,17 @@ export function DevProvider({ children }: { children: ReactNode }) {
 
     loadStoredData();
   }, []);
+
+  const updateUserProfile = async (userId: string, updates: Partial<DevUser>) => {
+    setUsers((prev) => {
+      const updated = {
+        user1: prev.user1.id === userId ? { ...prev.user1, ...updates } : prev.user1,
+        user2: prev.user2.id === userId ? { ...prev.user2, ...updates } : prev.user2,
+      };
+      StorageEngine.setItem('andrea_users_v1', updated);
+      return updated;
+    });
+  };
 
   // 2. Auto-save watchers
   useEffect(() => {
@@ -709,8 +734,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
     setEntries(INITIAL_ENTRIES);
   };
 
-  const currentDevUser = activeRole === 'user1' ? DEV_USERS.user1 : DEV_USERS.user2;
-  const partnerDevUser = activeRole === 'user1' ? DEV_USERS.user2 : DEV_USERS.user1;
+  const currentDevUser = activeRole === 'user1' ? users.user1 : users.user2;
+  const partnerDevUser = activeRole === 'user1' ? users.user2 : users.user1;
 
   const weeklySummary: WeeklyRitualSummary = {
     weekStartDate: '2026-08-24',
@@ -731,35 +756,31 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const toggleUser1Consent = () => setUser1Consent((prev) => !prev);
   const toggleUser2Consent = () => setUser2Consent((prev) => !prev);
 
-  // ── Wish Actions ──
+  // ── Wishbook Actions ──
   const addWish = (wish: Partial<WishlistItem>) => {
-    const newWish: WishlistItem = {
-      id: 'wish-' + Date.now(),
+    const newId = 'wish-' + Date.now();
+    const item: WishlistItem = {
+      id: newId,
       coupleId: 'demo-couple-id',
       ownerUserId: currentDevUser.id,
       createdByUserId: currentDevUser.id,
-      title: wish.title || 'Nuevo deseo',
+      title: wish.title || 'Deseo sin título',
       description: wish.description,
+      sourceUrl: wish.sourceUrl,
+      externalImageUrl: wish.externalImageUrl,
+      images: wish.images,
       type: wish.type || 'other',
       status: wish.status || 'dreaming',
-      visibility: wish.visibility || 'shared',
-      sourceUrl: wish.sourceUrl,
-      sourceDomain: wish.sourceUrl ? new URL(wish.sourceUrl).hostname.replace('www.', '') : undefined,
-      externalImageUrl: wish.externalImageUrl,
-      images: wish.images || (wish.externalImageUrl ? [wish.externalImageUrl] : undefined),
       brand: wish.brand,
       estimatedPrice: wish.estimatedPrice,
-      currency: 'EUR',
-      priceNote: wish.priceNote,
-      color: wish.color,
-      size: wish.size,
-      occasion: wish.occasion,
-      tags: wish.tags || [],
-      isForSelf: wish.isForSelf ?? false,
+      isForSelf: wish.isForSelf ?? true,
+      phoneNumber: wish.phoneNumber,
+      visibility: 'shared',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    setWishes((prev) => [newWish, ...prev]);
+
+    setWishes((prev) => [item, ...prev]);
   };
 
   const updateWishStatus = (id: string, newStatus: WishlistStatus) => {
@@ -769,100 +790,101 @@ export function DevProvider({ children }: { children: ReactNode }) {
   };
 
   const convertWishToSurprise = (wishId: string, surpriseNotes?: string) => {
-    const wish = wishes.find((w) => w.id === wishId);
-    if (!wish) return;
+    const targetWish = wishes.find((w) => w.id === wishId);
+    if (!targetWish) return;
 
-    // Create a surprise in coupleEvents
-    const newSurpriseEvent: CoupleEvent = {
-      id: 'cev-' + Date.now(),
+    // 1. Mark wish as in_progress
+    updateWishStatus(wishId, 'in_progress');
+
+    // 2. Create stealth surprise diary entry
+    const surpriseId = 'surp-' + Date.now();
+    const entry: DiaryEntryUI = {
+      id: surpriseId,
       coupleId: 'demo-couple-id',
-      ownerId: currentDevUser.id,
-      partnerId: partnerDevUser.id,
-      eventType: 'surprise',
-      date: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-      time: '20:00',
-      actualStartAt: new Date().toISOString(),
-      ownerView: {
-        title: `🎁 Sorpresa: ${wish.title}`,
-        subtitle: surpriseNotes || `Basado en el deseo que ${partnerDevUser.name} guardó con tanta ilusión.`,
-        budget: wish.estimatedPrice ? `${wish.estimatedPrice}€` : undefined,
-        imageUrl: wish.externalImageUrl
+      authorId: currentDevUser.id,
+      type: 'surprise',
+      visibility: 'private',
+      date: new Date().toISOString().split('T')[0],
+      content: {
+        title: `Sorpresa: ${targetWish.title}`,
+        description: surpriseNotes || `Preparando sorpresa para cumplir este deseo: ${targetWish.title}`,
+        status: 'idea',
+        occasion: 'sin_ocasión',
       },
-      partnerView: {
-        title: '✨ Tienes un regalo especial esperándote',
-        subtitle: 'Alguien que te quiere mucho ha preparado algo que te hacía mucha ilusión.',
-        isSecret: true
-      },
-      surpriseCategory: 'regalo',
-      revealPolicy: 'manual',
-      visibility: 'private_until_reveal',
-      status: 'scheduled',
-      linkedWishlistId: wishId,
+      moodTag: 'love',
+      ayaConsentBoth: false,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      isMine: true
     };
 
-    setCoupleEvents((prev) => [newSurpriseEvent, ...prev]);
-    // Update wish state
-    setWishes((prev) =>
-      prev.map((w) => (w.id === wishId ? { ...w, status: 'in_progress', isSurpriseCandidate: true } : w))
-    );
+    setEntries((prev) => [entry, ...prev]);
   };
 
   const convertWishToMemory = (wishId: string, story: string, photoUrl?: string) => {
-    const wish = wishes.find((w) => w.id === wishId);
-    if (!wish) return;
+    const targetWish = wishes.find((w) => w.id === wishId);
+    if (!targetWish) return;
 
-    const newMapMemory: MapPlace = {
-      id: 'mem-' + Date.now(),
-      title: `✨ Cumplido: ${wish.title}`,
-      cityName: 'Madrid',
-      country: 'España',
-      lat: 40.4168,
-      lng: -3.7038,
-      date: new Date().toISOString().split('T')[0],
-      story: story || `Hicimos realidad este deseo juntos. Un momento inolvidable.`,
-      category: 'cita',
-      moodTag: 'love',
-      photos: photoUrl ? [photoUrl] : wish.externalImageUrl ? [wish.externalImageUrl] : [],
+    // 1. Mark wish as fulfilled
+    updateWishStatus(wishId, 'fulfilled');
+
+    // 2. Add as rich memory diary entry
+    const memoryId = 'mem-' + Date.now();
+    const entry: DiaryEntryUI = {
+      id: memoryId,
+      coupleId: 'demo-couple-id',
       authorId: currentDevUser.id,
-      isMilestone: true,
-      visibility: 'couple'
+      type: 'diary_shared',
+      visibility: 'shared',
+      date: new Date().toISOString().split('T')[0],
+      content: {
+        title: `✨ Cumplido: ${targetWish.title}`,
+        story: story || `Hicimos realidad este deseo juntos. Un momento inolvidable.`,
+        body: story || `Hicimos realidad este deseo juntos.`,
+        photos: photoUrl ? [photoUrl] : (targetWish.externalImageUrl ? [targetWish.externalImageUrl] : [])
+      },
+      moodTag: 'grateful',
+      ayaConsentBoth: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isMine: true
     };
 
-    setMapPlaces((prev) => [newMapMemory, ...prev]);
-    setWishes((prev) =>
-      prev.map((w) => (w.id === wishId ? { ...w, status: 'fulfilled', updatedAt: new Date().toISOString() } : w))
-    );
+    setEntries((prev) => [entry, ...prev]);
   };
 
   const deleteWish = (id: string) => {
     setWishes((prev) => prev.filter((w) => w.id !== id));
   };
 
-  // ── Place Actions ──
+  // ── Place / Restaurant Actions ──
   const addSavedPlace = (place: Partial<Place>) => {
+    const newId = 'place-' + Date.now();
     const newPlace: Place = {
-      id: 'place-' + Date.now(),
+      id: newId,
       coupleId: 'demo-couple-id',
       createdByUserId: currentDevUser.id,
-      name: place.name || 'Nuevo Lugar',
+      name: place.name || 'Lugar sin nombre',
       category: place.category || 'restaurant',
       status: place.status || 'want_to_go',
-      address: place.address,
-      city: place.city || 'Madrid',
+      address: place.address || 'Ubicación guardada',
+      city: place.city || 'Valencia',
       country: place.country || 'España',
-      latitude: place.latitude || 40.4168,
-      longitude: place.longitude || -3.7038,
-      cuisine: place.cuisine || [],
+      countryCode: place.countryCode || 'ES',
+      phoneNumber: place.phoneNumber,
+      latitude: place.latitude || 39.4699,
+      longitude: place.longitude || -0.3763,
+      cuisine: place.cuisine || ['Gastronomía'],
       priceLevel: place.priceLevel || 2,
       vibe: place.vibe || 'romantico',
-      tags: place.tags || [],
+      tags: place.tags || ['guardado_reciente'],
+      ratingPersonal: place.ratingPersonal,
       note: place.note,
-      coverImageUrl: place.coverImageUrl || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop',
+      coverImageUrl: place.coverImageUrl || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
+
     setSavedPlaces((prev) => [newPlace, ...prev]);
   };
 
@@ -881,27 +903,24 @@ export function DevProvider({ children }: { children: ReactNode }) {
       coupleId: 'demo-couple-id',
       ownerId: currentDevUser.id,
       partnerId: partnerDevUser.id,
-      eventType: 'restaurant_reservation',
-      date: date || new Date().toISOString().split('T')[0],
+      eventType: 'date',
+      date: date || '2026-09-05',
       time: time || '21:00',
-      actualStartAt: `${date}T${time || '21:00'}:00`,
+      actualStartAt: `${date || '2026-09-05'}T${time || '21:00'}:00`,
       ownerView: {
         title: `Cena en ${place.name}`,
-        subtitle: `${place.cuisine?.join(', ')} · ${place.city}`,
-        locationName: `${place.name} (${place.address || place.city})`,
-        imageUrl: place.coverImageUrl,
+        subtitle: `${place.city} · ${place.cuisine?.join(', ')}`,
+        locationName: place.address || place.name,
         notes: [place.note || '¡Ganas de probarlo juntos!']
       },
       partnerView: {
         title: `Cena en ${place.name}`,
-        subtitle: `${place.cuisine?.join(', ')} · ${place.city}`,
-        locationName: `${place.name} (${place.address || place.city})`,
-        imageUrl: place.coverImageUrl
+        subtitle: `${place.city} · ${place.cuisine?.join(', ')}`,
+        locationName: place.address || place.name,
       },
       revealPolicy: 'immediate',
       visibility: 'shared',
       status: 'scheduled',
-      linkedPlaceId: placeId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -962,41 +981,48 @@ export function DevProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  // ── Ritual Actions ──
+  // ── Ritual Seeds Actions ──
   const addRitualSeed = (seed: Partial<RitualSeed>) => {
     const newSeed: RitualSeed = {
       id: 'seed-' + Date.now(),
       coupleId: 'demo-couple-id',
       authorId: currentDevUser.id,
-      date: new Date().toISOString().split('T')[0],
+      date: seed.date || new Date().toISOString().split('T')[0],
       type: seed.type || 'gratitude_note',
-      title: seed.title,
+      title: seed.title || 'Momento compartido',
       body: seed.body,
-      imageUrl: seed.imageUrl,
-      mood: seed.mood,
+      imageUrl: seed.imageUrl || seed.photoUrl,
+      photoUrl: seed.photoUrl || seed.imageUrl,
+      mood: seed.mood || 'grateful',
       isSharedWithPartner: true,
-      createdAt: new Date().toISOString()
+      partnerResponded: false,
+      createdAt: new Date().toISOString(),
     };
+
     setRitualSeeds((prev) => [newSeed, ...prev]);
   };
 
-  // ── Map Actions ──
+  // ── Map & Diary Actions ──
   const addMapPlace = (place: Partial<MapPlace>) => {
     const newPlace: MapPlace = {
       id: 'place-' + Date.now(),
-      title: place.title || 'Nuevo Recuerdo',
-      cityName: place.cityName || 'Madrid',
+      title: place.title || 'Lugar Especial',
+      cityName: place.cityName || 'Valencia',
       country: place.country || 'España',
-      lat: place.lat || 40.4168,
-      lng: place.lng || -3.7038,
+      countryCode: place.countryCode || 'ES',
+      lat: place.lat || 39.4699,
+      lng: place.lng || -0.3763,
       date: place.date || new Date().toISOString().split('T')[0],
-      story: place.story || '',
+      story: place.story || 'Un recuerdo imborrable juntos.',
       category: place.category || 'cita',
       moodTag: place.moodTag || 'love',
       photos: place.photos || [],
       authorId: currentDevUser.id,
-      visibility: 'couple'
+      locationPrecision: 'exact',
+      visibility: 'couple',
+      isMilestone: true,
     };
+
     setMapPlaces((prev) => [newPlace, ...prev]);
   };
 
@@ -1008,37 +1034,40 @@ export function DevProvider({ children }: { children: ReactNode }) {
       type: entry.type || 'diary_shared',
       visibility: entry.visibility || 'shared',
       date: entry.date || new Date().toISOString().split('T')[0],
-      content: entry.content || '',
-      moodTag: entry.moodTag,
-      ayaConsentBoth: entry.ayaConsentBoth ?? true,
+      content: entry.content || { title: 'Nuevo Recuerdo', body: '' },
+      moodTag: entry.moodTag || 'calm',
+      ayaConsentBoth: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isMine: true
     };
+
     setEntries((prev) => [newEntry, ...prev]);
   };
 
-  const addSurprise = (newSurprise: Partial<DiaryEntryUI>) => {
-    const item: DiaryEntryUI = {
+  const addSurprise = (surprise: Partial<DiaryEntryUI>) => {
+    const content = surprise.content as any;
+    const newSurprise: DiaryEntryUI = {
       id: 'surp-' + Date.now(),
       coupleId: 'demo-couple-id',
       authorId: currentDevUser.id,
       type: 'surprise',
       visibility: 'private',
-      date: newSurprise.date || new Date().toISOString().split('T')[0],
-      content: newSurprise.content || {
-        title: 'Nueva sorpresa',
-        description: '',
+      date: surprise.date || new Date().toISOString().split('T')[0],
+      content: {
+        title: content?.title || 'Sorpresa en marcha',
+        description: content?.description || '',
         status: 'idea',
-        occasion: 'sin_ocasión'
+        occasion: 'sin_ocasión',
       },
-      moodTag: newSurprise.moodTag || 'love',
+      moodTag: 'love',
       ayaConsentBoth: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isMine: true
     };
-    setEntries((prev) => [item, ...prev]);
+
+    setEntries((prev) => [newSurprise, ...prev]);
   };
 
   const updateSurpriseStatus = (id: string, newStatus: 'idea' | 'comprando' | 'listo' | 'entregado') => {
@@ -1085,6 +1114,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
         activeRole,
         currentDevUser,
         partnerDevUser,
+        users,
+        updateUserProfile,
         isPremium,
         user1Consent,
         user2Consent,

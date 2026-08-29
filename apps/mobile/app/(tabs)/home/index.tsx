@@ -102,11 +102,19 @@ export default function HomeScreen() {
           </Text>
         </View>
         <View style={styles.avatarPair}>
-          <View style={[styles.avatarBubble, { backgroundColor: Colors.light.primary }]}>
-            <Text style={styles.avatarBubbleText}>{currentDevUser.avatar}</Text>
+          <View style={[styles.avatarBubble, { backgroundColor: Colors.light.primary, overflow: 'hidden' }]}>
+            {currentDevUser.avatarPhoto ? (
+              <Image source={{ uri: currentDevUser.avatarPhoto }} style={styles.avatarBubbleImg} />
+            ) : (
+              <Text style={styles.avatarBubbleText}>{currentDevUser.avatar}</Text>
+            )}
           </View>
-          <View style={[styles.avatarBubble, styles.avatarBubblePartner, { backgroundColor: Colors.light.secondary }]}>
-            <Text style={styles.avatarBubbleText}>{partnerDevUser.avatar}</Text>
+          <View style={[styles.avatarBubble, styles.avatarBubblePartner, { backgroundColor: Colors.light.secondary, overflow: 'hidden' }]}>
+            {partnerDevUser.avatarPhoto ? (
+              <Image source={{ uri: partnerDevUser.avatarPhoto }} style={styles.avatarBubbleImg} />
+            ) : (
+              <Text style={styles.avatarBubbleText}>{partnerDevUser.avatar}</Text>
+            )}
           </View>
         </View>
       </View>
@@ -362,6 +370,11 @@ const styles = StyleSheet.create({
     color: Colors.light.textInverse,
     fontWeight: '700',
     fontSize: 14
+  },
+  avatarBubbleImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 18,
   },
   ritualCard: {
     padding: Spacing.lg,

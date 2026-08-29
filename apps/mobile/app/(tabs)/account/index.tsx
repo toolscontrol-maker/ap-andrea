@@ -8,6 +8,8 @@ import {
   Image,
   Switch,
   Alert,
+  Modal,
+  TextInput,
   Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -16,6 +18,7 @@ import { ScreenWrapper } from '../../../src/components/ui/ScreenWrapper';
 import { SectionHeader } from '../../../src/components/ui/SectionHeader';
 import { Badge } from '../../../src/components/ui/Badge';
 import { TiltedCard } from '../../../src/components/ui/TiltedCard';
+import { PhotoUploadField } from '../../../src/components/ui/PhotoUploadField';
 import {
   IconUser,
   IconShield,
@@ -25,12 +28,29 @@ import {
   IconLock,
   IconCheck,
   IconSparkles,
+  IconCamera,
   IconLogOut
 } from '../../../src/components/ui/Icons';
 import { Colors } from '../../../src/theme/colors';
 import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
 import { triggerHaptic } from '../../../src/utils/haptics';
 import { ConnectedCoupleHeart } from '../../../src/components/ui/ConnectedCoupleHeart';
+
+const ANDREA_PRESET_PHOTOS = [
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&auto=format&fit=crop&q=80',
+];
+
+const ANGEL_PRESET_PHOTOS = [
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&auto=format&fit=crop&q=80',
+];
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -39,6 +59,8 @@ export default function AccountScreen() {
     switchRole,
     currentDevUser,
     partnerDevUser,
+    users,
+    updateUserProfile,
     wishes,
     savedPlaces,
     coupleEvents,
@@ -51,12 +73,40 @@ export default function AccountScreen() {
   const [hapticFeedback, setHapticFeedback] = useState(true);
   const [romanticReminders, setRomanticReminders] = useState(true);
 
+  // Profile edit modal state
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string>(users.user2.id);
+  const [editName, setEditName] = useState('');
+  const [editPhotoUrl, setEditPhotoUrl] = useState('');
+
   // Anniversary & milestones calculation
   const ANNIVERSARY_DATE = new Date('2025-02-15');
   const FIRST_MET_DATE = new Date('2024-11-23');
   const now = new Date();
   const diffDays = Math.max(1, Math.floor((now.getTime() - ANNIVERSARY_DATE.getTime()) / (1000 * 60 * 60 * 24)));
   const daysSinceMet = Math.max(1, Math.floor((now.getTime() - FIRST_MET_DATE.getTime()) / (1000 * 60 * 60 * 24)));
+
+  const handleOpenEditProfile = (userId: string) => {
+    triggerHaptic('selection');
+    const targetUser = userId === users.user1.id ? users.user1 : users.user2;
+    setEditingUserId(userId);
+    setEditName(targetUser.name);
+    setEditPhotoUrl(targetUser.avatarPhoto || '');
+    setIsEditModalVisible(true);
+  };
+
+  const handleSaveProfile = async () => {
+    triggerHaptic('success');
+    const isUser1 = editingUserId === users.user1.id;
+    const finalName = editName.trim() || (isUser1 ? 'Ángel' : 'Andrea');
+    await updateUserProfile(editingUserId, {
+      name: finalName,
+      avatarPhoto: editPhotoUrl.trim() || undefined,
+      avatar: finalName[0].toUpperCase(),
+    });
+    setIsEditModalVisible(false);
+    Alert.alert('✨ Perfil Actualizado', `La foto y los datos de ${finalName} se han guardado con éxito.`);
+  };
 
   const handleToggleBiometrics = (val: boolean) => {
     triggerHaptic('selection');
@@ -126,12 +176,14 @@ export default function AccountScreen() {
         {/* COUPLE PROFILE HERO CARD WITH CONNECTED HEART ANIMATION */}
         <TiltedCard style={styles.coupleHeroCard} variant="elevated">
           <ConnectedCoupleHeart
-            user1Name="Andrea"
-            user1Avatar="A"
-            user1PhotoUrl="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80"
-            user2Name="Ángel"
-            user2Avatar="Á"
-            user2PhotoUrl="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80"
+            user1Name={users.user2.name}
+            user1Avatar={users.user2.avatar}
+            user1PhotoUrl={users.user2.avatarPhoto}
+            onEditAvatar1={() => handleOpenEditProfile(users.user2.id)}
+            user2Name={users.user1.name}
+            user2Avatar={users.user1.avatar}
+            user2PhotoUrl={users.user1.avatarPhoto}
+            onEditAvatar2={() => handleOpenEditProfile(users.user1.id)}
             currentUserName={currentDevUser.name}
             daysTogether={diffDays}
             startDateFormatted="15 de Febrero de 2025"
@@ -224,6 +276,65 @@ export default function AccountScreen() {
             <Text style={styles.statNumber}>{entries.length}</Text>
             <Text style={styles.statLabel}>Recuerdos Vivos</Text>
           </View>
+        </View>
+
+        {/* PROFILES & PHOTOS EDITING SECTION */}
+        <SectionHeader
+          title="Perfiles & Fotografías"
+          subtitle="Personaliza las fotos y nombres de Andrea & Ángel"
+        />
+        <View style={styles.settingsGroupCard}>
+          {/* ANDREA PROFILE ROW */}
+          <TouchableOpacity
+            style={styles.settingRow}
+            activeOpacity={0.7}
+            onPress={() => handleOpenEditProfile(users.user2.id)}
+          >
+            <View style={styles.userAvatarThumbWrapper}>
+              {users.user2.avatarPhoto ? (
+                <Image source={{ uri: users.user2.avatarPhoto }} style={styles.userAvatarThumb} />
+              ) : (
+                <View style={[styles.userAvatarThumb, { backgroundColor: Colors.light.primary }]}>
+                  <Text style={styles.userAvatarThumbText}>{users.user2.avatar}</Text>
+                </View>
+              )}
+              <View style={styles.thumbCameraBadge}>
+                <IconCamera size={9} color="#FFFFFF" />
+              </View>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Foto & Perfil de {users.user2.name}</Text>
+              <Text style={styles.settingDesc}>Toca para cambiar foto, elegir retrato o editar nombre</Text>
+            </View>
+            <Text style={styles.settingActionText}>Editar</Text>
+          </TouchableOpacity>
+
+          <View style={styles.settingDivider} />
+
+          {/* ANGEL PROFILE ROW */}
+          <TouchableOpacity
+            style={styles.settingRow}
+            activeOpacity={0.7}
+            onPress={() => handleOpenEditProfile(users.user1.id)}
+          >
+            <View style={styles.userAvatarThumbWrapper}>
+              {users.user1.avatarPhoto ? (
+                <Image source={{ uri: users.user1.avatarPhoto }} style={styles.userAvatarThumb} />
+              ) : (
+                <View style={[styles.userAvatarThumb, { backgroundColor: Colors.light.secondary }]}>
+                  <Text style={styles.userAvatarThumbText}>{users.user1.avatar}</Text>
+                </View>
+              )}
+              <View style={[styles.thumbCameraBadge, { backgroundColor: Colors.light.secondary }]}>
+                <IconCamera size={9} color="#FFFFFF" />
+              </View>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Foto & Perfil de {users.user1.name}</Text>
+              <Text style={styles.settingDesc}>Toca para cambiar foto, elegir retrato o editar nombre</Text>
+            </View>
+            <Text style={styles.settingActionText}>Editar</Text>
+          </TouchableOpacity>
         </View>
 
         {/* PRIVACY & SECURITY SETTINGS */}
@@ -351,6 +462,151 @@ export default function AccountScreen() {
 
         <View style={{ height: Spacing['2xl'] }} />
       </ScrollView>
+
+      {/* ── EDIT PROFILE MODAL ── */}
+      <Modal
+        visible={isEditModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsEditModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            {/* MODAL HEADER */}
+            <View style={styles.modalHeaderRow}>
+              <View>
+                <Text style={styles.modalEyebrow}>PERSONALIZAR PERFIL</Text>
+                <Text style={styles.modalTitle}>
+                  {editingUserId === users.user1.id ? 'Perfil de Ángel' : 'Perfil de Andrea'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setIsEditModalVisible(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalCloseBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
+              {/* LIVE AVATAR PREVIEW */}
+              <View style={styles.previewAvatarContainer}>
+                <View style={styles.previewAvatarWrapper}>
+                  {editPhotoUrl ? (
+                    <Image source={{ uri: editPhotoUrl }} style={styles.previewAvatarImage} />
+                  ) : (
+                    <View
+                      style={[
+                        styles.previewAvatarImage,
+                        styles.previewAvatarFallback,
+                        {
+                          backgroundColor:
+                            editingUserId === users.user1.id
+                              ? Colors.light.secondary
+                              : Colors.light.primary,
+                        },
+                      ]}
+                    >
+                      <Text style={styles.previewAvatarFallbackText}>
+                        {(editName.trim() || (editingUserId === users.user1.id ? 'Á' : 'A'))[0]}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.previewAvatarHint}>Vista previa en vivo de tu foto</Text>
+              </View>
+
+              {/* NAME INPUT */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Nombre o Apodo</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editName}
+                  onChangeText={setEditName}
+                  placeholder="Ej. Andrea, Ángel..."
+                  placeholderTextColor={Colors.light.textMuted}
+                />
+              </View>
+
+              {/* PHOTO PRESETS SELECTION */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Retratos y Estilos Sugeridos</Text>
+                <Text style={styles.inputSublabel}>Selecciona en 1 toque una fotografía estética:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsRow}>
+                  {(editingUserId === users.user1.id ? ANGEL_PRESET_PHOTOS : ANDREA_PRESET_PHOTOS).map(
+                    (url, idx) => {
+                      const isSelected = editPhotoUrl === url;
+                      return (
+                        <TouchableOpacity
+                          key={idx}
+                          style={[styles.presetItem, isSelected && styles.presetItemSelected]}
+                          activeOpacity={0.8}
+                          onPress={() => {
+                            triggerHaptic('selection');
+                            setEditPhotoUrl(url);
+                          }}
+                        >
+                          <Image source={{ uri: url }} style={styles.presetImage} />
+                          {isSelected && (
+                            <View style={styles.presetCheckmark}>
+                              <IconCheck size={12} color="#FFFFFF" />
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    }
+                  )}
+                </ScrollView>
+              </View>
+
+              {/* DEVICE UPLOAD VIA CAMERA / GALLERY */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Subir Foto desde tu Dispositivo</Text>
+                <PhotoUploadField
+                  imageUri={editPhotoUrl}
+                  onImageChange={(uri) => setEditPhotoUrl(uri || '')}
+                  label=""
+                  placeholderText="Toca para elegir foto de tu carrete o cámara"
+                  aspect={[1, 1]}
+                />
+              </View>
+
+              {/* DIRECT IMAGE URL INPUT */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>O pegar enlace directo de imagen (URL)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editPhotoUrl}
+                  onChangeText={setEditPhotoUrl}
+                  placeholder="https://images.unsplash.com/..."
+                  placeholderTextColor={Colors.light.textMuted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            </ScrollView>
+
+            {/* MODAL ACTION BUTTONS */}
+            <View style={styles.modalFooterRow}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setIsEditModalVisible(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalCancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalSaveBtn}
+                onPress={handleSaveProfile}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.modalSaveBtnText}>Guardar Perfil</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenWrapper>
   );
 }
@@ -581,6 +837,218 @@ const styles = StyleSheet.create({
     ...Typography.captionBold,
     color: Colors.light.primary,
     fontSize: 13,
+  },
+  userAvatarThumbWrapper: {
+    position: 'relative',
+    marginRight: Spacing.md,
+  },
+  userAvatarThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(20, 19, 18, 0.08)',
+  },
+  userAvatarThumbText: {
+    ...Typography.h3,
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  thumbCameraBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.light.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    ...Shadows.sm,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: Radii['2xl'],
+    borderTopRightRadius: Radii['2xl'],
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? Spacing['2xl'] + 10 : Spacing.xl,
+    maxHeight: '90%',
+    ...Shadows.lg,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(20, 19, 18, 0.06)',
+    paddingBottom: Spacing.sm,
+  },
+  modalEyebrow: {
+    ...Typography.captionBold,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: Colors.light.primary,
+    marginBottom: 2,
+  },
+  modalTitle: {
+    ...Typography.h2,
+    fontSize: 18,
+    color: Colors.light.text,
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(20, 19, 18, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCloseBtnText: {
+    fontSize: 15,
+    color: Colors.light.textMuted,
+    fontWeight: '600',
+  },
+  modalScrollView: {
+    maxHeight: 460,
+  },
+  previewAvatarContainer: {
+    alignItems: 'center',
+    marginVertical: Spacing.md,
+  },
+  previewAvatarWrapper: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    padding: 3,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: Colors.light.primary,
+    ...Shadows.md,
+  },
+  previewAvatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 42,
+  },
+  previewAvatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewAvatarFallbackText: {
+    ...Typography.h1,
+    fontSize: 32,
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  previewAvatarHint: {
+    ...Typography.caption,
+    fontSize: 11.5,
+    color: Colors.light.textMuted,
+    marginTop: Spacing.xs,
+  },
+  inputGroup: {
+    marginBottom: Spacing.md,
+  },
+  inputLabel: {
+    ...Typography.captionBold,
+    fontSize: 12.5,
+    color: Colors.light.text,
+    marginBottom: 4,
+  },
+  inputSublabel: {
+    ...Typography.caption,
+    fontSize: 11.5,
+    color: Colors.light.textMuted,
+    marginBottom: Spacing.xs,
+  },
+  textInput: {
+    backgroundColor: '#F9F8F6',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 19, 18, 0.1)',
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    fontSize: 14,
+    color: Colors.light.text,
+  },
+  presetsRow: {
+    flexDirection: 'row',
+    paddingVertical: Spacing.xs,
+  },
+  presetItem: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: Spacing.sm,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    overflow: 'hidden',
+  },
+  presetItemSelected: {
+    borderColor: Colors.light.primary,
+    ...Shadows.sm,
+  },
+  presetImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 28,
+  },
+  presetCheckmark: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.light.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalFooterRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(20, 19, 18, 0.06)',
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.lg,
+    backgroundColor: '#F2EFEB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelBtnText: {
+    ...Typography.captionBold,
+    fontSize: 13,
+    color: Colors.light.textMuted,
+  },
+  modalSaveBtn: {
+    flex: 2,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.lg,
+    backgroundColor: Colors.light.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.sm,
+  },
+  modalSaveBtnText: {
+    ...Typography.captionBold,
+    fontSize: 13.5,
+    color: '#FFFFFF',
   },
   footerInfoCard: {
     alignItems: 'center',
