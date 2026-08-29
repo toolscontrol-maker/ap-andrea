@@ -125,8 +125,38 @@ function cleanQueryToTitle(str: string): string {
 }
 
 /**
+ * Fast fetch with timeout
+ */
+async function fetchWithTimeout(url: string, timeoutMs: number = 2800): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
+/**
+ * Live Scrape via Microlink with strict timeout
+ */
+async function scrapeViaMicrolink(targetUrl: string): Promise<any | null> {
+  try {
+    const endpoint = `https://api.microlink.io?url=${encodeURIComponent(targetUrl)}&palette=true`;
+    const response = await fetchWithTimeout(endpoint, 2800);
+    if (!response.ok) return null;
+    const json = await response.json();
+    return json.status === 'success' ? json.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Universal Intelligent Link Extractor & Categorizer
- * Detects Restaurants, Maps, Travel Agencies, Flights, Fashion, and Decor
  */
 export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLinkMetadata | null> {
   if (!rawUrl || !rawUrl.trim()) return null;
@@ -155,14 +185,50 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
     (hostname.includes('goo.gl') && pathname.includes('/maps')) ||
     hostname.includes('maps.apple.com')
   ) {
+    // Attempt Live Microlink Scraping first for exact place name, address and photo!
+    try {
+      const liveData = await scrapeViaMicrolink(targetUrl);
+      if (liveData && liveData.title) {
+        const rawTitle = liveData.title;
+        const parts = rawTitle.split('·');
+        const name = parts[0].trim();
+        const address = parts.length > 1 ? parts.slice(1).join('·').trim() : '';
+        const cuisine = (liveData.description || '').replace(/^[★☆\s\d\.\,\-]+·\s*/, '').trim();
+        const realImage = liveData.image?.url || liveData.logo?.url;
+
+        const isHotel =
+          name.toLowerCase().includes('hotel') ||
+          name.toLowerCase().includes('resort') ||
+          name.toLowerCase().includes('alojamiento') ||
+          name.toLowerCase().includes('parador') ||
+          name.toLowerCase().includes('casa rural');
+
+        const images = realImage
+          ? [realImage, ...(isHotel ? TRAVEL_GALLERY_SETS : RESTAURANT_GALLERY_SETS)]
+          : (isHotel ? TRAVEL_GALLERY_SETS : RESTAURANT_GALLERY_SETS);
+
+        return {
+          title: name,
+          brand: address ? address : name,
+          type: isHotel ? 'trip' : 'restaurant',
+          domain: hostname,
+          estimatedPrice: isHotel ? 180 : undefined,
+          imageUrl: images[0],
+          galleryImages: images,
+          description: cuisine ? cuisine : (address ? address : `Guardado desde Google Maps`),
+        };
+      }
+    } catch (e) {
+      console.warn('[extractLinkMetadata] Live Google Maps fetch failed, using fallback parser', e);
+    }
+
+    // Fallback: URL regex parsing if network fails
     let placeName = '';
     let addressPart = '';
 
-    // A) Regex extract /place/<PlaceName, Address>/
     const placeMatch = targetUrl.match(/\/place\/([^/@?]+)/);
     if (placeMatch && placeMatch[1]) {
       const decoded = decodeURIComponent(placeMatch[1]);
-      // Remove data= parameters if attached
       const cleanPiece = decoded.replace(/\/data=.*$/, '');
       const parts = cleanPiece.split(',');
       placeName = parts[0].replace(/\+/g, ' ').trim();
@@ -171,7 +237,6 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       }
     }
 
-    // B) Query parameters ?q=NAME or ?query=NAME
     if (!placeName && searchParams.get('q')) {
       const qVal = decodeURIComponent(searchParams.get('q') || '');
       const parts = qVal.split(',');
@@ -180,46 +245,19 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
         addressPart = parts.slice(1).join(',').replace(/\+/g, ' ').trim();
       }
     }
-    if (!placeName && searchParams.get('query')) {
-      const qVal = decodeURIComponent(searchParams.get('query') || '');
-      const parts = qVal.split(',');
-      placeName = parts[0].replace(/\+/g, ' ').trim();
+
+    if (!placeName || placeName.startsWith('data=') || placeName.includes('!1s') || placeName.includes('0x') || /^[a-zA-Z0-9]{15,20}$/.test(placeName)) {
+      placeName = 'Restaurante / Rincón Gastronómico';
     }
-
-    // C) Path segments fallback (excluding data=)
-    if (!placeName && pathSegments.length > 0) {
-      const validSegs = pathSegments.filter((s) => !s.startsWith('@') && !s.startsWith('data=') && s !== 'maps' && s !== 'place');
-      if (validSegs.length > 0) {
-        const lastSeg = decodeURIComponent(validSegs[validSegs.length - 1]);
-        const parts = lastSeg.split(',');
-        placeName = parts[0].replace(/\+/g, ' ').trim();
-      }
-    }
-
-    // Clean placeName from code artifacts
-    if (placeName.startsWith('data=') || placeName.includes('!1s') || placeName.includes('0x')) {
-      placeName = 'Restaurante / Rincón';
-    }
-
-    // D) Check if hotel or restaurant
-    const isHotel =
-      placeName.toLowerCase().includes('hotel') ||
-      placeName.toLowerCase().includes('resort') ||
-      placeName.toLowerCase().includes('alojamiento') ||
-      placeName.toLowerCase().includes('parador') ||
-      placeName.toLowerCase().includes('casa rural');
-
-    const inferredType: WishlistItemType = isHotel ? 'trip' : 'restaurant';
-    const finalTitle = placeName ? placeName : (isHotel ? 'Alojamiento en el Mapa' : 'Restaurante');
 
     return {
-      title: finalTitle,
-      brand: placeName ? placeName : (isHotel ? 'Google Maps · Viajes' : 'Google Maps'),
-      type: inferredType,
+      title: placeName,
+      brand: addressPart ? addressPart : placeName,
+      type: 'restaurant',
       domain: hostname,
-      estimatedPrice: isHotel ? 180 : undefined, // No mandatory price for restaurants!
-      imageUrl: isHotel ? TRAVEL_GALLERY_SETS[0] : RESTAURANT_GALLERY_SETS[0],
-      galleryImages: isHotel ? TRAVEL_GALLERY_SETS : RESTAURANT_GALLERY_SETS,
+      estimatedPrice: undefined,
+      imageUrl: RESTAURANT_GALLERY_SETS[0],
+      galleryImages: RESTAURANT_GALLERY_SETS,
       description: addressPart ? addressPart : `Ubicación guardada desde Google Maps`,
     };
   }
@@ -260,7 +298,7 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       brand: brandName,
       type: 'restaurant',
       domain: hostname,
-      estimatedPrice: undefined, // No price required for restaurants
+      estimatedPrice: undefined,
       imageUrl: RESTAURANT_GALLERY_SETS[0],
       galleryImages: RESTAURANT_GALLERY_SETS,
       description: `Reserva gastronómica en ${brandName}`,
@@ -298,7 +336,6 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
     else if (hostname.includes('iberia')) brandName = 'Iberia';
     else if (hostname.includes('parador')) brandName = 'Paradores';
 
-    // Check if URL matches a known famous destination
     let matchedDestName = '';
     let matchedPrice = 280;
     for (const [key, dest] of Object.entries(DESTINATIONS_MAP)) {

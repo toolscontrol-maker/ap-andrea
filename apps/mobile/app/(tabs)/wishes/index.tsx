@@ -99,7 +99,11 @@ export default function WishesScreen() {
           if (meta.title) setNewTitle(meta.title);
           if (meta.brand) setNewBrand(meta.brand);
           if (meta.type) setNewType(meta.type);
-          if (meta.estimatedPrice) setNewPrice(meta.estimatedPrice.toString());
+          if (meta.estimatedPrice !== undefined) {
+            setNewPrice(meta.estimatedPrice.toString());
+          } else if (meta.type === 'restaurant') {
+            setNewPrice('');
+          }
           if (meta.galleryImages && meta.galleryImages.length > 0) {
             setNewGalleryImages(meta.galleryImages);
             setNewImageUrl(meta.galleryImages[0]);
