@@ -20,6 +20,7 @@ import { TiltedCard } from '../../../src/components/ui/TiltedCard';
 import { StaggeredItem } from '../../../src/components/ui/StaggeredList';
 import { DynamicIsland } from '../../../src/components/DynamicIsland';
 import { SectionHeader } from '../../../src/components/ui/SectionHeader';
+import { PhotoUploadField } from '../../../src/components/ui/PhotoUploadField';
 import {
   IconLock,
   IconSparkles,
@@ -46,6 +47,7 @@ export default function HomeScreen() {
 
   const [activeRitualType, setActiveRitualType] = useState<DailyRitualType>('gratitude_note');
   const [ritualInputText, setRitualInputText] = useState('');
+  const [uploadedPhotoUri, setUploadedPhotoUri] = useState<string | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(getRandomAyaQuestion());
   const [isSeedSubmitted, setIsSeedSubmitted] = useState(false);
 
@@ -53,7 +55,7 @@ export default function HomeScreen() {
   const partnerWishes = wishes.filter((w) => w.ownerUserId === partnerDevUser.id && w.status !== 'fulfilled');
 
   const handlePlantSeed = () => {
-    if (!ritualInputText.trim()) {
+    if (!ritualInputText.trim() && !uploadedPhotoUri) {
       Alert.alert('Escribe unas palabras', 'Comparte una pequeña nota o pensamiento de hoy.');
       return;
     }
@@ -65,12 +67,14 @@ export default function HomeScreen() {
           ? 'Nota de gratitud'
           : activeRitualType === 'question_answer'
           ? currentQuestion.question
-          : 'Momento compartido',
-      body: ritualInputText.trim(),
+          : 'Foto del día',
+      body: ritualInputText.trim() || 'Foto compartida con amor',
+      photoUrl: uploadedPhotoUri || undefined,
       mood: 'love'
     });
 
     setRitualInputText('');
+    setUploadedPhotoUri(null);
     setIsSeedSubmitted(true);
     setTimeout(() => setIsSeedSubmitted(false), 3000);
     Alert.alert('🌱 Momento Sembrado', 'Se ha guardado en vuestra memoria compartida.');
@@ -163,9 +167,17 @@ export default function HomeScreen() {
           )}
 
           {activeRitualType === 'daily_photo' && (
-            <Text style={styles.ritualPromptText}>
-              "Una foto espontánea de lo que tienes delante ahora mismo."
-            </Text>
+            <View style={{ marginBottom: Spacing.sm }}>
+              <Text style={styles.ritualPromptText}>
+                "Una foto espontánea de lo que tienes delante ahora mismo."
+              </Text>
+              <PhotoUploadField
+                imageUri={uploadedPhotoUri}
+                onImageChange={setUploadedPhotoUri}
+                label="Foto del momento"
+                placeholderText="Toca para abrir la cámara o elegir de tu fototeca"
+              />
+            </View>
           )}
 
           <TextInput
@@ -175,7 +187,7 @@ export default function HomeScreen() {
                 ? 'Escribe ese detalle bonito que notaste hoy...'
                 : activeRitualType === 'question_answer'
                 ? 'Tu respuesta sincera (se compartirá suavemente)...'
-                : 'Pega el enlace de la foto o escribe un pie de foto...'
+                : 'Escribe una dedicatoria o pie de foto (opcional)...'
             }
             placeholderTextColor={Colors.light.textMuted}
             value={ritualInputText}

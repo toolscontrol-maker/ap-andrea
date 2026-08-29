@@ -1,13 +1,25 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  ScrollView,
+  Alert
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AndreaMap } from '../../../src/components/map/AndreaMap';
 import { MapFilters, MapFilterKey, FILTER_TYPE_MAP } from '../../../src/components/map/MapFilters';
 import { MapBottomSheet } from '../../../src/components/map/MapBottomSheet';
 import { DEMO_MAP_PLACES, DEFAULT_MAP_CAMERA } from '../../../src/components/map/map.constants';
-import { AndreaMapPlace, MapBounds } from '../../../src/types/map';
+import { AndreaMapPlace, MapPlaceType } from '../../../src/types/map';
 import { Radii, Spacing, Typography } from '../../../src/theme/tokens';
+import { Colors } from '../../../src/theme/colors';
 import { IconPlus, IconMapPin } from '../../../src/components/ui/Icons';
+import { Button } from '../../../src/components/ui/Button';
+import { PhotoUploadField } from '../../../src/components/ui/PhotoUploadField';
 import { triggerHaptic } from '../../../src/utils/haptics';
 
 export default function MapScreen() {
@@ -17,7 +29,16 @@ export default function MapScreen() {
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState<boolean>(true);
 
-  const allPlaces: AndreaMapPlace[] = DEMO_MAP_PLACES;
+  // Dynamic places state
+  const [allPlaces, setAllPlaces] = useState<AndreaMapPlace[]>(DEMO_MAP_PLACES);
+
+  // Add Place Modal State
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newSubtitle, setNewSubtitle] = useState('');
+  const [newType, setNewType] = useState<MapPlaceType>('memory');
+  const [newPhotoUrl, setNewPhotoUrl] = useState<string | null>(null);
+  const [newDescription, setNewDescription] = useState('');
 
   // Filtered places based on active chip
   const filteredPlaces = useMemo(() => {
@@ -60,12 +81,44 @@ export default function MapScreen() {
     );
   }, []);
 
-  const handleAddPlacePress = () => {
+  const handleOpenAddModal = () => {
     triggerHaptic('light');
-    Alert.alert(
-      'Añadir Nuevo Rincón',
-      'Elige si deseas guardar un Recuerdo vivido, un Restaurante pendiente o un Viaje soñado.'
-    );
+    setIsAddModalOpen(true);
+  };
+
+  const handleSavePlace = () => {
+    if (!newTitle.trim()) {
+      Alert.alert('Nombre requerido', 'Por favor introduce un nombre para este rincón.');
+      return;
+    }
+
+    triggerHaptic('heavy');
+
+    const newPlace: AndreaMapPlace = {
+      id: `place-custom-${Date.now()}`,
+      title: newTitle.trim(),
+      subtitle: newSubtitle.trim() || 'Valencia',
+      type: newType,
+      latitude: DEFAULT_MAP_CAMERA.latitude + (Math.random() - 0.5) * 0.04,
+      longitude: DEFAULT_MAP_CAMERA.longitude + (Math.random() - 0.5) * 0.04,
+      precision: 'exact',
+      description: newDescription.trim() || undefined,
+      imageUrl: newPhotoUrl || undefined,
+      date: new Date().toISOString().split('T')[0],
+      isRevealed: true,
+    };
+
+    setAllPlaces((prev) => [newPlace, ...prev]);
+    setSelectedPlaceId(newPlace.id);
+
+    // Reset Form
+    setNewTitle('');
+    setNewSubtitle('');
+    setNewPhotoUrl(null);
+    setNewDescription('');
+    setIsAddModalOpen(false);
+
+    Alert.alert('Rincón Guardado', 'Se ha anclado en vuestro mapa de recuerdos.');
   };
 
   const handleRecenter = () => {
@@ -82,7 +135,7 @@ export default function MapScreen() {
         places={filteredPlaces}
         selectedPlaceId={selectedPlaceId}
         onPlacePress={handlePlacePress}
-        onAddPlacePress={handleAddPlacePress}
+        onAddPlacePress={handleOpenAddModal}
       />
 
       {/* 2. Top Centered Apple Maps Header Title */}
@@ -108,7 +161,7 @@ export default function MapScreen() {
           <TouchableOpacity
             style={styles.hudButton}
             activeOpacity={0.8}
-            onPress={handleAddPlacePress}
+            onPress={handleOpenAddModal}
           >
             <IconPlus size={16} color="#FFFFFF" strokeWidth={2.4} />
           </TouchableOpacity>
@@ -160,6 +213,102 @@ export default function MapScreen() {
         onClose={handleCloseSheet}
         onViewDetail={handleViewDetail}
       />
+
+      {/* 6. Add Place & Photo Modal */}
+      <Modal
+        visible={isAddModalOpen}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsAddModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Añadir Rincón a la Historia</Text>
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setIsAddModalOpen(false)}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              <Text style={styles.inputLabel}>Tipo de Rincón</Text>
+              <View style={styles.typeSelectorRow}>
+                {(['memory', 'restaurant', 'trip', 'dream'] as MapPlaceType[]).map((t) => (
+                  <TouchableOpacity
+                    key={t}
+                    style={[styles.typePill, newType === t && styles.typePillActive]}
+                    onPress={() => {
+                      triggerHaptic('selection');
+                      setNewType(t);
+                    }}
+                  >
+                    <Text
+                      style={[styles.typePillText, newType === t && styles.typePillTextActive]}
+                    >
+                      {t === 'memory'
+                        ? 'Recuerdo'
+                        : t === 'restaurant'
+                        ? 'Restaurante'
+                        : t === 'trip'
+                        ? 'Viaje'
+                        : 'Sueño'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.inputLabel}>Nombre del lugar o momento *</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="ej. Mirador de la Albufera, Café Central..."
+                placeholderTextColor={Colors.light.textMuted}
+                value={newTitle}
+                onChangeText={setNewTitle}
+              />
+
+              <Text style={styles.inputLabel}>Subtítulo o ciudad</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="ej. Valencia · Atardecer mágico"
+                placeholderTextColor={Colors.light.textMuted}
+                value={newSubtitle}
+                onChangeText={setNewSubtitle}
+              />
+
+              {/* Photo Upload with Camera / Library */}
+              <PhotoUploadField
+                imageUri={newPhotoUrl}
+                onImageChange={setNewPhotoUrl}
+                label="Fotografía del lugar o recuerdo"
+                placeholderText="Toca para abrir cámara o elegir de tu fototeca"
+              />
+
+              <Text style={styles.inputLabel}>Dedicatoria o memoria (opcional)</Text>
+              <TextInput
+                style={[styles.textInput, styles.textArea]}
+                placeholder="Lo que sentimos al estar aquí..."
+                placeholderTextColor={Colors.light.textMuted}
+                value={newDescription}
+                onChangeText={setNewDescription}
+                multiline
+                numberOfLines={3}
+              />
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <Button variant="ghost" onPress={() => setIsAddModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button variant="primary" onPress={handleSavePlace}>
+                Guardar en el Mapa
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -236,5 +385,102 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 95,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: Radii['2xl'],
+    borderTopRightRadius: Radii['2xl'],
+    maxHeight: '85%',
+    padding: Spacing.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  modalTitle: {
+    ...Typography.h2,
+    fontSize: 19,
+    color: Colors.light.text,
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.light.surfaceSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCloseText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.light.textMuted,
+  },
+  modalBody: {
+    maxHeight: 400,
+  },
+  inputLabel: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginTop: Spacing.sm,
+    marginBottom: 4,
+  },
+  typeSelectorRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: Spacing.xs,
+  },
+  typePill: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: Radii.sm,
+    backgroundColor: Colors.light.surfaceSubtle,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  typePillActive: {
+    backgroundColor: Colors.light.primaryLight,
+    borderColor: Colors.light.primary,
+  },
+  typePillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.light.textMuted,
+  },
+  typePillTextActive: {
+    color: Colors.light.primaryDark,
+    fontWeight: '700',
+  },
+  textInput: {
+    backgroundColor: Colors.light.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: 'rgba(43, 33, 41, 0.1)',
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: Colors.light.text,
+    marginBottom: Spacing.xs,
+  },
+  textArea: {
+    minHeight: 65,
+    textAlignVertical: 'top',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.divider,
+    paddingTop: Spacing.sm,
   },
 });

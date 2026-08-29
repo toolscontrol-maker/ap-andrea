@@ -13,3 +13,4 @@ export * from './StaggeredList';
 export * from './Icons';
 export * from './PressableScale';
 export * from './InsetGroupedList';
+export * from './PhotoUploadField';

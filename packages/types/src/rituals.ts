@@ -16,6 +16,7 @@ export interface RitualSeed {
   title?: string;
   body?: string;
   imageUrl?: string;
+  photoUrl?: string;
   mood?: string;
   gratitudeTarget?: string;
 

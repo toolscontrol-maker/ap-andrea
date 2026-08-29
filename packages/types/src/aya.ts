@@ -27,6 +27,7 @@ export interface AyaChatMessage {
   id: string;
   sender: 'user' | 'partner' | 'aya';
   text: string;
+  photoUrl?: string;
   mode?: AyaMode;
   timestamp: string;
   sources?: AyaSource[];

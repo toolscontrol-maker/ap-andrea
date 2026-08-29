@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { useDev } from '../../../src/context/DevContext';
 import { Colors } from '../../../src/theme/colors';
 import { Layout, Radii, Shadows, Spacing, Typography } from '../../../src/theme/tokens';
-import { ScreenWrapper, Card, Badge, Button } from '../../../src/components/ui';
+import { ScreenWrapper, Card, Badge, Button, IconCamera } from '../../../src/components/ui';
 import { AyaAuraOrb } from '../../../src/components/illustrations/AyaAuraOrb';
 import { AyaQuestionDeck } from '../../../src/components/AyaQuestionDeck';
 import { AyaMode, AyaChatMessage, AyaQuestionPrompt } from '@andrea/types';
+import { promptPhotoPicker } from '../../../src/utils/imagePicker';
+import { triggerHaptic } from '../../../src/utils/haptics';
 
 export default function AyaSpaceScreen() {
   const dev = useDev();
   const [selectedMode, setSelectedMode] = useState<AyaMode>('reflect');
   const [inputMessage, setInputMessage] = useState('');
+  const [attachedPhotoUri, setAttachedPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showInsightsBoard, setShowInsightsBoard] = useState(false);
 
@@ -28,7 +31,7 @@ export default function AyaSpaceScreen() {
     const ayaMsg: AyaChatMessage = {
       id: 'aya-q-' + Date.now(),
       sender: 'aya',
-      text: `🎲 Pregunta de conexión para ti, ${dev.currentDevUser.name}:\n\n"${prompt.question}"\n\n(Tómate tu tiempo. Puedes responder con una sola palabra o explayarte todo lo que sientas.)`,
+      text: `Pregunta de conexión para ti, ${dev.currentDevUser.name}:\n\n"${prompt.question}"\n\n(Tómate tu tiempo. Puedes responder con una sola palabra o explayarte todo lo que sientas.)`,
       mode: 'reflect',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
@@ -36,20 +39,33 @@ export default function AyaSpaceScreen() {
     setMessages((prev) => [...prev, ayaMsg]);
   };
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim()) return;
+  const handlePickPhoto = () => {
+    promptPhotoPicker({
+      title: 'Compartir foto con Andrea',
+      onImageSelected: (res) => {
+        setAttachedPhotoUri(res.base64 || res.uri);
+      },
+    });
+  };
 
-    const userText = inputMessage.trim();
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() && !attachedPhotoUri) return;
+
+    const userText = inputMessage.trim() || 'Foto compartida';
+    const userPhoto = attachedPhotoUri;
+
     const userMsg: AyaChatMessage = {
       id: 'user-' + Date.now(),
       sender: 'user',
       text: userText,
+      photoUrl: userPhoto || undefined,
       mode: selectedMode,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
     setMessages((prev) => [...prev, userMsg]);
     setInputMessage('');
+    setAttachedPhotoUri(null);
     setLoading(true);
 
     setTimeout(() => {
@@ -57,7 +73,9 @@ export default function AyaSpaceScreen() {
       const partnerName = dev.partnerDevUser.name;
       const lower = userText.toLowerCase();
 
-      if (lower.includes('pregunta') || lower.includes('otra') || lower.includes('lanza')) {
+      if (userPhoto) {
+        ayaReply = `Qué momento tan bonito para vuestro archivo, ${dev.currentDevUser.name}. Las imágenes guardadas con intención son anclas emocionales preciosas para ti y para ${partnerName}.`;
+      } else if (lower.includes('pregunta') || lower.includes('otra') || lower.includes('lanza')) {
         const nextQ = dev.getRandomAyaQuestion();
         ayaReply = `¡Me encanta vuestra curiosidad! Aquí tienes otra pregunta para ti y para ${partnerName}:\n\n"${nextQ.question}"\n\n¿Qué es lo primero que te viene al corazón?`;
       } else if (selectedMode === 'mediate') {
@@ -65,7 +83,7 @@ export default function AyaSpaceScreen() {
       } else if (selectedMode === 'understand_partner') {
         ayaReply = `Mirando la dinámica de pareja con ${partnerName}, a menudo cuando hay semanas de mucha carga mental, la persona puede necesitar un tiempo de descompresión antes de conectar. No significa que te quiera menos; a menudo es solo una diferencia de ritmos.`;
       } else {
-        ayaReply = `Gracias por compartir esto con tanta honestidad, ${dev.currentDevUser.name}. Lo anoto en vuestro historial afectivo para seguir entendiendo vuestra complicidad con ${partnerName}. Pequeños gestos y reflexiones como esta son los que hacen que vuestra casa digital sea cada día más cálida. 🌱`;
+        ayaReply = `Gracias por compartir esto con tanta honestidad, ${dev.currentDevUser.name}. Lo anoto en vuestro historial afectivo para seguir entendiendo vuestra complicidad con ${partnerName}. Pequeños gestos y reflexiones como esta son los que hacen que vuestra casa digital sea cada día más cálida.`;
       }
 
       const ayaResponseMsg: AyaChatMessage = {
@@ -88,11 +106,14 @@ export default function AyaSpaceScreen() {
       <View style={[styles.msgWrapper, isUser ? styles.msgWrapperUser : styles.msgWrapperAya]}>
         {!isUser && (
           <View style={styles.ayaAvatarSmall}>
-            <Text style={{ fontSize: 13 }}>✨</Text>
+            <Text style={{ fontSize: 13, color: Colors.light.primary }}>A</Text>
           </View>
         )}
 
         <View style={[styles.msgBubble, isUser ? styles.msgBubbleUser : styles.msgBubbleAya]}>
+          {item.photoUrl && (
+            <Image source={{ uri: item.photoUrl }} style={styles.msgAttachedPhoto} resizeMode="cover" />
+          )}
           <Text style={[styles.msgText, isUser ? styles.msgTextUser : styles.msgTextAya]}>
             {item.text}
           </Text>
@@ -167,20 +188,45 @@ export default function AyaSpaceScreen() {
           showsVerticalScrollIndicator={false}
         />
 
+        {/* Attached Photo Preview */}
+        {attachedPhotoUri && (
+          <View style={styles.chatPhotoPreviewBox}>
+            <Image source={{ uri: attachedPhotoUri }} style={styles.chatPhotoPreviewImg} />
+            <TouchableOpacity
+              style={styles.chatPhotoRemoveBtn}
+              onPress={() => setAttachedPhotoUri(null)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.chatPhotoRemoveText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Luxury Chat Input Bar */}
         <View style={styles.inputContainer}>
+          <TouchableOpacity
+            style={styles.attachBtn}
+            onPress={handlePickPhoto}
+            activeOpacity={0.7}
+          >
+            <IconCamera size={20} color={Colors.light.primary} strokeWidth={2} />
+          </TouchableOpacity>
+
           <TextInput
             style={styles.textInput}
-            placeholder={`Habla o responde a AYA como ${dev.currentDevUser.name}...`}
+            placeholder={`Habla o comparte una foto con Andrea...`}
             placeholderTextColor={Colors.light.textLight}
             value={inputMessage}
             onChangeText={setInputMessage}
             multiline
           />
           <TouchableOpacity
-            style={[styles.sendBtn, (!inputMessage.trim() || loading) && styles.sendBtnDisabled]}
+            style={[
+              styles.sendBtn,
+              (!inputMessage.trim() && !attachedPhotoUri || loading) && styles.sendBtnDisabled,
+            ]}
             onPress={handleSendMessage}
-            disabled={!inputMessage.trim() || loading}
+            disabled={(!inputMessage.trim() && !attachedPhotoUri) || loading}
             activeOpacity={0.7}
           >
             {loading ? (
@@ -372,6 +418,51 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     maxHeight: 90,
     paddingVertical: Spacing.sm,
+  },
+  attachBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.full,
+    backgroundColor: Colors.light.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chatPhotoPreviewBox: {
+    position: 'relative',
+    width: 72,
+    height: 72,
+    borderRadius: Radii.md,
+    marginBottom: Spacing.xs,
+    alignSelf: 'flex-start',
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: Colors.light.primary,
+  },
+  chatPhotoPreviewImg: {
+    width: '100%',
+    height: '100%',
+  },
+  chatPhotoRemoveBtn: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chatPhotoRemoveText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  msgAttachedPhoto: {
+    width: 200,
+    height: 140,
+    borderRadius: Radii.lg,
+    marginBottom: Spacing.xs,
   },
   sendBtn: {
     width: 38,

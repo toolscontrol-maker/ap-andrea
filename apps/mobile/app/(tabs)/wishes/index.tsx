@@ -20,6 +20,7 @@ import { TiltedCard } from '../../../src/components/ui/TiltedCard';
 import { StaggeredItem } from '../../../src/components/ui/StaggeredList';
 import { SectionHeader } from '../../../src/components/ui/SectionHeader';
 import { EmptyState } from '../../../src/components/ui/EmptyState';
+import { PhotoUploadField } from '../../../src/components/ui/PhotoUploadField';
 import { Colors } from '../../../src/theme/colors';
 import { Spacing, Radii, Shadows } from '../../../src/theme/tokens';
 import { WishlistItem, WishlistStatus, WishlistItemType, Place } from '@andrea/types';
@@ -415,14 +416,11 @@ export default function WishesScreen() {
                 autoCapitalize="none"
               />
 
-              <Text style={styles.inputLabel}>Foto o imagen URL (opcional)</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Pega enlace de foto o captura"
-                placeholderTextColor={Colors.light.textMuted}
-                value={newImageUrl}
-                onChangeText={setNewImageUrl}
-                autoCapitalize="none"
+              <PhotoUploadField
+                imageUri={newImageUrl}
+                onImageChange={(val) => setNewImageUrl(val || '')}
+                label="Foto del deseo o captura"
+                placeholderText="Toca para subir foto de la prenda, regalo o rincón"
               />
 
               <Text style={styles.inputLabel}>Notas o detalles</Text>
@@ -541,13 +539,11 @@ export default function WishesScreen() {
                 numberOfLines={4}
               />
 
-              <Text style={styles.inputLabel}>Foto del recuerdo (opcional)</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="URL de foto o recuerdo"
-                placeholderTextColor={Colors.light.textMuted}
-                value={fulfillPhotoUrl}
-                onChangeText={setFulfillPhotoUrl}
+              <PhotoUploadField
+                imageUri={fulfillPhotoUrl}
+                onImageChange={(val) => setFulfillPhotoUrl(val || '')}
+                label="Foto del recuerdo"
+                placeholderText="Toca para subir la foto de este momento cumplido"
               />
             </View>
 
