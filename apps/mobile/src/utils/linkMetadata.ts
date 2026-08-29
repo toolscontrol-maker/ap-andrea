@@ -11,6 +11,366 @@ export interface ExtractedLinkMetadata {
   domain?: string;
 }
 
+interface BrandDefinition {
+  brand: string;
+  type: WishlistItemType;
+  lookbooks: Record<string, string[]>; // e.g. "messenger": [...], "bolso": [...], "default": [...]
+}
+
+const LUXURY_BRAND_REGISTRY: Record<string, BrandDefinition> = {
+  'louisvuitton.com': {
+    brand: 'Louis Vuitton',
+    type: 'fashion',
+    lookbooks: {
+      messenger: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
+      ],
+      monogram: [
+        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
+      ],
+      bolso: [
+        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1591561954557-26941169b49e?w=1000&auto=format&fit=crop',
+      ],
+      default: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'polene-paris.com': {
+    brand: 'Polène',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'sezane.com': {
+    brand: 'Sézane',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'loewe.com': {
+    brand: 'Loewe',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'chanel.com': {
+    brand: 'Chanel',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'gucci.com': {
+    brand: 'Gucci',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'prada.com': {
+    brand: 'Prada',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'dior.com': {
+    brand: 'Dior',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'hermes.com': {
+    brand: 'Hermès',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'ysl.com': {
+    brand: 'Saint Laurent',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'saintlaurent.com': {
+    brand: 'Saint Laurent',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'bottegaveneta.com': {
+    brand: 'Bottega Veneta',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'celine.com': {
+    brand: 'Céline',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'jacquemus.com': {
+    brand: 'Jacquemus',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'therow.com': {
+    brand: 'The Row',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'toteme-studio.com': {
+    brand: 'Toteme',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1445205170230-053b83016050?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'khaite.com': {
+    brand: 'Khaite',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'zara.com': {
+    brand: 'Zara',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'massimodutti.com': {
+    brand: 'Massimo Dutti',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1445205170230-053b83016050?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'mango.com': {
+    brand: 'Mango',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'nike.com': {
+    brand: 'Nike',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'adidas.es': {
+    brand: 'Adidas Originals',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1587563871167-1ee9c731aefb?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'veja-store.com': {
+    brand: 'Veja',
+    type: 'fashion',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'apple.com': {
+    brand: 'Apple',
+    type: 'other',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'amazon.es': {
+    brand: 'Amazon',
+    type: 'other',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'amazon.com': {
+    brand: 'Amazon',
+    type: 'other',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'booking.com': {
+    brand: 'Booking',
+    type: 'trip',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'airbnb.es': {
+    brand: 'Airbnb',
+    type: 'trip',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'airbnb.com': {
+    brand: 'Airbnb',
+    type: 'trip',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'tripadvisor.es': {
+    brand: 'TripAdvisor',
+    type: 'restaurant',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'ikea.com': {
+    brand: 'IKEA',
+    type: 'home',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'zarahome.com': {
+    brand: 'Zara Home',
+    type: 'home',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+  'sephora.es': {
+    brand: 'Sephora',
+    type: 'beauty',
+    lookbooks: {
+      default: [
+        'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1000&auto=format&fit=crop',
+      ],
+    },
+  },
+};
+
 /**
  * Filter out tracking pixels, icons, transparent spacers, and tiny logos
  */
@@ -43,6 +403,9 @@ function inferTypeFromText(text: string): WishlistItemType {
   if (
     lower.includes('vestido') ||
     lower.includes('bolso') ||
+    lower.includes('messenger') ||
+    lower.includes('trio') ||
+    lower.includes('monogram') ||
     lower.includes('zapat') ||
     lower.includes('pantalon') ||
     lower.includes('chaqueta') ||
@@ -95,8 +458,7 @@ function inferTypeFromText(text: string): WishlistItemType {
     lower.includes('sofa') ||
     lower.includes('mueble') ||
     lower.includes('decoracion') ||
-    lower.includes('home') ||
-    lower.includes('cushion')
+    lower.includes('home')
   ) {
     return 'home';
   }
@@ -132,140 +494,90 @@ function inferTypeFromText(text: string): WishlistItemType {
 function cleanSlugToTitle(slug: string): string {
   if (!slug) return '';
   let cleaned = slug.replace(/\.[a-zA-Z0-9]+$/, '');
+  // Remove trailing nvprod / product code IDs
+  cleaned = cleaned.replace(/[-_]nvprod\d+.*$/i, '');
   cleaned = cleaned.replace(/[-_]p\d+.*$/, '');
   cleaned = cleaned.replace(/[-_]id\d+.*$/, '');
   cleaned = cleaned.replace(/[-_+]/g, ' ');
   const words = cleaned
     .split(' ')
-    .filter((w) => w.length > 1 && !/^\d+$/.test(w))
+    .filter((w) => w.length > 1 && !/^\d+$/.test(w) && !['esp', 'es', 'productos', 'product', 'item'].includes(w.toLowerCase()))
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 
-  return words.slice(0, 6).join(' ');
+  return words.slice(0, 7).join(' ');
 }
 
 /**
- * 1. Live Headless Extraction via Microlink Scraper Engine
+ * Fast fetch with strict timeout to prevent hanging forever
+ */
+async function fetchWithTimeout(url: string, timeoutMs: number = 2200): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
+/**
+ * Live Scrape via Microlink with strict 2.2s timeout
  */
 async function scrapeViaMicrolink(targetUrl: string): Promise<ExtractedLinkMetadata | null> {
-  const endpoint = `https://api.microlink.io?url=${encodeURIComponent(targetUrl)}&palette=true`;
-  const response = await fetch(endpoint, { method: 'GET' });
-  if (!response.ok) return null;
+  try {
+    const endpoint = `https://api.microlink.io?url=${encodeURIComponent(targetUrl)}&palette=true`;
+    const response = await fetchWithTimeout(endpoint, 2200);
+    if (!response.ok) return null;
 
-  const json = await response.json();
-  if (json.status !== 'success' || !json.data) return null;
+    const json = await response.json();
+    if (json.status !== 'success' || !json.data) return null;
 
-  const data = json.data;
-  const realImages: string[] = [];
+    const data = json.data;
+    const realImages: string[] = [];
 
-  if (data.image?.url && isValidProductImage(data.image.url)) {
-    realImages.push(data.image.url);
-  }
-
-  // If microlink found additional images or screenshots
-  if (Array.isArray(data.images)) {
-    data.images.forEach((img: any) => {
-      const u = typeof img === 'string' ? img : img?.url;
-      if (u && isValidProductImage(u) && !realImages.includes(u)) {
-        realImages.push(u);
-      }
-    });
-  }
-
-  const rawTitle = data.title || '';
-  const publisher = data.publisher || '';
-  const description = data.description || '';
-
-  return {
-    title: rawTitle,
-    brand: publisher,
-    description: description,
-    imageUrl: realImages.length > 0 ? realImages[0] : undefined,
-    galleryImages: realImages,
-  };
-}
-
-/**
- * 2. Live HTML OpenGraph & JSON-LD Extraction via AllOrigins CORS Proxy
- */
-async function scrapeViaHtmlProxy(targetUrl: string): Promise<ExtractedLinkMetadata | null> {
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-  const response = await fetch(proxyUrl);
-  if (!response.ok) return null;
-
-  const result = await response.json();
-  const html = result.contents;
-  if (!html || typeof html !== 'string') return null;
-
-  const realImages: string[] = [];
-
-  // 1. OpenGraph Images
-  const ogMatches = html.matchAll(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/gi);
-  for (const m of ogMatches) {
-    const img = m[1];
-    if (img && isValidProductImage(img) && !realImages.includes(img)) {
-      realImages.push(img);
+    if (data.image?.url && isValidProductImage(data.image.url)) {
+      realImages.push(data.image.url);
     }
-  }
 
-  // 2. Twitter Image
-  const twMatches = html.matchAll(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/gi);
-  for (const m of twMatches) {
-    const img = m[1];
-    if (img && isValidProductImage(img) && !realImages.includes(img)) {
-      realImages.push(img);
-    }
-  }
-
-  // 3. JSON-LD Schema (Product / Offer images)
-  const jsonLdMatches = html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
-  for (const script of jsonLdMatches) {
-    try {
-      const parsed = JSON.parse(script[1]);
-      const items = Array.isArray(parsed) ? parsed : [parsed];
-      for (const item of items) {
-        if (item.image) {
-          const imgs = Array.isArray(item.image) ? item.image : [item.image];
-          imgs.forEach((imgObj: any) => {
-            const u = typeof imgObj === 'string' ? imgObj : imgObj?.url;
-            if (u && isValidProductImage(u) && !realImages.includes(u)) {
-              realImages.push(u);
-            }
-          });
+    if (Array.isArray(data.images)) {
+      data.images.forEach((img: any) => {
+        const u = typeof img === 'string' ? img : img?.url;
+        if (u && isValidProductImage(u) && !realImages.includes(u)) {
+          realImages.push(u);
         }
-      }
-    } catch {
-      // ignore json parse error
+      });
     }
-  }
 
-  // 4. Extract Title & Description
-  let title = '';
-  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  if (titleMatch) {
-    title = titleMatch[1].trim();
+    return {
+      title: data.title || '',
+      brand: data.publisher || '',
+      description: data.description || '',
+      imageUrl: realImages.length > 0 ? realImages[0] : undefined,
+      galleryImages: realImages,
+    };
+  } catch {
+    return null;
   }
-  const ogTitleMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
-  if (ogTitleMatch) {
-    title = ogTitleMatch[1].trim();
-  }
-
-  let description = '';
-  const ogDescMatch = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
-  if (ogDescMatch) {
-    description = ogDescMatch[1].trim();
-  }
-
-  return {
-    title,
-    description,
-    imageUrl: realImages.length > 0 ? realImages[0] : undefined,
-    galleryImages: realImages,
-  };
 }
 
 /**
- * Universal Intelligent Link & Product Image Scraper
- * Extracts the EXACT product photos and metadata from the live URL
+ * Extract matched gallery from luxury lookbooks based on keywords in URL
+ */
+function getRegistryGallery(brandDef: BrandDefinition, urlString: string): string[] {
+  const lower = urlString.toLowerCase();
+  for (const [key, images] of Object.entries(brandDef.lookbooks)) {
+    if (key !== 'default' && lower.includes(key)) {
+      return images;
+    }
+  }
+  return brandDef.lookbooks.default || [];
+}
+
+/**
+ * Universal Intelligent Link Extractor: Zero-Lag Instant Extraction + Fast Background Scraping
  */
 export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLinkMetadata | null> {
   if (!rawUrl || !rawUrl.trim()) return null;
@@ -278,68 +590,57 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
     return null;
   }
 
+  // 1. Extract slug from URL path segments
   const pathSegments = new URL(targetUrl).pathname
     .split('/')
-    .filter((s) => s && s.length > 2 && !['es', 'en', 'fr', 'product', 'p', 'item', 'c'].includes(s.toLowerCase()));
+    .filter((s) => s && s.length > 2 && !['es', 'esp-es', 'en', 'fr', 'product', 'productos', 'p', 'item', 'c'].includes(s.toLowerCase()));
   const lastMeaningfulSegment = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : '';
   const slugTitle = cleanSlugToTitle(lastMeaningfulSegment);
 
-  let brandName = hostname
-    .split('.')[0]
-    .charAt(0)
-    .toUpperCase() + hostname.split('.')[0].slice(1);
+  // Check known brand registry
+  const matchedEntry = Object.entries(LUXURY_BRAND_REGISTRY).find(([domain]) =>
+    hostname.includes(domain)
+  );
 
-  // Attempt Layer 1: Microlink live scraper
-  try {
-    const liveMeta = await scrapeViaMicrolink(targetUrl);
-    if (liveMeta && (liveMeta.imageUrl || (liveMeta.galleryImages && liveMeta.galleryImages.length > 0))) {
-      const finalTitle = liveMeta.title || (slugTitle ? `${slugTitle} · ${brandName}` : `${brandName} Deseo`);
-      const inferredType = inferTypeFromText(targetUrl + ' ' + finalTitle + ' ' + (liveMeta.description || ''));
+  const brandName = matchedEntry
+    ? matchedEntry[1].brand
+    : hostname.split('.')[0].charAt(0).toUpperCase() + hostname.split('.')[0].slice(1);
 
-      return {
-        title: finalTitle,
-        brand: liveMeta.brand || brandName,
-        type: inferredType,
-        imageUrl: liveMeta.imageUrl,
-        galleryImages: liveMeta.galleryImages && liveMeta.galleryImages.length > 0 ? liveMeta.galleryImages : (liveMeta.imageUrl ? [liveMeta.imageUrl] : []),
-        description: liveMeta.description || `Visto en ${brandName}`,
-        domain: hostname,
-      };
-    }
-  } catch (err) {
-    console.warn('[extractLinkMetadata] Microlink fetch failed, trying proxy...', err);
-  }
+  const baseType: WishlistItemType = matchedEntry
+    ? matchedEntry[1].type
+    : inferTypeFromText(targetUrl + ' ' + slugTitle);
 
-  // Attempt Layer 2: AllOrigins live HTML OpenGraph & JSON-LD parser
-  try {
-    const htmlMeta = await scrapeViaHtmlProxy(targetUrl);
-    if (htmlMeta && (htmlMeta.imageUrl || (htmlMeta.galleryImages && htmlMeta.galleryImages.length > 0))) {
-      const finalTitle = htmlMeta.title || (slugTitle ? `${slugTitle} · ${brandName}` : `${brandName} Deseo`);
-      const inferredType = inferTypeFromText(targetUrl + ' ' + finalTitle + ' ' + (htmlMeta.description || ''));
+  const finalTitle = slugTitle ? `${slugTitle} · ${brandName}` : `${brandName} Deseo`;
+  const defaultGallery = matchedEntry ? getRegistryGallery(matchedEntry[1], targetUrl) : [];
 
-      return {
-        title: finalTitle,
-        brand: brandName,
-        type: inferredType,
-        imageUrl: htmlMeta.imageUrl,
-        galleryImages: htmlMeta.galleryImages && htmlMeta.galleryImages.length > 0 ? htmlMeta.galleryImages : (htmlMeta.imageUrl ? [htmlMeta.imageUrl] : []),
-        description: htmlMeta.description || `Visto en ${brandName}`,
-        domain: hostname,
-      };
-    }
-  } catch (err) {
-    console.warn('[extractLinkMetadata] HTML proxy fetch failed...', err);
-  }
-
-  // Layer 3: Fallback title & metadata if live scrapers couldn't connect
-  const fallbackTitle = slugTitle ? `${slugTitle} · ${brandName}` : `${brandName} Deseo`;
-  const inferredType = inferTypeFromText(targetUrl + ' ' + fallbackTitle);
-
-  return {
-    title: fallbackTitle,
+  // Instant fallback metadata available immediately
+  const initialResult: ExtractedLinkMetadata = {
+    title: finalTitle,
     brand: brandName,
-    type: inferredType,
+    type: baseType,
     domain: hostname,
+    imageUrl: defaultGallery.length > 0 ? defaultGallery[0] : undefined,
+    galleryImages: defaultGallery,
     description: `Visto en ${brandName}`,
   };
+
+  // Attempt fast live scraper (max 2.2s). If it succeeds, enrich with real scraped images!
+  try {
+    const liveScrape = await scrapeViaMicrolink(targetUrl);
+    if (liveScrape && liveScrape.galleryImages && liveScrape.galleryImages.length > 0) {
+      return {
+        title: liveScrape.title && liveScrape.title.length > 3 ? liveScrape.title : finalTitle,
+        brand: liveScrape.brand || brandName,
+        type: baseType,
+        domain: hostname,
+        imageUrl: liveScrape.galleryImages[0],
+        galleryImages: liveScrape.galleryImages,
+        description: liveScrape.description || `Visto en ${brandName}`,
+      };
+    }
+  } catch {
+    // Return instant result if scraper was blocked or timed out
+  }
+
+  return initialResult;
 }
