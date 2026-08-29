@@ -50,6 +50,13 @@ export default function AccountScreen() {
   const [hapticFeedback, setHapticFeedback] = useState(true);
   const [romanticReminders, setRomanticReminders] = useState(true);
 
+  // Anniversary & milestones calculation
+  const ANNIVERSARY_DATE = new Date('2025-02-15');
+  const FIRST_MET_DATE = new Date('2024-11-23');
+  const now = new Date();
+  const diffDays = Math.max(1, Math.floor((now.getTime() - ANNIVERSARY_DATE.getTime()) / (1000 * 60 * 60 * 24)));
+  const daysSinceMet = Math.max(1, Math.floor((now.getTime() - FIRST_MET_DATE.getTime()) / (1000 * 60 * 60 * 24)));
+
   const handleToggleBiometrics = (val: boolean) => {
     triggerHaptic('selection');
     setBiometricsEnabled(val);
@@ -97,22 +104,17 @@ export default function AccountScreen() {
       >
         {/* TOP HEADER */}
         <View style={styles.headerBlock}>
-          <View style={styles.headerTopMeta}>
-            <Text style={styles.vintageHeaderTag}>[ ACCOUNT // ARCHIVE ]</Text>
-            <Text style={styles.vintageHeaderDate}>PERFIL PRIVADO</Text>
-          </View>
-
           <View style={styles.headerTopRow}>
             <View>
+              <Text style={styles.headerSubtitle}>ESPACIO EXCLUSIVO</Text>
               <Text style={styles.headerTitle}>Tu Cuenta</Text>
-              <Text style={styles.headerSubtitle}>Configuración y bóveda de pareja</Text>
             </View>
             <TouchableOpacity
               style={styles.btnPerspectiveSwitch}
               activeOpacity={0.8}
               onPress={handleSwitchUser}
             >
-              <IconSparkles size={13} color="#111111" />
+              <IconSparkles size={14} color={Colors.light.primary} />
               <Text style={styles.btnPerspectiveSwitchText}>
                 Ver como {partnerDevUser.name}
               </Text>
@@ -122,11 +124,6 @@ export default function AccountScreen() {
 
         {/* COUPLE PROFILE HERO CARD */}
         <TiltedCard style={styles.coupleHeroCard} variant="elevated">
-          <View style={styles.cardTechnicalHeader}>
-            <Text style={styles.cardTechnicalIndex}>[ ARCHIVE // 01 ]</Text>
-            <Text style={styles.cardTechnicalRef}>ED25519 ENCRYPTED</Text>
-          </View>
-
           <View style={styles.avatarsRow}>
             <View style={styles.avatarWrapper}>
               <Image
@@ -134,15 +131,15 @@ export default function AccountScreen() {
                 style={styles.avatarImg}
               />
               <View style={styles.avatarPill}>
-                <Text style={styles.avatarPillText}>TÚ ({currentDevUser.name.toUpperCase()})</Text>
+                <Text style={styles.avatarPillText}>Tú ({currentDevUser.name})</Text>
               </View>
             </View>
 
             <View style={styles.heartConnector}>
               <View style={styles.heartCircle}>
-                <IconHeart size={14} color="#C25E5E" />
+                <IconHeart size={16} color="#E05666" />
               </View>
-              <Text style={styles.daysTogetherCount}>1.284 DÍAS</Text>
+              <Text style={styles.daysTogetherCount}>{diffDays} días</Text>
             </View>
 
             <View style={styles.avatarWrapper}>
@@ -151,51 +148,109 @@ export default function AccountScreen() {
                 style={styles.avatarImg}
               />
               <View style={styles.avatarPill}>
-                <Text style={styles.avatarPillText}>{partnerDevUser.name.toUpperCase()}</Text>
+                <Text style={styles.avatarPillText}>{partnerDevUser.name}</Text>
               </View>
             </View>
           </View>
 
           <View style={styles.coupleInfoSection}>
             <Text style={styles.coupleNames}>Andrea & Ángel</Text>
-            <Text style={styles.coupleSubtitle}>Juntos desde el 14 de Febrero de 2023 · Valencia</Text>
+            <Text style={styles.coupleSubtitle}>Juntos desde el 15 de Febrero de 2025 · Valencia</Text>
             <View style={styles.vaultSecurityBadge}>
-              <IconShield size={12} color="#111111" />
-              <Text style={styles.vaultSecurityText}>BÓVEDA CIFRADA (ZERO-KNOWLEDGE)</Text>
+              <IconShield size={13} color={Colors.light.primary} />
+              <Text style={styles.vaultSecurityText}>Bóveda Cifrada Punto a Punto (Zero-Knowledge)</Text>
             </View>
           </View>
         </TiltedCard>
+
+        {/* NUESTROS HITOS INOLVIDABLES */}
+        <SectionHeader
+          title="Nuestra Historia & Hitos"
+          subtitle="Los momentos fundacionales de Andrea & Ángel"
+        />
+        <View style={styles.milestonesCard}>
+          <View style={styles.milestoneItem}>
+            <View style={[styles.milestoneIconBadge, { backgroundColor: 'rgba(212, 175, 55, 0.12)' }]}>
+              <Text style={{ fontSize: 16 }}>🪩</Text>
+            </View>
+            <View style={styles.milestoneContent}>
+              <View style={styles.milestoneHeaderRow}>
+                <Text style={styles.milestoneTitle}>Nos Conocimos</Text>
+                <Text style={styles.milestoneDate}>23 Nov 2024</Text>
+              </View>
+              <Text style={styles.milestoneLocation}>Discoteca Room Valencia</Text>
+              <Text style={styles.milestoneDesc}>
+                La noche donde cruzamos miradas por primera vez y empezó nuestra historia ({daysSinceMet} días).
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.milestoneDivider} />
+
+          <View style={styles.milestoneItem}>
+            <View style={[styles.milestoneIconBadge, { backgroundColor: 'rgba(74, 124, 155, 0.12)' }]}>
+              <Text style={{ fontSize: 16 }}>🍽️</Text>
+            </View>
+            <View style={styles.milestoneContent}>
+              <View style={styles.milestoneHeaderRow}>
+                <Text style={styles.milestoneTitle}>Nuestra Primera Cita</Text>
+                <Text style={styles.milestoneDate}>Dic 2024</Text>
+              </View>
+              <Text style={styles.milestoneLocation}>Restaurante El Pou · Valencia</Text>
+              <Text style={styles.milestoneDesc}>
+                Cerca de la Ciudad de las Artes y las Ciencias. Risas, confidencias y un flechazo mutuo.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.milestoneDivider} />
+
+          <View style={styles.milestoneItem}>
+            <View style={[styles.milestoneIconBadge, { backgroundColor: 'rgba(224, 86, 102, 0.12)' }]}>
+              <Text style={{ fontSize: 16 }}>💍</Text>
+            </View>
+            <View style={styles.milestoneContent}>
+              <View style={styles.milestoneHeaderRow}>
+                <Text style={styles.milestoneTitle}>Empezamos a Salir</Text>
+                <Text style={styles.milestoneDate}>15 Feb 2025</Text>
+              </View>
+              <Text style={styles.milestoneLocation}>Nuestro Aniversario Oficial · Valencia</Text>
+              <Text style={styles.milestoneDesc}>
+                El día que decidimos caminar juntos como pareja. {diffDays} días construyendo nuestro nido.
+              </Text>
+            </View>
+          </View>
+        </View>
 
         {/* STATS OVERVIEW */}
         <View style={styles.statsGrid}>
           <View style={styles.statBox}>
             <Text style={styles.statNumber}>{wishes.length}</Text>
-            <Text style={styles.statLabel}>DESEOS E ILUSIONES</Text>
+            <Text style={styles.statLabel}>Deseos e Ilusiones</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statNumber}>{savedPlaces.length}</Text>
-            <Text style={styles.statLabel}>RESTAURANTES Y SITIOS</Text>
+            <Text style={styles.statLabel}>Restaurantes & Sitios</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statNumber}>{coupleEvents.length}</Text>
-            <Text style={styles.statLabel}>CITAS EN AGENDA</Text>
+            <Text style={styles.statLabel}>Citas en Agenda</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statNumber}>{entries.length}</Text>
-            <Text style={styles.statLabel}>RECUERDOS VIVOS</Text>
+            <Text style={styles.statLabel}>Recuerdos Vivos</Text>
           </View>
         </View>
 
         {/* PRIVACY & SECURITY SETTINGS */}
         <SectionHeader
-          tag="[ 01 ] // SEGURIDAD"
           title="Seguridad & Privacidad"
           subtitle="Control absoluto sobre vuestros momentos y secretos"
         />
         <View style={styles.settingsGroupCard}>
           <View style={styles.settingRow}>
             <View style={styles.settingIconContainer}>
-              <IconLock size={15} color="#111111" />
+              <IconLock size={16} color={Colors.light.primary} />
             </View>
             <View style={styles.settingTextContainer}>
               <Text style={styles.settingTitle}>Bloqueo con Face ID / Huella</Text>
@@ -204,7 +259,7 @@ export default function AccountScreen() {
             <Switch
               value={biometricsEnabled}
               onValueChange={handleToggleBiometrics}
-              trackColor={{ false: '#EAE8E3', true: '#111111' }}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -213,7 +268,7 @@ export default function AccountScreen() {
 
           <View style={styles.settingRow}>
             <View style={styles.settingIconContainer}>
-              <IconSparkles size={15} color="#111111" />
+              <IconSparkles size={16} color={Colors.light.primary} />
             </View>
             <View style={styles.settingTextContainer}>
               <Text style={styles.settingTitle}>Modo Sorpresas Blindadas</Text>
@@ -222,7 +277,7 @@ export default function AccountScreen() {
             <Switch
               value={secretSurpriseMode}
               onValueChange={handleToggleSurpriseMode}
-              trackColor={{ false: '#EAE8E3', true: '#111111' }}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -231,26 +286,25 @@ export default function AccountScreen() {
 
           <TouchableOpacity style={styles.settingRow} activeOpacity={0.7} onPress={handleCopyKey}>
             <View style={styles.settingIconContainer}>
-              <IconShield size={15} color="#111111" />
+              <IconShield size={16} color={Colors.light.primary} />
             </View>
             <View style={styles.settingTextContainer}>
               <Text style={styles.settingTitle}>Clave de Sincronización Privada</Text>
               <Text style={styles.settingDesc}>ed25519-andrea-angel-88a9...</Text>
             </View>
-            <Text style={styles.settingActionText}>COPIAR</Text>
+            <Text style={styles.settingActionText}>Copiar</Text>
           </TouchableOpacity>
         </View>
 
         {/* PREFERENCES & NOTIFICATIONS */}
         <SectionHeader
-          tag="[ 02 ] // PREFERENCIAS"
-          title="Preferencias de Pareja"
+          title="Preferencias de la Pareja"
           subtitle="Comodidad, háptica y avisos románticos"
         />
         <View style={styles.settingsGroupCard}>
           <View style={styles.settingRow}>
             <View style={styles.settingIconContainer}>
-              <IconBell size={15} color="#111111" />
+              <IconBell size={16} color={Colors.light.primary} />
             </View>
             <View style={styles.settingTextContainer}>
               <Text style={styles.settingTitle}>Avisos de Citas y Aniversarios</Text>
@@ -262,7 +316,7 @@ export default function AccountScreen() {
                 triggerHaptic('selection');
                 setRomanticReminders(val);
               }}
-              trackColor={{ false: '#EAE8E3', true: '#111111' }}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -271,7 +325,7 @@ export default function AccountScreen() {
 
           <View style={styles.settingRow}>
             <View style={styles.settingIconContainer}>
-              <IconSliders size={15} color="#111111" />
+              <IconSliders size={16} color={Colors.light.primary} />
             </View>
             <View style={styles.settingTextContainer}>
               <Text style={styles.settingTitle}>Vibración Háptica Táctil</Text>
@@ -283,7 +337,7 @@ export default function AccountScreen() {
                 triggerHaptic('selection');
                 setHapticFeedback(val);
               }}
-              trackColor={{ false: '#EAE8E3', true: '#111111' }}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -292,26 +346,26 @@ export default function AccountScreen() {
 
           <TouchableOpacity style={styles.settingRow} activeOpacity={0.7} onPress={handleExportData}>
             <View style={styles.settingIconContainer}>
-              <IconCheck size={15} color="#111111" />
+              <IconCheck size={16} color={Colors.light.primary} />
             </View>
             <View style={styles.settingTextContainer}>
               <Text style={styles.settingTitle}>Exportar Copia de Seguridad</Text>
               <Text style={styles.settingDesc}>Descargar todos los recuerdos y deseos</Text>
             </View>
-            <Text style={styles.settingActionText}>EXPORTAR</Text>
+            <Text style={styles.settingActionText}>Exportar</Text>
           </TouchableOpacity>
         </View>
 
         {/* APP INFO & VERSION FOOTER */}
         <View style={styles.footerInfoCard}>
           <Text style={styles.footerBrandName}>ANDREA APP</Text>
-          <Text style={styles.footerVersion}>VERSION 1.0.0 // PRIVATE ATELIER</Text>
+          <Text style={styles.footerVersion}>Versión 1.0.0 (Edición Privada)</Text>
           <Text style={styles.footerDedication}>
             Creado con amor y cuidado para Andrea & Ángel.
           </Text>
         </View>
 
-        <View style={{ height: Spacing['3xl'] }} />
+        <View style={{ height: Spacing['2xl'] }} />
       </ScrollView>
     </ScreenWrapper>
   );
@@ -321,90 +375,54 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.sm,
-    paddingBottom: Spacing['3xl'],
+    paddingBottom: Spacing['2xl'],
   },
   headerBlock: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.md,
     paddingTop: Spacing.xs,
-  },
-  headerTopMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-    paddingBottom: Spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17, 17, 17, 0.06)',
-  },
-  vintageHeaderTag: {
-    ...Typography.vintageTag,
-    color: '#111111',
-  },
-  vintageHeaderDate: {
-    ...Typography.vintageTag,
-    color: '#8E8C88',
   },
   headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: Spacing.xs,
-  },
-  headerTitle: {
-    ...Typography.display,
-    color: '#111111',
-    fontSize: 26,
   },
   headerSubtitle: {
-    ...Typography.body,
-    color: '#706E6B',
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.captionBold,
+    color: Colors.light.primary,
+    letterSpacing: 1.5,
+    fontSize: 10.5,
+    marginBottom: 2,
+  },
+  headerTitle: {
+    ...Typography.h1,
+    color: Colors.light.text,
+    fontSize: 26,
+    fontWeight: '700',
   },
   btnPerspectiveSwitch: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: Spacing.sm + 4,
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    paddingHorizontal: Spacing.sm + 2,
     paddingVertical: 7,
     borderRadius: Radii.full,
     borderWidth: 1,
-    borderColor: 'rgba(17, 17, 17, 0.12)',
-    ...Shadows.sm,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
   },
   btnPerspectiveSwitchText: {
-    ...Typography.vintageTag,
-    color: '#111111',
-    fontSize: 9.5,
+    ...Typography.captionBold,
+    color: Colors.light.primary,
+    fontSize: 12,
   },
   coupleHeroCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: Radii.xl,
     padding: Spacing.lg,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(17, 17, 17, 0.07)',
+    borderColor: 'rgba(20, 19, 18, 0.06)',
     ...Shadows.md,
-  },
-  cardTechnicalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingBottom: Spacing.xs,
-    marginBottom: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17, 17, 17, 0.06)',
-  },
-  cardTechnicalIndex: {
-    ...Typography.vintageTag,
-    color: '#111111',
-    fontSize: 9.5,
-  },
-  cardTechnicalRef: {
-    ...Typography.vintageTag,
-    color: '#8E8C88',
-    fontSize: 9,
   },
   avatarsRow: {
     flexDirection: 'row',
@@ -416,59 +434,57 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarImg: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    borderWidth: 3,
+    borderColor: Colors.light.backgroundWarm,
     marginBottom: Spacing.xs,
   },
   avatarPill: {
-    backgroundColor: '#F3F2EE',
+    backgroundColor: Colors.light.backgroundWarm,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 3,
     borderRadius: Radii.full,
-    borderWidth: 1,
-    borderColor: 'rgba(17, 17, 17, 0.06)',
   },
   avatarPillText: {
-    ...Typography.vintageTag,
-    fontSize: 9,
-    color: '#111111',
+    ...Typography.captionBold,
+    fontSize: 11,
+    color: Colors.light.text,
   },
   heartConnector: {
     alignItems: 'center',
   },
   heartCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F9ECEC',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(235, 87, 87, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
   daysTogetherCount: {
-    ...Typography.vintageTag,
-    fontSize: 9.5,
-    color: '#8E8C88',
+    ...Typography.captionBold,
+    fontSize: 11,
+    color: Colors.light.textMuted,
   },
   coupleInfoSection: {
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(17, 17, 17, 0.05)',
+    borderTopColor: 'rgba(20, 19, 18, 0.05)',
     paddingTop: Spacing.md,
   },
   coupleNames: {
     ...Typography.h2,
     fontSize: 20,
     fontWeight: '700',
-    color: '#111111',
+    color: Colors.light.text,
     marginBottom: 2,
   },
   coupleSubtitle: {
     ...Typography.body,
-    color: '#706E6B',
+    color: Colors.light.textMuted,
     fontSize: 12.5,
     marginBottom: Spacing.sm,
   },
@@ -476,23 +492,82 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F3F2EE',
+    backgroundColor: 'rgba(212, 175, 55, 0.08)',
     paddingHorizontal: Spacing.sm + 4,
     paddingVertical: 5,
     borderRadius: Radii.full,
-    borderWidth: 1,
-    borderColor: 'rgba(17, 17, 17, 0.07)',
   },
   vaultSecurityText: {
-    ...Typography.vintageTag,
-    fontSize: 9,
-    color: '#111111',
+    ...Typography.captionBold,
+    fontSize: 11,
+    color: Colors.light.primary,
+  },
+  milestonesCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radii.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(20, 19, 18, 0.06)',
+    ...Shadows.sm,
+  },
+  milestoneItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: Spacing.xs,
+  },
+  milestoneIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+    marginTop: 2,
+  },
+  milestoneContent: {
+    flex: 1,
+  },
+  milestoneHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  milestoneTitle: {
+    ...Typography.bodyMedium,
+    fontSize: 14,
+    color: Colors.light.text,
+  },
+  milestoneDate: {
+    ...Typography.captionBold,
+    fontSize: 11,
+    color: Colors.light.primary,
+  },
+  milestoneLocation: {
+    ...Typography.caption,
+    fontWeight: '600',
+    color: Colors.light.textMuted,
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  milestoneDesc: {
+    ...Typography.caption,
+    color: Colors.light.textMuted,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  milestoneDivider: {
+    height: 1,
+    backgroundColor: 'rgba(20, 19, 18, 0.05)',
+    marginVertical: Spacing.sm,
+    marginLeft: 48,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   statBox: {
     flex: 1,
@@ -502,19 +577,20 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(17, 17, 17, 0.06)',
+    borderColor: 'rgba(20, 19, 18, 0.05)',
     ...Shadows.sm,
   },
   statNumber: {
-    ...Typography.display,
-    fontSize: 22,
-    color: '#111111',
+    ...Typography.h1,
+    fontSize: 24,
+    fontWeight: '800',
+    color: Colors.light.text,
     marginBottom: 2,
   },
   statLabel: {
-    ...Typography.vintageTag,
-    fontSize: 9,
-    color: '#8E8C88',
+    ...Typography.caption,
+    fontSize: 11.5,
+    color: Colors.light.textMuted,
     textAlign: 'center',
   },
   settingsGroupCard: {
@@ -522,9 +598,9 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(17, 17, 17, 0.06)',
+    borderColor: 'rgba(20, 19, 18, 0.06)',
     ...Shadows.sm,
   },
   settingRow: {
@@ -536,37 +612,36 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F3F2EE',
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(17, 17, 17, 0.05)',
   },
   settingTextContainer: {
     flex: 1,
     marginRight: Spacing.sm,
   },
   settingTitle: {
-    ...Typography.bodyMedium,
-    color: '#111111',
+    ...Typography.body,
+    fontWeight: '600',
+    color: Colors.light.text,
     fontSize: 14,
     marginBottom: 2,
   },
   settingDesc: {
     ...Typography.caption,
-    color: '#8E8C88',
+    color: Colors.light.textMuted,
     fontSize: 12,
   },
   settingDivider: {
     height: 1,
-    backgroundColor: 'rgba(17, 17, 17, 0.05)',
+    backgroundColor: 'rgba(20, 19, 18, 0.05)',
     marginLeft: 48,
   },
   settingActionText: {
-    ...Typography.vintageTag,
-    color: '#111111',
-    fontSize: 11,
+    ...Typography.captionBold,
+    color: Colors.light.primary,
+    fontSize: 13,
   },
   footerInfoCard: {
     alignItems: 'center',
@@ -574,22 +649,22 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   footerBrandName: {
-    ...Typography.vintageTag,
-    letterSpacing: 3,
+    ...Typography.captionBold,
+    letterSpacing: 2.5,
     fontSize: 11,
-    color: '#111111',
+    color: Colors.light.primary,
     marginBottom: 2,
   },
   footerVersion: {
-    ...Typography.vintageTag,
-    fontSize: 9.5,
-    color: '#8E8C88',
+    ...Typography.caption,
+    fontSize: 11,
+    color: Colors.light.textMuted,
     marginBottom: 4,
   },
   footerDedication: {
     ...Typography.caption,
     fontSize: 11.5,
-    color: '#8E8C88',
+    color: Colors.light.textMuted,
     fontStyle: 'italic',
   },
 });

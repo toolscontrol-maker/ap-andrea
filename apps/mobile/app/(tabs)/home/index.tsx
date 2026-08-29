@@ -25,11 +25,10 @@ import {
   IconLock,
   IconSparkles,
   IconGift,
-  IconCalendar,
-  IconHeart
+  IconCalendar
 } from '../../../src/components/ui/Icons';
 import { Colors } from '../../../src/theme/colors';
-import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
+import { Spacing, Radii, Shadows } from '../../../src/theme/tokens';
 import { DailyRitualType } from '@andrea/types';
 
 export default function HomeScreen() {
@@ -51,6 +50,11 @@ export default function HomeScreen() {
   const [uploadedPhotoUri, setUploadedPhotoUri] = useState<string | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(getRandomAyaQuestion());
   const [isSeedSubmitted, setIsSeedSubmitted] = useState(false);
+
+  // Dynamic days calculation from 15 Feb 2025
+  const ANNIVERSARY_DATE = new Date('2025-02-15');
+  const now = new Date();
+  const daysTogether = Math.max(1, Math.floor((now.getTime() - ANNIVERSARY_DATE.getTime()) / (1000 * 60 * 60 * 24)));
 
   const nextUpcomingEvent = coupleEvents.find((e) => e.status === 'scheduled');
   const partnerWishes = wishes.filter((w) => w.ownerUserId === partnerDevUser.id && w.status !== 'fulfilled');
@@ -78,7 +82,7 @@ export default function HomeScreen() {
     setUploadedPhotoUri(null);
     setIsSeedSubmitted(true);
     setTimeout(() => setIsSeedSubmitted(false), 3000);
-    Alert.alert('🌱 Momento Sembrado', 'Se ha guardado en vuestro archivo compartido.');
+    Alert.alert('🌱 Momento Sembrado', 'Se ha guardado en vuestra memoria compartida.');
   };
 
   return (
@@ -86,44 +90,34 @@ export default function HomeScreen() {
       {/* ── DYNAMIC ISLAND HEADER PILL ── */}
       <DynamicIsland />
 
-      {/* ── HIGH-FASHION EDITORIAL HEADER (ACNE STUDIOS / APPLE GLASS) ── */}
+      {/* ── GREETING & AMBIENT HEADER ── */}
       <View style={styles.headerBlock}>
-        <View style={styles.headerTopMeta}>
-          <Text style={styles.vintageHeaderTag}>[ NIDO // ARCHIVE ]</Text>
-          <Text style={styles.vintageHeaderDate}>EST. 2023 · VALENCIA</Text>
+        <View>
+          <Text style={styles.greetingEyebrow}>NUESTRO ESPACIO</Text>
+          <Text style={styles.greetingTitle}>
+            Hola, {currentDevUser.name} & {partnerDevUser.name}
+          </Text>
+          <Text style={styles.greetingSubtitle}>
+            💕 {daysTogether} días juntos · Desde el 15 Feb 2025
+          </Text>
         </View>
-
-        <View style={styles.headerMainRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.greetingTitle}>
-              {currentDevUser.name} & {partnerDevUser.name}
-            </Text>
-            <Text style={styles.greetingSubtitle}>
-              Archivo íntimo · 1.284 días juntos
-            </Text>
+        <View style={styles.avatarPair}>
+          <View style={[styles.avatarBubble, { backgroundColor: Colors.light.primary }]}>
+            <Text style={styles.avatarBubbleText}>{currentDevUser.avatar}</Text>
           </View>
-
-          <View style={styles.avatarPair}>
-            <Image
-              source={{ uri: currentDevUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop' }}
-              style={styles.avatarImg}
-            />
-            <Image
-              source={{ uri: partnerDevUser.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop' }}
-              style={[styles.avatarImg, styles.avatarImgPartner]}
-            />
+          <View style={[styles.avatarBubble, styles.avatarBubblePartner, { backgroundColor: Colors.light.secondary }]}>
+            <Text style={styles.avatarBubbleText}>{partnerDevUser.avatar}</Text>
           </View>
         </View>
       </View>
 
-      {/* ── DAILY RITUAL: SEMILLA DEL DÍA (EDITORIAL MONOCHROME & GLASS) ── */}
-      <TiltedCard style={styles.ritualCard} variant="elevated">
+      {/* ── DAILY RITUAL: SEMILLA DEL DÍA (CERO PRESIÓN) ── */}
+      <Card style={styles.ritualCard} variant="elevated">
         <View style={styles.ritualCardHeader}>
-          <View style={styles.ritualTopRow}>
-            <Text style={styles.cardIndexTag}>[ 01 ] // RITUAL DEL DÍA</Text>
-            <Badge variant="vintage">SIN PRISAS</Badge>
+          <View style={styles.ritualTitleGroup}>
+            <Badge variant="sage">RITUAL DEL DÍA</Badge>
+            <Text style={styles.ritualCardTitle}>Semilla de Conexión</Text>
           </View>
-          <Text style={styles.ritualCardTitle}>Semilla de Conexión</Text>
           <Text style={styles.ritualCardSubtitle}>
             Sin obligaciones ni rachas: un pequeño instante para alimentar vuestra historia.
           </Text>
@@ -136,7 +130,7 @@ export default function HomeScreen() {
             onPress={() => setActiveRitualType('gratitude_note')}
           >
             <Text style={[styles.ritualTabText, activeRitualType === 'gratitude_note' && styles.ritualTabTextActive]}>
-              GRATITUD
+              Gratitud
             </Text>
           </TouchableOpacity>
 
@@ -148,7 +142,7 @@ export default function HomeScreen() {
             }}
           >
             <Text style={[styles.ritualTabText, activeRitualType === 'question_answer' && styles.ritualTabTextActive]}>
-              PREGUNTA
+              Pregunta
             </Text>
           </TouchableOpacity>
 
@@ -157,7 +151,7 @@ export default function HomeScreen() {
             onPress={() => setActiveRitualType('daily_photo')}
           >
             <Text style={[styles.ritualTabText, activeRitualType === 'daily_photo' && styles.ritualTabTextActive]}>
-              FOTO DEL DÍA
+              Foto del día
             </Text>
           </TouchableOpacity>
         </View>
@@ -172,9 +166,7 @@ export default function HomeScreen() {
 
           {activeRitualType === 'question_answer' && (
             <View>
-              <Text style={styles.ritualQuestionBadge}>
-                [ PREGUNTA · {currentQuestion.category.toUpperCase()} ]
-              </Text>
+              <Text style={styles.ritualQuestionBadge}>Pregunta de Andrea · {currentQuestion.category.toUpperCase()}</Text>
               <BlurText text={currentQuestion.question} style={styles.ritualPromptText} />
             </View>
           )}
@@ -211,399 +203,408 @@ export default function HomeScreen() {
           <View style={styles.ritualSubmitRow}>
             <View style={styles.privacyRow}>
               <IconLock size={12} color={Colors.light.textMuted} />
-              <Text style={styles.ritualPrivacyHint}>Cifrado Zero-Knowledge</Text>
+              <Text style={styles.ritualPrivacyHint}>Cifrado de extremo a extremo</Text>
             </View>
             <Button
               variant="primary"
               size="sm"
               onPress={handlePlantSeed}
-              iconRight={<IconSparkles size={13} color="#FFFFFF" />}
             >
-              Sembrar
+              {isSeedSubmitted ? 'Sembrado' : 'Sembrar momento'}
             </Button>
           </View>
         </View>
-      </TiltedCard>
+      </Card>
 
-      {/* ── UPCOMING DATE (AGENDA MINIMALIST MANIFEST) ── */}
+      {/* ── GENTLE WEEKLY SUMMARY (NO PUNITIVO) ── */}
+      <View style={styles.weeklySummaryBox}>
+        <View style={styles.weeklySummaryIconWrap}>
+          <IconSparkles size={16} color={Colors.light.textGold} />
+        </View>
+        <View style={styles.weeklySummaryTextGroup}>
+          <Text style={styles.weeklySummaryTitle}>Vuestra Semana</Text>
+          <Text style={styles.weeklySummaryDesc}>{weeklySummary.gentleMessage}</Text>
+        </View>
+      </View>
+
+      {/* ── UPCOMING PLAN OR ACTIVE SURPRISE ── */}
       {nextUpcomingEvent && (
         <View style={styles.sectionBlock}>
           <SectionHeader
-            tag="[ 02 ] // PRÓXIMA CITA"
-            title="En vuestra Agenda"
-            subtitle="Planes y momentos reservados para los dos"
-            action={
-              <Button
-                variant="ghost"
-                size="sm"
-                onPress={() => router.push('/(tabs)/calendar')}
-              >
-                Ver todo →
-              </Button>
-            }
+            title="Próximo Plan en la Agenda"
+            subtitle="La vida que estáis preparando juntos"
           />
-          {(() => {
-            const isOwner = nextUpcomingEvent.ownerId === currentDevUser.id;
-            const eventView = isOwner ? nextUpcomingEvent.ownerView : nextUpcomingEvent.partnerView;
-            const isSurprise = nextUpcomingEvent.eventType === 'surprise';
 
-            return (
-              <TiltedCard style={styles.upcomingCard} variant="elevated">
-                <View style={styles.upcomingDateBadge}>
-                  <Text style={styles.upcomingDayNumber}>
-                    {new Date(nextUpcomingEvent.date).getDate()}
-                  </Text>
-                  <Text style={styles.upcomingMonthName}>
-                    {new Date(nextUpcomingEvent.date).toLocaleDateString('es-ES', { month: 'short' }).toUpperCase()}
+          <Card style={styles.upcomingCard} variant="interactive">
+            <View style={styles.upcomingDateBadge}>
+              <Text style={styles.upcomingDayNumber}>{nextUpcomingEvent.date.split('-')[2]}</Text>
+              <Text style={styles.upcomingMonthName}>AGO</Text>
+            </View>
+
+            <View style={styles.upcomingDetails}>
+              <View style={styles.upcomingHeaderRow}>
+                <Badge
+                  variant={nextUpcomingEvent.eventType === 'surprise' ? 'secondary' : 'primary'}
+                >
+                  {nextUpcomingEvent.eventType === 'surprise' ? 'SORPRESA' : 'CITA'}
+                </Badge>
+                {nextUpcomingEvent.time && (
+                  <Text style={styles.upcomingTime}>{nextUpcomingEvent.time} h</Text>
+                )}
+              </View>
+
+              <Text style={styles.upcomingTitle}>
+                {nextUpcomingEvent.ownerId === currentDevUser.id
+                  ? nextUpcomingEvent.ownerView.title
+                  : nextUpcomingEvent.partnerView.title}
+              </Text>
+
+              <Text style={styles.upcomingSubtitle} numberOfLines={2}>
+                {nextUpcomingEvent.ownerId === currentDevUser.id
+                  ? nextUpcomingEvent.ownerView.subtitle
+                  : nextUpcomingEvent.partnerView.subtitle}
+              </Text>
+
+              {nextUpcomingEvent.ownerId !== currentDevUser.id && nextUpcomingEvent.partnerView.isSecret && (
+                <View style={styles.secretClueBox}>
+                  <Text style={styles.secretClueText}>
+                    Los detalles se revelarán automáticamente cuando llegue el momento.
                   </Text>
                 </View>
-                <View style={styles.upcomingDetails}>
-                  <View style={styles.upcomingHeaderRow}>
-                    <Badge variant={isSurprise ? 'primary' : 'neutral'}>
-                      {isSurprise ? 'SORPRESA' : 'CITA'}
-                    </Badge>
-                    <Text style={styles.upcomingTime}>{nextUpcomingEvent.time || '21:00'}</Text>
-                  </View>
-                  <Text style={styles.upcomingTitle}>{eventView.title}</Text>
-                  {eventView.locationName && (
-                    <Text style={styles.upcomingSubtitle}>📍 {eventView.locationName}</Text>
-                  )}
-                </View>
-              </TiltedCard>
-            );
-          })()}
+              )}
+            </View>
+          </Card>
         </View>
       )}
 
-      {/* ── PARTNER WISHES DISCOVERY ── */}
+      {/* ── PARTNER WISHES QUICK PEEK (IDEAS PARA REGALAR O SORPRENDER) ── */}
       {partnerWishes.length > 0 && (
         <View style={styles.sectionBlock}>
           <SectionHeader
-            tag="[ 03 ] // ILUSIONES"
-            title={`Deseos de ${partnerDevUser.name}`}
-            subtitle="Detalles e ideas para sorprenderle"
-            action={
-              <Button
-                variant="ghost"
-                size="sm"
-                onPress={() => router.push('/(tabs)/wishes')}
-              >
-                Catálogo →
-              </Button>
-            }
+            title={`A ${partnerDevUser.name} le hace ilusión...`}
+            subtitle="Deseos guardados que puedes convertir en un detalle sorpresa"
           />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalWishesScroll}
-          >
-            {partnerWishes.map((wish, index) => (
-              <TiltedCard key={wish.id} style={styles.wishMiniCard} variant="elevated">
-                {wish.externalImageUrl ? (
-                  <Image source={{ uri: wish.externalImageUrl }} style={styles.wishMiniImage} />
-                ) : (
-                  <View style={styles.wishMiniPlaceholder}>
-                    <IconGift size={20} color={Colors.light.textMuted} />
-                  </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.wishesPeekScroll}>
+            {partnerWishes.map((wish) => (
+              <Card key={wish.id} style={styles.wishPeekCard} variant="interactive">
+                {wish.externalImageUrl && (
+                  <Image source={{ uri: wish.externalImageUrl }} style={styles.wishPeekImg} />
                 )}
-                <View style={styles.wishMiniContent}>
-                  <Text style={styles.wishMiniTag}>[ 0{index + 1} ] · {wish.type?.toUpperCase()}</Text>
-                  <Text style={styles.wishMiniTitle} numberOfLines={1}>
-                    {wish.title}
-                  </Text>
-                  {wish.brand && (
-                    <Text style={styles.wishMiniBrand} numberOfLines={1}>
-                      {wish.brand}
-                    </Text>
+                <View style={styles.wishPeekContent}>
+                  <Badge variant="primary">Deseo</Badge>
+                  <Text style={styles.wishPeekTitle} numberOfLines={2}>{wish.title}</Text>
+                  {wish.estimatedPrice && (
+                    <Text style={styles.wishPeekPrice}>{wish.estimatedPrice}€</Text>
                   )}
                   <TouchableOpacity
-                    style={styles.btnMiniSurprise}
+                    style={styles.btnPeekSurprise}
                     onPress={() => {
-                      convertWishToSurprise(wish.id, `Sorpresa de ${currentDevUser.name}`);
-                      Alert.alert('Sorpresa en marcha', `Se ha programado en la Agenda.`);
+                      convertWishToSurprise(wish.id, `Preparado desde el Nido de Inicio.`);
+                      Alert.alert('Sorpresa Agendada', `Has preparado en secreto "${wish.title}".`);
                     }}
                   >
-                    <Text style={styles.btnMiniSurpriseText}>Hacer sorpresa →</Text>
+                    <Text style={styles.btnPeekSurpriseText}>Preparar sorpresa</Text>
                   </TouchableOpacity>
                 </View>
-              </TiltedCard>
+              </Card>
             ))}
           </ScrollView>
         </View>
       )}
-
-      <View style={{ height: Spacing['3xl'] }} />
     </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
   headerBlock: {
-    marginBottom: Spacing.xl,
-    paddingTop: Spacing.xs,
-  },
-  headerTopMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
-    paddingBottom: Spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17, 17, 17, 0.06)',
+    marginBottom: Spacing.lg,
+    paddingTop: Spacing.sm
   },
-  vintageHeaderTag: {
-    ...Typography.vintageTag,
-    color: Colors.light.text,
-  },
-  vintageHeaderDate: {
-    ...Typography.vintageTag,
-    color: Colors.light.textMuted,
-  },
-  headerMainRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: Spacing.xs,
+  greetingEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: Colors.light.primary,
+    letterSpacing: 1.2,
+    marginBottom: 2
   },
   greetingTitle: {
-    ...Typography.display,
+    fontSize: 24,
+    fontWeight: '700',
     color: Colors.light.text,
-    fontSize: 26,
-    lineHeight: 32,
+    letterSpacing: -0.4
   },
   greetingSubtitle: {
-    ...Typography.body,
+    fontSize: 12.5,
     color: Colors.light.textSecondary,
-    fontSize: 13,
-    marginTop: 2,
+    marginTop: 2
   },
   avatarPair: {
     flexDirection: 'row',
+    alignItems: 'center'
+  },
+  avatarBubble: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.full,
     alignItems: 'center',
-  },
-  avatarImg: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: Colors.light.surface
   },
-  avatarImgPartner: {
-    marginLeft: -14,
+  avatarBubblePartner: {
+    marginLeft: -10
+  },
+  avatarBubbleText: {
+    color: Colors.light.textInverse,
+    fontWeight: '700',
+    fontSize: 14
   },
   ritualCard: {
     padding: Spacing.lg,
     borderRadius: Radii.xl,
-    backgroundColor: '#FFFFFF',
-    marginBottom: Spacing.xl,
-    borderWidth: 1,
-    borderColor: 'rgba(17, 17, 17, 0.07)',
-    ...Shadows.md,
+    backgroundColor: Colors.light.surface,
+    marginBottom: Spacing.lg
   },
   ritualCardHeader: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.md
   },
-  ritualTopRow: {
+  ritualTitleGroup: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  cardIndexTag: {
-    ...Typography.vintageTag,
-    color: Colors.light.text,
+    gap: Spacing.xs,
+    marginBottom: 4
   },
   ritualCardTitle: {
-    ...Typography.h2,
-    color: Colors.light.text,
-    marginBottom: 2,
+    fontSize: 17,
+    fontWeight: '700',
+    color: Colors.light.text
   },
   ritualCardSubtitle: {
-    ...Typography.body,
-    fontSize: 12.5,
+    fontSize: 12,
     color: Colors.light.textSecondary,
+    lineHeight: 16
   },
   ritualSelectorRow: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.md
   },
   ritualTab: {
     flex: 1,
     paddingVertical: 7,
     borderRadius: Radii.full,
-    backgroundColor: Colors.light.backgroundWarm,
+    backgroundColor: Colors.light.surfaceSubtle,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(17, 17, 17, 0.08)',
+    borderColor: Colors.light.border
   },
   ritualTabActive: {
-    backgroundColor: '#111111',
-    borderColor: '#111111',
+    backgroundColor: Colors.light.text,
+    borderColor: Colors.light.text
   },
   ritualTabText: {
-    ...Typography.vintageTag,
-    fontSize: 9.5,
-    color: Colors.light.textSecondary,
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: Colors.light.textSecondary
   },
   ritualTabTextActive: {
-    color: '#FFFFFF',
+    color: Colors.light.textInverse,
+    fontWeight: '600'
   },
   ritualPromptBox: {
-    backgroundColor: Colors.light.backgroundWarm,
+    backgroundColor: Colors.light.surfaceSubtle,
     padding: Spacing.md,
     borderRadius: Radii.lg,
     borderWidth: 1,
-    borderColor: 'rgba(17, 17, 17, 0.06)',
+    borderColor: Colors.light.border
   },
   ritualQuestionBadge: {
-    ...Typography.vintageTag,
-    fontSize: 9,
-    color: Colors.light.textMuted,
-    marginBottom: 4,
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.light.secondary,
+    letterSpacing: 0.8,
+    marginBottom: 2
   },
   ritualPromptText: {
-    ...Typography.bodyMedium,
     fontSize: 14,
+    fontWeight: '600',
     color: Colors.light.text,
     fontStyle: 'italic',
     marginBottom: Spacing.sm,
+    lineHeight: 19
   },
   ritualTextInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.light.surface,
     borderWidth: 1,
-    borderColor: 'rgba(17, 17, 17, 0.09)',
+    borderColor: Colors.light.border,
     borderRadius: Radii.md,
-    padding: Spacing.sm + 2,
+    padding: Spacing.sm,
     fontSize: 13.5,
     color: Colors.light.text,
     minHeight: 65,
     textAlignVertical: 'top',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.sm
   },
   ritualSubmitRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   privacyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 4
   },
   ritualPrivacyHint: {
-    ...Typography.caption,
-    fontSize: 11,
-    color: Colors.light.textMuted,
+    fontSize: 10.5,
+    color: Colors.light.textMuted
+  },
+  weeklySummaryBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    backgroundColor: Colors.light.sageLight,
+    padding: Spacing.md,
+    borderRadius: Radii.lg,
+    marginBottom: Spacing.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(109, 158, 121, 0.2)'
+  },
+  weeklySummaryIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: Radii.full,
+    backgroundColor: Colors.light.surface,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  weeklySummaryIcon: {
+    fontSize: 18
+  },
+  weeklySummaryTextGroup: {
+    flex: 1
+  },
+  weeklySummaryTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.light.sageDark
+  },
+  weeklySummaryDesc: {
+    fontSize: 12,
+    color: Colors.light.text,
+    marginTop: 1,
+    lineHeight: 16
   },
   sectionBlock: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.xl
   },
   upcomingCard: {
     flexDirection: 'row',
     padding: Spacing.md,
-    borderRadius: Radii.lg,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: 'rgba(17, 17, 17, 0.07)',
-    gap: Spacing.md,
-    ...Shadows.sm,
+    borderRadius: Radii.xl,
+    backgroundColor: Colors.light.surface,
+    gap: Spacing.md
   },
   upcomingDateBadge: {
     width: 48,
-    height: 52,
+    height: 54,
     borderRadius: Radii.md,
-    backgroundColor: '#111111',
+    backgroundColor: Colors.light.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.light.primary
   },
   upcomingDayNumber: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: Colors.light.primaryDark
   },
   upcomingMonthName: {
-    ...Typography.vintageTag,
-    fontSize: 9,
-    color: '#E0E0E0',
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.light.primaryDark
   },
   upcomingDetails: {
-    flex: 1,
+    flex: 1
   },
   upcomingHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 4
   },
   upcomingTime: {
-    ...Typography.vintageTag,
-    fontSize: 10,
-    color: Colors.light.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.light.textMuted
   },
   upcomingTitle: {
-    ...Typography.h3,
-    color: Colors.light.text,
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.light.text
   },
   upcomingSubtitle: {
-    ...Typography.body,
-    fontSize: 12,
+    fontSize: 12.5,
     color: Colors.light.textSecondary,
-    marginTop: 2,
+    marginTop: 2
   },
-  horizontalWishesScroll: {
-    gap: Spacing.sm,
+  secretClueBox: {
+    marginTop: Spacing.sm,
+    padding: 6,
+    backgroundColor: Colors.light.secondaryLight,
+    borderRadius: Radii.sm
   },
-  wishMiniCard: {
-    width: 200,
-    backgroundColor: '#FFFFFF',
-    borderRadius: Radii.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(17, 17, 17, 0.07)',
-    overflow: 'hidden',
-    ...Shadows.sm,
-  },
-  wishMiniImage: {
-    width: '100%',
-    height: 120,
-    backgroundColor: '#F5F5F0',
-  },
-  wishMiniPlaceholder: {
-    width: '100%',
-    height: 120,
-    backgroundColor: '#F5F5F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wishMiniContent: {
-    padding: Spacing.sm + 2,
-  },
-  wishMiniTag: {
-    ...Typography.vintageTag,
-    fontSize: 8.5,
-    color: Colors.light.textMuted,
-    marginBottom: 2,
-  },
-  wishMiniTitle: {
-    ...Typography.bodyMedium,
-    fontSize: 13,
-    color: Colors.light.text,
-  },
-  wishMiniBrand: {
-    ...Typography.caption,
+  secretClueText: {
     fontSize: 11,
-    color: Colors.light.textMuted,
-    marginTop: 1,
-    marginBottom: Spacing.xs,
+    color: Colors.light.secondaryDark,
+    fontWeight: '500'
   },
-  btnMiniSurprise: {
-    paddingTop: 4,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(17, 17, 17, 0.06)',
+  wishesPeekScroll: {
+    gap: Spacing.md,
+    paddingVertical: Spacing.xs
   },
-  btnMiniSurpriseText: {
-    ...Typography.vintageTag,
-    fontSize: 9,
+  wishPeekCard: {
+    width: 200,
+    borderRadius: Radii.lg,
+    overflow: 'hidden',
+    padding: 0
+  },
+  wishPeekImg: {
+    width: '100%',
+    height: 110,
+    backgroundColor: Colors.light.surfaceSubtle
+  },
+  wishPeekContent: {
+    padding: Spacing.md
+  },
+  wishPeekTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
     color: Colors.light.text,
+    marginTop: 4,
+    lineHeight: 18
   },
+  wishPeekPrice: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.light.textMuted,
+    marginTop: 2
+  },
+  btnPeekSurprise: {
+    marginTop: Spacing.sm,
+    backgroundColor: Colors.light.secondaryLight,
+    paddingVertical: 6,
+    borderRadius: Radii.sm,
+    alignItems: 'center'
+  },
+  btnPeekSurpriseText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.light.secondaryDark
+  }
 });
