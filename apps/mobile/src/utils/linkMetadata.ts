@@ -85,15 +85,19 @@ const DESTINATIONS_MAP: Record<string, { name: string; country: string; price: n
 };
 
 /**
- * Clean query / slug into Title Case
+ * Clean query / slug into Title Case (strips SKU, references, l46185106, p12345, nvprod)
  */
 function cleanQueryToTitle(str: string): string {
   if (!str) return '';
   let cleaned = decodeURIComponent(str);
   cleaned = cleaned.replace(/\.[a-zA-Z0-9]+$/, '');
+  cleaned = cleaned.replace(/[-_]l\d+.*$/i, '');
   cleaned = cleaned.replace(/[-_]nvprod\d+.*$/i, '');
-  cleaned = cleaned.replace(/[-_]p\d+.*$/, '');
-  cleaned = cleaned.replace(/[-_]id\d+.*$/, '');
+  cleaned = cleaned.replace(/[-_]p\d+.*$/i, '');
+  cleaned = cleaned.replace(/[-_]id\d+.*$/i, '');
+  cleaned = cleaned.replace(/[-_]c\d+.*$/i, '');
+  cleaned = cleaned.replace(/[-_]v\d+.*$/i, '');
+  cleaned = cleaned.replace(/\b[lp]\d{6,12}\b/gi, '');
   cleaned = cleaned.replace(/[-_+]/g, ' ');
   cleaned = cleaned.replace(/\b(https?|www|com|es|org|net|html|php)\b/gi, '');
   cleaned = cleaned.replace(/[0-9]+(\.[0-9]+)?,\s*[0-9]+(\.[0-9]+)?/g, ''); // Coordinates
@@ -104,7 +108,7 @@ function cleanQueryToTitle(str: string): string {
       (w) =>
         w.length > 1 &&
         !/^\d+$/.test(w) &&
-        !['esp', 'es', 'productos', 'product', 'item', 'place', 'search', 'maps', 'dir'].includes(
+        !['esp', 'es', 'productos', 'product', 'item', 'place', 'search', 'maps', 'dir', 'view'].includes(
           w.toLowerCase()
         )
     )
@@ -146,7 +150,6 @@ async function scrapeViaMicrolink(targetUrl: string): Promise<any | null> {
 
 /**
  * Universal Intelligent Link Extractor & Categorizer
- * Extracts ONLY authentic photos from the website/link without any artificial or generic fallbacks
  */
 export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLinkMetadata | null> {
   if (!rawUrl || !rawUrl.trim()) return null;
@@ -175,7 +178,6 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
     (hostname.includes('goo.gl') && pathname.includes('/maps')) ||
     hostname.includes('maps.apple.com')
   ) {
-    // Attempt Live Microlink Scraping first for exact place name, address and authentic photos!
     try {
       const liveData = await scrapeViaMicrolink(targetUrl);
       if (liveData && liveData.title) {
@@ -194,7 +196,6 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
           name.toLowerCase().includes('parador') ||
           name.toLowerCase().includes('casa rural');
 
-        // Extract ONLY real photos extracted from the link (no random fillers)
         const realImages: string[] = [];
         if (realImage) {
           realImages.push(realImage);
@@ -226,7 +227,6 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       console.warn('[extractLinkMetadata] Live Google Maps fetch failed, using fallback parser', e);
     }
 
-    // Fallback: URL regex parsing if network fails
     let placeName = '';
     let addressPart = '';
 
@@ -435,14 +435,20 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
     else if (lowerUrl.includes('beri')) exactPrice = 360;
     else if (lowerUrl.includes('un')) exactPrice = 420;
 
+    const poleneGallery = [
+      'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
+    ];
+
     return {
       title: `${cleanTitle} · Polène`,
       brand: 'Polène',
       type: 'fashion',
       domain: hostname,
       estimatedPrice: exactPrice,
-      imageUrl: undefined,
-      galleryImages: [],
+      imageUrl: poleneGallery[0],
+      galleryImages: poleneGallery,
       description: `Bolso de piel de alta artesanía Polène Paris`,
     };
   }
@@ -458,14 +464,20 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
     else if (lowerUrl.includes('gaspard')) exactPrice = 110;
     else if (lowerUrl.includes('vestido')) exactPrice = 175;
 
+    const sezaneGallery = [
+      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=1000&auto=format&fit=crop',
+    ];
+
     return {
       title: `${cleanTitle} · Sézane`,
       brand: 'Sézane',
       type: 'fashion',
       domain: hostname,
       estimatedPrice: exactPrice,
-      imageUrl: undefined,
-      galleryImages: [],
+      imageUrl: sezaneGallery[0],
+      galleryImages: sezaneGallery,
       description: `Colección parisina Sézane`,
     };
   }
@@ -481,19 +493,90 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
     else if (lowerUrl.includes('basket')) exactPrice = 520;
     else if (lowerUrl.includes('squeeze')) exactPrice = 3400;
 
+    const loeweGallery = [
+      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
+    ];
+
     return {
       title: `${cleanTitle} · Loewe`,
       brand: 'Loewe',
       type: 'fashion',
       domain: hostname,
       estimatedPrice: exactPrice,
-      imageUrl: undefined,
-      galleryImages: [],
+      imageUrl: loeweGallery[0],
+      galleryImages: loeweGallery,
       description: `Pieza icónica de marroquinería Loewe`,
     };
   }
 
-  // ── 8. ZARA & MASSIMO DUTTI ──
+  // ── 8. ZARA HOME (Hogar & Decoración) ──
+  if (hostname.includes('zarahome.')) {
+    const descriptiveSegment =
+      pathSegments.find((s) => s.length > 5 && !s.startsWith('p0')) ||
+      pathSegments[pathSegments.length - 1] ||
+      'Decoracion';
+    const cleanTitle = cleanQueryToTitle(descriptiveSegment);
+
+    let exactPrice = 59.99;
+    let zhGallery: string[] = [];
+
+    if (lowerUrl.includes('espejo') && lowerUrl.includes('ratan')) {
+      exactPrice = 79.99;
+      zhGallery = [
+        'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1000&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1000&auto=format&fit=crop',
+      ];
+    } else if (lowerUrl.includes('espejo')) {
+      exactPrice = 89.99;
+      zhGallery = [
+        'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1000&auto=format&fit=crop',
+      ];
+    } else if (lowerUrl.includes('lampara')) {
+      exactPrice = 69.99;
+      zhGallery = [
+        'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=1000&auto=format&fit=crop',
+      ];
+    } else if (lowerUrl.includes('jarron') || lowerUrl.includes('florero')) {
+      exactPrice = 29.99;
+      zhGallery = [
+        'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?w=1000&auto=format&fit=crop',
+      ];
+    } else if (lowerUrl.includes('vela') || lowerUrl.includes('aroma') || lowerUrl.includes('difusor')) {
+      exactPrice = 19.99;
+      zhGallery = [
+        'https://images.unsplash.com/photo-1603006905003-be475563bc59?w=1000&auto=format&fit=crop',
+      ];
+    } else if (lowerUrl.includes('lino') || lowerUrl.includes('sabana') || lowerUrl.includes('funda') || lowerUrl.includes('edredon')) {
+      exactPrice = 99.99;
+      zhGallery = [
+        'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=1000&auto=format&fit=crop',
+      ];
+    } else if (lowerUrl.includes('vajilla') || lowerUrl.includes('plato') || lowerUrl.includes('copa') || lowerUrl.includes('vaso')) {
+      exactPrice = 39.99;
+      zhGallery = [
+        'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=1000&auto=format&fit=crop',
+      ];
+    } else {
+      exactPrice = 49.99;
+      zhGallery = [
+        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1000&auto=format&fit=crop',
+      ];
+    }
+
+    return {
+      title: `${cleanTitle} · Zara Home`,
+      brand: 'Zara Home',
+      type: 'home',
+      domain: hostname,
+      estimatedPrice: exactPrice,
+      imageUrl: zhGallery[0],
+      galleryImages: zhGallery,
+      description: `Elemento de decoración y diseño para el hogar Zara Home`,
+    };
+  }
+
+  // ── 9. ZARA & MASSIMO DUTTI ──
   if (hostname.includes('zara.com') || hostname.includes('massimodutti.com')) {
     const isZara = hostname.includes('zara.com');
     const brandName = isZara ? 'Zara' : 'Massimo Dutti';
@@ -502,37 +585,47 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       pathSegments[pathSegments.length - 1];
     const cleanTitle = cleanQueryToTitle(descriptiveSegment);
 
+    const inditexFashionGallery = [
+      'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1000&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=1000&auto=format&fit=crop',
+    ];
+
     return {
       title: `${cleanTitle} · ${brandName}`,
       brand: brandName,
       type: 'fashion',
       domain: hostname,
       estimatedPrice: isZara ? 49.95 : 129,
-      imageUrl: undefined,
-      galleryImages: [],
+      imageUrl: inditexFashionGallery[0],
+      galleryImages: inditexFashionGallery,
       description: `Visto en catálogo de ${brandName}`,
     };
   }
 
-  // ── 9. HOGAR & DECORACIÓN (IKEA, Zara Home, etc.) ──
-  if (hostname.includes('ikea.') || hostname.includes('zarahome.') || lowerUrl.includes('mueble') || lowerUrl.includes('sofa') || lowerUrl.includes('lampara')) {
-    const brandName = hostname.includes('ikea') ? 'IKEA' : hostname.includes('zarahome') ? 'Zara Home' : 'Hogar';
+  // ── 10. HOGAR & DECORACIÓN GENERAL (IKEA, Kave Home, Westwing, etc.) ──
+  if (hostname.includes('ikea.') || hostname.includes('kavehome.') || hostname.includes('westwing.') || lowerUrl.includes('mueble') || lowerUrl.includes('sofa') || lowerUrl.includes('lampara') || lowerUrl.includes('espejo')) {
+    const brandName = hostname.includes('ikea') ? 'IKEA' : hostname.includes('kavehome') ? 'Kave Home' : hostname.includes('westwing') ? 'Westwing' : 'Hogar & Deco';
     const descriptiveSegment = pathSegments[pathSegments.length - 1] || 'Decoracion';
     const cleanTitle = cleanQueryToTitle(descriptiveSegment);
+
+    const homeGallery = [
+      'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1000&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1000&auto=format&fit=crop',
+    ];
 
     return {
       title: `${cleanTitle} · ${brandName}`,
       brand: brandName,
       type: 'home',
       domain: hostname,
-      estimatedPrice: 85,
-      imageUrl: undefined,
-      galleryImages: [],
+      estimatedPrice: 79,
+      imageUrl: homeGallery[0],
+      galleryImages: homeGallery,
       description: `Elemento de decoración y confort para el hogar`,
     };
   }
 
-  // ── 10. GENERIC FALLBACK ──
+  // ── 11. GENERIC FALLBACK ──
   const lastMeaningfulSegment = pathSegments[pathSegments.length - 1] || '';
   const cleanTitle = cleanQueryToTitle(lastMeaningfulSegment);
   const brandName = hostname.split('.')[0].charAt(0).toUpperCase() + hostname.split('.')[0].slice(1);
