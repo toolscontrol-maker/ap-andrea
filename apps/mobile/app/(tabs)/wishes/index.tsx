@@ -110,6 +110,9 @@ export default function WishesScreen() {
           } else if (meta.imageUrl) {
             setNewGalleryImages([meta.imageUrl]);
             setNewImageUrl(meta.imageUrl);
+          } else {
+            setNewGalleryImages([]);
+            setNewImageUrl('');
           }
           if (meta.description) {
             setNewDescription(meta.description);

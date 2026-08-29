@@ -23,15 +23,16 @@ export function sanitizeImageHotlink(url?: string): string {
 }
 
 /**
- * Filter out tracking pixels, icons, transparent spacers, and tiny logos
+ * Filter out tracking pixels, icons, transparent spacers, site logos, and bot badges
  */
-function isValidProductImage(src: string): boolean {
+function isValidProductImage(src?: string): boolean {
   if (!src || typeof src !== 'string') return false;
   const lower = src.toLowerCase();
   if (lower.startsWith('data:image/svg') || lower.endsWith('.svg')) return false;
   if (lower.includes('favicon') || lower.includes('apple-touch-icon')) return false;
   if (lower.includes('1x1') || lower.includes('pixel') || lower.includes('spacer') || lower.includes('tracking')) return false;
-  if (lower.includes('badge') || lower.includes('sprite') || lower.includes('logo_small')) return false;
+  if (lower.includes('badge') || lower.includes('sprite') || lower.includes('logo_small') || lower.includes('akamai-logo')) return false;
+  if (lower.includes('placeholder') || lower.includes('blank.gif') || lower.includes('spinner')) return false;
   return true;
 }
 
@@ -45,44 +46,6 @@ function sanitizeUrl(rawUrl: string): string {
   }
   return url;
 }
-
-/**
- * Famous destinations dictionary
- */
-const DESTINATIONS_MAP: Record<string, { name: string; country: string; price: number }> = {
-  menorca: { name: 'Menorca', country: 'Baleares', price: 380 },
-  ibiza: { name: 'Ibiza', country: 'Baleares', price: 450 },
-  formentera: { name: 'Formentera', country: 'Baleares', price: 420 },
-  mallorca: { name: 'Mallorca', country: 'Baleares', price: 340 },
-  roma: { name: 'Roma', country: 'Italia', price: 320 },
-  paris: { name: 'París', country: 'Francia', price: 390 },
-  londres: { name: 'Londres', country: 'Reino Unido', price: 360 },
-  tokyo: { name: 'Tokio', country: 'Japón', price: 1400 },
-  kyoto: { name: 'Kioto', country: 'Japón', price: 1300 },
-  islandia: { name: 'Islandia', country: 'Norte', price: 850 },
-  suiza: { name: 'Suiza', country: 'Alpes', price: 650 },
-  dolomitas: { name: 'Dolomitas', country: 'Italia', price: 580 },
-  amalfi: { name: 'Costa Amalfitana', country: 'Italia', price: 720 },
-  positano: { name: 'Positano', country: 'Italia', price: 850 },
-  santorini: { name: 'Santorini', country: 'Grecia', price: 620 },
-  florencia: { name: 'Florencia', country: 'Italia', price: 340 },
-  venecia: { name: 'Venecia', country: 'Italia', price: 410 },
-  lisboa: { name: 'Lisboa', country: 'Portugal', price: 260 },
-  oporto: { name: 'Oporto', country: 'Portugal', price: 240 },
-  amsterdam: { name: 'Ámsterdam', country: 'Países Bajos', price: 360 },
-  copenhague: { name: 'Copenhague', country: 'Dinamarca', price: 440 },
-  laponia: { name: 'Laponia', country: 'Finlandia', price: 950 },
-  marrakech: { name: 'Marrakech', country: 'Marruecos', price: 310 },
-  bali: { name: 'Bali', country: 'Indonesia', price: 1100 },
-  maldivas: { name: 'Maldivas', country: 'Océano Índico', price: 1800 },
-  'costa-brava': { name: 'Costa Brava', country: 'Cataluña', price: 290 },
-  'san-sebastian': { name: 'San Sebastián', country: 'País Vasco', price: 320 },
-  sevilla: { name: 'Sevilla', country: 'Andalucía', price: 240 },
-  granada: { name: 'Granada', country: 'Andalucía', price: 220 },
-  asturias: { name: 'Asturias', country: 'Norte', price: 250 },
-  galicia: { name: 'Galicia', country: 'Norte', price: 260 },
-  cantabria: { name: 'Cantabria', country: 'Norte', price: 250 },
-};
 
 /**
  * Clean query / slug into Title Case (strips SKU, references, l46185106, p12345, nvprod)
@@ -149,7 +112,30 @@ async function scrapeViaMicrolink(targetUrl: string): Promise<any | null> {
 }
 
 /**
+ * Clean raw title from site suffixes (e.g. "ESPEJO REDONDO RATÁN - ESPEJOS - DECORACIÓN | Zara Home España")
+ */
+function cleanPageTitle(rawTitle: string, brandName: string): string {
+  if (!rawTitle) return '';
+  let t = rawTitle;
+  // Remove " | Brand", " - Brand", " · Brand"
+  t = t.replace(new RegExp(`\\s*[\\|\\-\\·]\\s*.*${brandName}.*$`, 'i'), '');
+  t = t.replace(/\s*[\|\-\·]\s*(Zara Home|Zara|Massimo Dutti|Sézane|IKEA|Amazon|El Corte Inglés|Sephora|Mango).*$/i, '');
+  // Remove breadcrumb trails like "- ESPEJOS - DECORACIÓN"
+  const parts = t.split(/\s+-\s+/);
+  if (parts.length > 1) {
+    t = parts[0];
+  }
+  // Convert all-caps into clean Title Case
+  if (t === t.toUpperCase() && t.length > 3) {
+    t = t.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  }
+  return t.trim();
+}
+
+/**
  * Universal Intelligent Link Extractor & Categorizer
+ * Analyzes products across all categories (Home & Deco, Fashion, Beauty, Restaurants, Trips)
+ * Extracts ONLY genuine photos from the product or link. Zero invented/stock images.
  */
 export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLinkMetadata | null> {
   if (!rawUrl || !rawUrl.trim()) return null;
@@ -170,214 +156,105 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
 
   const pathSegments = pathname.split('/').filter((s) => s && s.length > 1);
 
-  // ── 1. GOOGLE MAPS & APPLE MAPS (Restaurantes, Rincones o Alojamientos) ──
+  // Determine Brand Name
+  let brandName = '';
+  if (hostname.includes('zarahome.')) brandName = 'Zara Home';
+  else if (hostname.includes('zara.')) brandName = 'Zara';
+  else if (hostname.includes('massimodutti.')) brandName = 'Massimo Dutti';
+  else if (hostname.includes('sezane.')) brandName = 'Sézane';
+  else if (hostname.includes('polene-paris.')) brandName = 'Polène';
+  else if (hostname.includes('loewe.')) brandName = 'Loewe';
+  else if (hostname.includes('louisvuitton.')) brandName = 'Louis Vuitton';
+  else if (hostname.includes('ikea.')) brandName = 'IKEA';
+  else if (hostname.includes('kavehome.')) brandName = 'Kave Home';
+  else if (hostname.includes('westwing.')) brandName = 'Westwing';
+  else if (hostname.includes('maisonsdumonde.')) brandName = 'Maisons du Monde';
+  else if (hostname.includes('sephora.')) brandName = 'Sephora';
+  else if (hostname.includes('druni.')) brandName = 'Druni';
+  else if (hostname.includes('douglas.')) brandName = 'Douglas';
+  else if (hostname.includes('booking.')) brandName = 'Booking.com';
+  else if (hostname.includes('airbnb.')) brandName = 'Airbnb';
+  else if (hostname.includes('civitatis.')) brandName = 'Civitatis';
+  else if (hostname.includes('thefork.') || hostname.includes('eltenedor.')) brandName = 'TheFork';
+  else {
+    const hostPart = hostname.split('.')[0];
+    brandName = hostPart.charAt(0).toUpperCase() + hostPart.slice(1);
+  }
+
+  // Determine Category
+  let inferredType: WishlistItemType = 'fashion';
   if (
     hostname.includes('maps.google.') ||
     (hostname.includes('google.') && pathname.includes('/maps')) ||
     hostname.includes('maps.app.goo.gl') ||
     (hostname.includes('goo.gl') && pathname.includes('/maps')) ||
-    hostname.includes('maps.apple.com')
-  ) {
-    try {
-      const liveData = await scrapeViaMicrolink(targetUrl);
-      if (liveData && liveData.title) {
-        const rawTitle = liveData.title;
-        const parts = rawTitle.split('·');
-        const name = parts[0].trim();
-        const address = parts.length > 1 ? parts.slice(1).join('·').trim() : '';
-        const cuisine = (liveData.description || '').replace(/^[★☆\s\d\.\,\-]+·\s*/, '').trim();
-        const rawImage = liveData.image?.url || liveData.logo?.url;
-        const realImage = rawImage ? sanitizeImageHotlink(rawImage) : undefined;
-
-        const isHotel =
-          name.toLowerCase().includes('hotel') ||
-          name.toLowerCase().includes('resort') ||
-          name.toLowerCase().includes('alojamiento') ||
-          name.toLowerCase().includes('parador') ||
-          name.toLowerCase().includes('casa rural');
-
-        const realImages: string[] = [];
-        if (realImage) {
-          realImages.push(realImage);
-        }
-        if (Array.isArray(liveData.images)) {
-          for (const img of liveData.images) {
-            const u = typeof img === 'string' ? img : img?.url;
-            if (u && isValidProductImage(u)) {
-              const sanitized = sanitizeImageHotlink(u);
-              if (!realImages.includes(sanitized)) {
-                realImages.push(sanitized);
-              }
-            }
-          }
-        }
-
-        return {
-          title: name,
-          brand: address ? address : name,
-          type: isHotel ? 'trip' : 'restaurant',
-          domain: hostname,
-          estimatedPrice: isHotel ? 180 : undefined,
-          imageUrl: realImages.length > 0 ? realImages[0] : undefined,
-          galleryImages: realImages,
-          description: cuisine ? cuisine : (address ? address : `Guardado desde Google Maps`),
-        };
-      }
-    } catch (e) {
-      console.warn('[extractLinkMetadata] Live Google Maps fetch failed, using fallback parser', e);
-    }
-
-    let placeName = '';
-    let addressPart = '';
-
-    const placeMatch = targetUrl.match(/\/place\/([^/@?]+)/);
-    if (placeMatch && placeMatch[1]) {
-      const decoded = decodeURIComponent(placeMatch[1]);
-      const cleanPiece = decoded.replace(/\/data=.*$/, '');
-      const parts = cleanPiece.split(',');
-      placeName = parts[0].replace(/\+/g, ' ').trim();
-      if (parts.length > 1) {
-        addressPart = parts.slice(1).join(',').replace(/\+/g, ' ').trim();
-      }
-    }
-
-    if (!placeName && searchParams.get('q')) {
-      const qVal = decodeURIComponent(searchParams.get('q') || '');
-      const parts = qVal.split(',');
-      placeName = parts[0].replace(/\+/g, ' ').trim();
-      if (parts.length > 1) {
-        addressPart = parts.slice(1).join(',').replace(/\+/g, ' ').trim();
-      }
-    }
-
-    if (!placeName || placeName.startsWith('data=') || placeName.includes('!1s') || placeName.includes('0x') || /^[a-zA-Z0-9]{15,20}$/.test(placeName)) {
-      placeName = 'Restaurante / Rincón Gastronómico';
-    }
-
-    return {
-      title: placeName,
-      brand: addressPart ? addressPart : placeName,
-      type: 'restaurant',
-      domain: hostname,
-      estimatedPrice: undefined,
-      imageUrl: undefined,
-      galleryImages: [],
-      description: addressPart ? addressPart : `Ubicación guardada desde Google Maps`,
-    };
-  }
-
-  // ── 2. GASTRONOMÍA & RESTAURANTES (TheFork, Michelin, Guía Repsol, OpenTable, etc.) ──
-  if (
+    hostname.includes('maps.apple.com') ||
     hostname.includes('thefork.') ||
     hostname.includes('eltenedor.') ||
     hostname.includes('guiarepsol.') ||
     hostname.includes('guide.michelin.') ||
     hostname.includes('opentable.') ||
-    hostname.includes('degusta.me') ||
     lowerUrl.includes('restaurant') ||
     lowerUrl.includes('gastronomia') ||
-    lowerUrl.includes('bistrot') ||
-    lowerUrl.includes('omakase')
+    lowerUrl.includes('bistrot')
   ) {
-    const descriptiveSegment =
-      pathSegments.find(
-        (s) =>
-          s.length > 3 &&
-          !['restaurante', 'restaurant', 'es', 'fr', 'en', 'madrid', 'barcelona', 'valencia'].includes(
-            s.toLowerCase()
-          )
-      ) || pathSegments[pathSegments.length - 1] || 'Restaurante';
-
-    const cleanTitle = cleanQueryToTitle(descriptiveSegment);
-    const brandName = hostname.includes('thefork')
-      ? 'TheFork'
-      : hostname.includes('michelin')
-      ? 'Guía Michelin'
-      : hostname.includes('repsol')
-      ? 'Guía Repsol'
-      : cleanTitle || 'Restaurante';
-
-    return {
-      title: cleanTitle ? `${cleanTitle}` : `Restaurante · ${brandName}`,
-      brand: brandName,
-      type: 'restaurant',
-      domain: hostname,
-      estimatedPrice: undefined,
-      imageUrl: undefined,
-      galleryImages: [],
-      description: `Reserva gastronómica en ${brandName}`,
-    };
-  }
-
-  // ── 3. VIAJES, AGENCIAS, HOTELES Y DESTINOS (Booking, Airbnb, Civitatis, Vuelos, etc.) ──
-  if (
-    hostname.includes('booking.com') ||
+    inferredType = 'restaurant';
+  } else if (
+    hostname.includes('booking.') ||
     hostname.includes('airbnb.') ||
-    hostname.includes('civitatis.com') ||
+    hostname.includes('civitatis.') ||
     hostname.includes('getyourguide.') ||
     hostname.includes('skyscanner.') ||
-    hostname.includes('kayak.') ||
-    hostname.includes('expedia.') ||
-    hostname.includes('renfe.com') ||
-    hostname.includes('iberia.com') ||
-    hostname.includes('vueling.com') ||
-    hostname.includes('parador.es') ||
-    hostname.includes('rusticae.es') ||
+    hostname.includes('renfe.') ||
+    hostname.includes('iberia.') ||
+    hostname.includes('vueling.') ||
+    hostname.includes('parador.') ||
     lowerUrl.includes('hotel') ||
     lowerUrl.includes('viaje') ||
     lowerUrl.includes('escapada') ||
     lowerUrl.includes('resort') ||
-    lowerUrl.includes('flight') ||
     lowerUrl.includes('vuelo')
   ) {
-    let brandName = 'Viajes';
-    if (hostname.includes('booking')) brandName = 'Booking.com';
-    else if (hostname.includes('airbnb')) brandName = 'Airbnb';
-    else if (hostname.includes('civitatis')) brandName = 'Civitatis';
-    else if (hostname.includes('getyourguide')) brandName = 'GetYourGuide';
-    else if (hostname.includes('skyscanner')) brandName = 'Skyscanner';
-    else if (hostname.includes('renfe')) brandName = 'Renfe AVE';
-    else if (hostname.includes('iberia')) brandName = 'Iberia';
-    else if (hostname.includes('parador')) brandName = 'Paradores';
-
-    let matchedDestName = '';
-    let matchedPrice = 280;
-    for (const [key, dest] of Object.entries(DESTINATIONS_MAP)) {
-      if (lowerUrl.includes(key)) {
-        matchedDestName = dest.name;
-        matchedPrice = dest.price;
-        break;
-      }
-    }
-
-    const descriptiveSegment =
-      pathSegments.find(
-        (s) =>
-          s.length > 4 &&
-          !['hotel', 'hotels', 'rooms', 'es', 'es-es', 'viajes', 'escapada'].includes(s.toLowerCase())
-      ) || pathSegments[pathSegments.length - 1] || '';
-
-    const cleanTitle = cleanQueryToTitle(descriptiveSegment);
-
-    const finalTitle = matchedDestName
-      ? `Escapada a ${matchedDestName}`
-      : cleanTitle
-      ? `${cleanTitle} · ${brandName}`
-      : `Viaje y Escapada · ${brandName}`;
-
-    return {
-      title: finalTitle,
-      brand: brandName,
-      type: 'trip',
-      domain: hostname,
-      estimatedPrice: matchedPrice,
-      imageUrl: undefined,
-      galleryImages: [],
-      description: `Plan de viaje o alojamiento guardado`,
-    };
+    inferredType = 'trip';
+  } else if (
+    hostname.includes('zarahome.') ||
+    hostname.includes('ikea.') ||
+    hostname.includes('kavehome.') ||
+    hostname.includes('westwing.') ||
+    hostname.includes('maisonsdumonde.') ||
+    lowerUrl.includes('mueble') ||
+    lowerUrl.includes('sofa') ||
+    lowerUrl.includes('lampara') ||
+    lowerUrl.includes('espejo') ||
+    lowerUrl.includes('cojin') ||
+    lowerUrl.includes('jarron') ||
+    lowerUrl.includes('decoracion') ||
+    lowerUrl.includes('hogar')
+  ) {
+    inferredType = 'home';
+  } else if (
+    hostname.includes('sephora.') ||
+    hostname.includes('druni.') ||
+    hostname.includes('douglas.') ||
+    lowerUrl.includes('perfume') ||
+    lowerUrl.includes('labial') ||
+    lowerUrl.includes('crema') ||
+    lowerUrl.includes('serum') ||
+    lowerUrl.includes('beauty')
+  ) {
+    inferredType = 'beauty';
+  } else if (
+    hostname.includes('feverup.') ||
+    hostname.includes('entradas.') ||
+    lowerUrl.includes('concierto') ||
+    lowerUrl.includes('teatro') ||
+    lowerUrl.includes('experiencia') ||
+    lowerUrl.includes('spa')
+  ) {
+    inferredType = 'experience';
   }
 
-  // ── 4. CASAS DE MODA Y LUJO (Louis Vuitton, Polène, Sézane, Loewe, Chanel, etc.) ──
+  // ── SPECIAL RESOLVER: LOUIS VUITTON (Akamai Scene7 CDN Multi-angle SKU Views) ──
   if (hostname.includes('louisvuitton.com')) {
     const skuMatch = targetUrl.match(/\b([A-Z]\d{5}|[A-Z]{1,2}\d{4,6})\b/i);
     const sku = skuMatch ? skuMatch[1].toUpperCase() : 'M27095';
@@ -424,217 +301,123 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
     };
   }
 
-  // ── 5. POLÈNE PARIS ──
-  if (hostname.includes('polene-paris.com')) {
-    const descriptiveSegment = pathSegments[pathSegments.length - 1] || 'numero-un';
-    const cleanTitle = cleanQueryToTitle(descriptiveSegment);
-    let exactPrice = 380;
-    if (lowerUrl.includes('dix')) exactPrice = 350;
-    else if (lowerUrl.includes('neuf')) exactPrice = 380;
-    else if (lowerUrl.includes('cyme')) exactPrice = 380;
-    else if (lowerUrl.includes('beri')) exactPrice = 360;
-    else if (lowerUrl.includes('un')) exactPrice = 420;
+  // ── UNIVERSAL LIVE METADATA SCRAPER FOR ALL OTHER WEBSITES & CATEGORIES ──
+  let liveTitle = '';
+  let livePublisher = '';
+  let liveDescription = '';
+  let livePrice: number | undefined = undefined;
+  const realImages: string[] = [];
 
-    const poleneGallery = [
-      'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
-    ];
+  try {
+    const liveData = await scrapeViaMicrolink(targetUrl);
+    if (liveData) {
+      if (liveData.title && !liveData.title.toLowerCase().includes('access denied')) {
+        liveTitle = cleanPageTitle(liveData.title, brandName);
+      }
+      if (liveData.publisher) {
+        livePublisher = liveData.publisher;
+      }
+      if (liveData.description) {
+        liveDescription = liveData.description;
+      }
+      if (liveData.price && typeof liveData.price === 'number') {
+        livePrice = liveData.price;
+      }
 
-    return {
-      title: `${cleanTitle} · Polène`,
-      brand: 'Polène',
-      type: 'fashion',
-      domain: hostname,
-      estimatedPrice: exactPrice,
-      imageUrl: poleneGallery[0],
-      galleryImages: poleneGallery,
-      description: `Bolso de piel de alta artesanía Polène Paris`,
-    };
+      // Collect real genuine images from page
+      const primaryImage = liveData.image?.url || liveData.logo?.url;
+      if (primaryImage && isValidProductImage(primaryImage)) {
+        realImages.push(sanitizeImageHotlink(primaryImage));
+      }
+      if (Array.isArray(liveData.images)) {
+        for (const img of liveData.images) {
+          const u = typeof img === 'string' ? img : img?.url;
+          if (u && isValidProductImage(u)) {
+            const sanitized = sanitizeImageHotlink(u);
+            if (!realImages.includes(sanitized)) {
+              realImages.push(sanitized);
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[extractLinkMetadata] Live scrape failed, using URL fallback', e);
   }
 
-  // ── 6. SÉZANE ──
-  if (hostname.includes('sezane.com')) {
-    const descriptiveSegment = pathSegments[pathSegments.length - 1] || 'bolso-claude';
-    const cleanTitle = cleanQueryToTitle(descriptiveSegment);
-    let exactPrice = 345;
-    if (lowerUrl.includes('claude')) exactPrice = 345;
-    else if (lowerUrl.includes('milo')) exactPrice = 375;
-    else if (lowerUrl.includes('farrow')) exactPrice = 240;
-    else if (lowerUrl.includes('gaspard')) exactPrice = 110;
-    else if (lowerUrl.includes('vestido')) exactPrice = 175;
+  // ── GOOGLE MAPS SPECIAL HANDLING ──
+  if (inferredType === 'restaurant') {
+    if (liveTitle) {
+      const parts = liveTitle.split('·');
+      const name = parts[0].trim();
+      const address = parts.length > 1 ? parts.slice(1).join('·').trim() : '';
+      const cuisine = liveDescription.replace(/^[★☆\s\d\.\,\-]+·\s*/, '').trim();
 
-    const sezaneGallery = [
-      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1000&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=1000&auto=format&fit=crop',
-    ];
+      const isHotel =
+        name.toLowerCase().includes('hotel') ||
+        name.toLowerCase().includes('resort') ||
+        name.toLowerCase().includes('alojamiento');
 
-    return {
-      title: `${cleanTitle} · Sézane`,
-      brand: 'Sézane',
-      type: 'fashion',
-      domain: hostname,
-      estimatedPrice: exactPrice,
-      imageUrl: sezaneGallery[0],
-      galleryImages: sezaneGallery,
-      description: `Colección parisina Sézane`,
-    };
-  }
+      return {
+        title: name,
+        brand: address ? address : name,
+        type: isHotel ? 'trip' : 'restaurant',
+        domain: hostname,
+        estimatedPrice: isHotel ? 180 : undefined,
+        imageUrl: realImages.length > 0 ? realImages[0] : undefined,
+        galleryImages: realImages,
+        description: cuisine ? cuisine : (address ? address : `Guardado desde Google Maps`),
+      };
+    }
 
-  // ── 7. LOEWE ──
-  if (hostname.includes('loewe.com')) {
-    const descriptiveSegment = pathSegments[pathSegments.length - 1] || 'puzzle-bag';
-    const cleanTitle = cleanQueryToTitle(descriptiveSegment);
-    let exactPrice = 2850;
-    if (lowerUrl.includes('puzzle')) exactPrice = 2850;
-    else if (lowerUrl.includes('hammock')) exactPrice = 2450;
-    else if (lowerUrl.includes('flamenco')) exactPrice = 2150;
-    else if (lowerUrl.includes('basket')) exactPrice = 520;
-    else if (lowerUrl.includes('squeeze')) exactPrice = 3400;
-
-    const loeweGallery = [
-      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1000&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1000&auto=format&fit=crop',
-    ];
-
-    return {
-      title: `${cleanTitle} · Loewe`,
-      brand: 'Loewe',
-      type: 'fashion',
-      domain: hostname,
-      estimatedPrice: exactPrice,
-      imageUrl: loeweGallery[0],
-      galleryImages: loeweGallery,
-      description: `Pieza icónica de marroquinería Loewe`,
-    };
-  }
-
-  // ── 8. ZARA HOME (Hogar & Decoración) ──
-  if (hostname.includes('zarahome.')) {
-    const descriptiveSegment =
-      pathSegments.find((s) => s.length > 5 && !s.startsWith('p0')) ||
-      pathSegments[pathSegments.length - 1] ||
-      'Decoracion';
-    const cleanTitle = cleanQueryToTitle(descriptiveSegment);
-
-    let exactPrice = 59.99;
-    let zhGallery: string[] = [];
-
-    if (lowerUrl.includes('espejo') && lowerUrl.includes('ratan')) {
-      exactPrice = 79.99;
-      zhGallery = [
-        'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1000&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1000&auto=format&fit=crop',
-      ];
-    } else if (lowerUrl.includes('espejo')) {
-      exactPrice = 89.99;
-      zhGallery = [
-        'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1000&auto=format&fit=crop',
-      ];
-    } else if (lowerUrl.includes('lampara')) {
-      exactPrice = 69.99;
-      zhGallery = [
-        'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=1000&auto=format&fit=crop',
-      ];
-    } else if (lowerUrl.includes('jarron') || lowerUrl.includes('florero')) {
-      exactPrice = 29.99;
-      zhGallery = [
-        'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?w=1000&auto=format&fit=crop',
-      ];
-    } else if (lowerUrl.includes('vela') || lowerUrl.includes('aroma') || lowerUrl.includes('difusor')) {
-      exactPrice = 19.99;
-      zhGallery = [
-        'https://images.unsplash.com/photo-1603006905003-be475563bc59?w=1000&auto=format&fit=crop',
-      ];
-    } else if (lowerUrl.includes('lino') || lowerUrl.includes('sabana') || lowerUrl.includes('funda') || lowerUrl.includes('edredon')) {
-      exactPrice = 99.99;
-      zhGallery = [
-        'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=1000&auto=format&fit=crop',
-      ];
-    } else if (lowerUrl.includes('vajilla') || lowerUrl.includes('plato') || lowerUrl.includes('copa') || lowerUrl.includes('vaso')) {
-      exactPrice = 39.99;
-      zhGallery = [
-        'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=1000&auto=format&fit=crop',
-      ];
-    } else {
-      exactPrice = 49.99;
-      zhGallery = [
-        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1000&auto=format&fit=crop',
-      ];
+    // Fallback: URL regex parsing for Maps
+    let placeName = '';
+    let addressPart = '';
+    const placeMatch = targetUrl.match(/\/place\/([^/@?]+)/);
+    if (placeMatch && placeMatch[1]) {
+      const decoded = decodeURIComponent(placeMatch[1]);
+      const cleanPiece = decoded.replace(/\/data=.*$/, '');
+      const parts = cleanPiece.split(',');
+      placeName = parts[0].replace(/\+/g, ' ').trim();
+      if (parts.length > 1) {
+        addressPart = parts.slice(1).join(',').replace(/\+/g, ' ').trim();
+      }
     }
 
     return {
-      title: `${cleanTitle} · Zara Home`,
-      brand: 'Zara Home',
-      type: 'home',
+      title: placeName || 'Restaurante / Rincón Gastronómico',
+      brand: addressPart ? addressPart : (placeName || brandName),
+      type: 'restaurant',
       domain: hostname,
-      estimatedPrice: exactPrice,
-      imageUrl: zhGallery[0],
-      galleryImages: zhGallery,
-      description: `Elemento de decoración y diseño para el hogar Zara Home`,
+      estimatedPrice: undefined,
+      imageUrl: realImages.length > 0 ? realImages[0] : undefined,
+      galleryImages: realImages,
+      description: addressPart ? addressPart : `Ubicación guardada desde Google Maps`,
     };
   }
 
-  // ── 9. ZARA & MASSIMO DUTTI ──
-  if (hostname.includes('zara.com') || hostname.includes('massimodutti.com')) {
-    const isZara = hostname.includes('zara.com');
-    const brandName = isZara ? 'Zara' : 'Massimo Dutti';
+  // ── GENERAL PRODUCT URL FALLBACK TITLE & DATA ──
+  if (!liveTitle) {
     const descriptiveSegment =
-      pathSegments.find((s) => s.length > 5 && !s.startsWith('p0')) ||
-      pathSegments[pathSegments.length - 1];
-    const cleanTitle = cleanQueryToTitle(descriptiveSegment);
+      pathSegments.find(
+        (s) =>
+          s.length > 4 &&
+          !s.startsWith('p0') &&
+          !['es', 'es-es', 'product', 'item', 'productos', 'catalogo'].includes(s.toLowerCase())
+      ) || pathSegments[pathSegments.length - 1] || '';
 
-    const inditexFashionGallery = [
-      'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1000&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=1000&auto=format&fit=crop',
-    ];
-
-    return {
-      title: `${cleanTitle} · ${brandName}`,
-      brand: brandName,
-      type: 'fashion',
-      domain: hostname,
-      estimatedPrice: isZara ? 49.95 : 129,
-      imageUrl: inditexFashionGallery[0],
-      galleryImages: inditexFashionGallery,
-      description: `Visto en catálogo de ${brandName}`,
-    };
+    const cleanSlug = cleanQueryToTitle(descriptiveSegment);
+    liveTitle = cleanSlug ? `${cleanSlug}` : `${brandName} Deseo`;
   }
-
-  // ── 10. HOGAR & DECORACIÓN GENERAL (IKEA, Kave Home, Westwing, etc.) ──
-  if (hostname.includes('ikea.') || hostname.includes('kavehome.') || hostname.includes('westwing.') || lowerUrl.includes('mueble') || lowerUrl.includes('sofa') || lowerUrl.includes('lampara') || lowerUrl.includes('espejo')) {
-    const brandName = hostname.includes('ikea') ? 'IKEA' : hostname.includes('kavehome') ? 'Kave Home' : hostname.includes('westwing') ? 'Westwing' : 'Hogar & Deco';
-    const descriptiveSegment = pathSegments[pathSegments.length - 1] || 'Decoracion';
-    const cleanTitle = cleanQueryToTitle(descriptiveSegment);
-
-    const homeGallery = [
-      'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1000&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1000&auto=format&fit=crop',
-    ];
-
-    return {
-      title: `${cleanTitle} · ${brandName}`,
-      brand: brandName,
-      type: 'home',
-      domain: hostname,
-      estimatedPrice: 79,
-      imageUrl: homeGallery[0],
-      galleryImages: homeGallery,
-      description: `Elemento de decoración y confort para el hogar`,
-    };
-  }
-
-  // ── 11. GENERIC FALLBACK ──
-  const lastMeaningfulSegment = pathSegments[pathSegments.length - 1] || '';
-  const cleanTitle = cleanQueryToTitle(lastMeaningfulSegment);
-  const brandName = hostname.split('.')[0].charAt(0).toUpperCase() + hostname.split('.')[0].slice(1);
 
   return {
-    title: cleanTitle ? `${cleanTitle} · ${brandName}` : `${brandName} Deseo`,
-    brand: brandName,
-    type: 'fashion',
+    title: liveTitle,
+    brand: brandName || livePublisher,
+    type: inferredType,
     domain: hostname,
-    description: `Visto en ${brandName}`,
+    estimatedPrice: livePrice,
+    imageUrl: realImages.length > 0 ? realImages[0] : undefined,
+    galleryImages: realImages,
+    description: liveDescription ? liveDescription.slice(0, 120) : `Visto en catálogo de ${brandName}`,
   };
 }
