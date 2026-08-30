@@ -181,6 +181,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   cardContainer: {
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
     paddingHorizontal: 20,
     paddingBottom: Platform.OS === 'ios' ? 44 : 28,
   },
