@@ -946,8 +946,34 @@ export default function WishesScreen() {
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <Button variant="ghost" onPress={() => setIsAddModalOpen(false)}>Cancelar</Button>
-              <Button variant="primary" onPress={handleSaveWish}>Guardar deseo</Button>
+              <TouchableOpacity
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  backgroundColor: 'rgba(28, 25, 23, 0.06)',
+                  marginRight: 8,
+                }}
+                onPress={() => setIsAddModalOpen(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '600', color: Colors.light.textSecondary }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  paddingHorizontal: 20,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  backgroundColor: Colors.light.primary,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={handleSaveWish}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>Guardar deseo</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -990,8 +1016,34 @@ export default function WishesScreen() {
             </View>
 
             <View style={styles.modalFooter}>
-              <Button variant="ghost" onPress={() => setIsFulfillModalOpen(false)}>Cerrar</Button>
-              <Button variant="sage" onPress={handleConfirmFulfill}>Guardar como Recuerdo</Button>
+              <TouchableOpacity
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  backgroundColor: 'rgba(28, 25, 23, 0.06)',
+                  marginRight: 8,
+                }}
+                onPress={() => setIsFulfillModalOpen(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '600', color: Colors.light.textSecondary }}>Cerrar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  paddingHorizontal: 20,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  backgroundColor: Colors.light.sage || '#5F8575',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={handleConfirmFulfill}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>Guardar como Recuerdo</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
