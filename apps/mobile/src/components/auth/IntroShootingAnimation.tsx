@@ -119,15 +119,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   backgroundImage: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
-    position: 'absolute',
-    top: 0,
-    left: 0,
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
   shutterFlash: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#FFFFFF',
+    zIndex: 2,
   },
   topVignette: {
     position: 'absolute',

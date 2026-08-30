@@ -174,7 +174,10 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    height: '100%',
+    minHeight: Platform.OS === 'web' ? '100vh' : '100%',
     backgroundColor: '#0F0E0D',
+    position: 'relative',
   },
   keyboardContainer: {
     flex: 1,
