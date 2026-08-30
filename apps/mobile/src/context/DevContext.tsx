@@ -26,6 +26,7 @@ export interface DevUser {
   avatar: string;
   avatarPhoto?: string;
   roleDescription: string;
+  birthday?: string;
 }
 
 export const DEV_USERS: { user1: DevUser; user2: DevUser } = {
@@ -34,14 +35,16 @@ export const DEV_USERS: { user1: DevUser; user2: DevUser } = {
     name: 'Tonet',
     avatar: 'T',
     avatarPhoto: undefined,
-    roleDescription: 'Quien suele iniciar planes y documentar detalles'
+    roleDescription: 'Quien suele iniciar planes y documentar detalles',
+    birthday: '19 de Octubre',
   },
   user2: {
     id: '22222222-dddd-eeee-ffff-222222222222',
     name: 'Andrea',
     avatar: 'A',
     avatarPhoto: undefined,
-    roleDescription: 'Quien da significado y aporta calidez espontánea'
+    roleDescription: 'Quien da significado y aporta calidez espontánea',
+    birthday: '1 de Septiembre',
   }
 };
 
@@ -1185,6 +1188,110 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
     visibility: 'shared',
     status: 'completed',
     createdAt: '2025-11-15T10:00:00',
+    updatedAt: '2026-08-20T12:00:00',
+  },
+
+  // 20. Cumpleaños de Andrea (1 de Septiembre)
+  {
+    id: 'cev-birthday-andrea-2025',
+    coupleId: 'demo-couple-id',
+    ownerId: DEV_USERS.user2.id,
+    partnerId: DEV_USERS.user1.id,
+    eventType: 'important_date',
+    date: '2025-09-01',
+    time: '00:00',
+    actualStartAt: '2025-09-01T00:00:00',
+    ownerView: {
+      title: '🎂 Cumpleaños de Andrea (1 de Septiembre)',
+      subtitle: '1 de Septiembre · El día más bonito del año para celebrar la vida de Andrea.',
+      locationName: 'Valencia',
+    },
+    partnerView: {
+      title: '🎂 Cumpleaños de Andrea (1 de Septiembre)',
+      subtitle: '1 de Septiembre · El día más bonito del año para celebrar la vida de Andrea.',
+      locationName: 'Valencia',
+    },
+    revealPolicy: 'immediate',
+    visibility: 'shared',
+    status: 'completed',
+    createdAt: '2025-09-01T00:00:00',
+    updatedAt: '2026-08-20T12:00:00',
+  },
+  {
+    id: 'cev-birthday-andrea-2026',
+    coupleId: 'demo-couple-id',
+    ownerId: DEV_USERS.user2.id,
+    partnerId: DEV_USERS.user1.id,
+    eventType: 'important_date',
+    date: '2026-09-01',
+    time: '00:00',
+    actualStartAt: '2026-09-01T00:00:00',
+    ownerView: {
+      title: '🎂 Cumpleaños de Andrea (1 de Septiembre)',
+      subtitle: '1 de Septiembre · ¡Celebrando la vida y el cumpleaños de Andrea juntos!',
+      locationName: 'Valencia',
+    },
+    partnerView: {
+      title: '🎂 Cumpleaños de Andrea (1 de Septiembre)',
+      subtitle: '1 de Septiembre · ¡Celebrando la vida y el cumpleaños de Andrea juntos!',
+      locationName: 'Valencia',
+    },
+    revealPolicy: 'immediate',
+    visibility: 'shared',
+    status: 'scheduled',
+    createdAt: '2026-01-01T00:00:00',
+    updatedAt: '2026-08-20T12:00:00',
+  },
+
+  // 21. Cumpleaños de Tonet (19 de Octubre)
+  {
+    id: 'cev-birthday-tonet-2025',
+    coupleId: 'demo-couple-id',
+    ownerId: DEV_USERS.user1.id,
+    partnerId: DEV_USERS.user2.id,
+    eventType: 'important_date',
+    date: '2025-10-19',
+    time: '00:00',
+    actualStartAt: '2025-10-19T00:00:00',
+    ownerView: {
+      title: '🎂 Cumpleaños de Tonet (19 de Octubre)',
+      subtitle: '19 de Octubre · Celebrando el cumpleaños de Tonet juntos con amor y risas.',
+      locationName: 'Valencia',
+    },
+    partnerView: {
+      title: '🎂 Cumpleaños de Tonet (19 de Octubre)',
+      subtitle: '19 de Octubre · Celebrando el cumpleaños de Tonet juntos con amor y risas.',
+      locationName: 'Valencia',
+    },
+    revealPolicy: 'immediate',
+    visibility: 'shared',
+    status: 'completed',
+    createdAt: '2025-10-19T00:00:00',
+    updatedAt: '2026-08-20T12:00:00',
+  },
+  {
+    id: 'cev-birthday-tonet-2026',
+    coupleId: 'demo-couple-id',
+    ownerId: DEV_USERS.user1.id,
+    partnerId: DEV_USERS.user2.id,
+    eventType: 'important_date',
+    date: '2026-10-19',
+    time: '00:00',
+    actualStartAt: '2026-10-19T00:00:00',
+    ownerView: {
+      title: '🎂 Cumpleaños de Tonet (19 de Octubre)',
+      subtitle: '19 de Octubre · ¡Celebrando un año más juntos llenos de ilusión y proyectos!',
+      locationName: 'Valencia',
+    },
+    partnerView: {
+      title: '🎂 Cumpleaños de Tonet (19 de Octubre)',
+      subtitle: '19 de Octubre · ¡Celebrando un año más juntos llenos de ilusión y proyectos!',
+      locationName: 'Valencia',
+    },
+    revealPolicy: 'immediate',
+    visibility: 'shared',
+    status: 'scheduled',
+    createdAt: '2026-01-01T00:00:00',
     updatedAt: '2026-08-20T12:00:00',
   },
 ];
