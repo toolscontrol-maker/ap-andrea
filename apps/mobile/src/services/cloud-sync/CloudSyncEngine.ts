@@ -671,6 +671,28 @@ class CloudSyncEngineService {
     return fileBase64OrUri;
   }
 
+  public async uploadMediaBlob(blobOrFile: Blob | File, fileName: string, contentType?: string): Promise<string> {
+    try {
+      if (this.isSupabaseConfigured()) {
+        const filePath = `${COUPLE_ID}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}_${fileName}`;
+        const type = contentType || (blobOrFile as any).type || 'image/jpeg';
+        const { error } = await supabase.storage.from('andrea-media').upload(filePath, blobOrFile, {
+          contentType: type,
+          upsert: true,
+        });
+        if (!error) {
+          const { data } = supabase.storage.from('andrea-media').getPublicUrl(filePath);
+          return data.publicUrl;
+        } else {
+          console.warn('[CloudSync] Blob upload error from storage:', error);
+        }
+      }
+    } catch (e) {
+      console.warn('[CloudSync] Blob upload error:', e);
+    }
+    return '';
+  }
+
   public isSupabaseConfigured(): boolean {
     return isSupabaseConfigured();
   }

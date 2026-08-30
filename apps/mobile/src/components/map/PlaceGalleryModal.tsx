@@ -15,7 +15,8 @@ import { AndreaMapPlace } from '../../types/map';
 import { triggerHaptic } from '../../utils/haptics';
 import { PhotoUploadField } from '../ui/PhotoUploadField';
 import { IconTrash, IconSparkles, IconPlus } from '../ui/Icons';
-import { pickMultipleMediaFromGallery } from '../../utils/imagePicker';
+import { pickMultipleFiles, compressFileToBlob } from '../../utils/imagePicker';
+import { CloudSyncEngine } from '../../services/cloud-sync/CloudSyncEngine';
 
 interface PlaceGalleryModalProps {
   visible: boolean;
@@ -53,28 +54,41 @@ export function PlaceGalleryModal({
   const handlePickMultiple = async () => {
     try {
       setIsUploading(true);
-      setUploadStatus('Seleccionando fotos y vídeos...');
-      const picked = await pickMultipleMediaFromGallery({
-        quality: 0.92,
-        onProgress: (current, total) => {
-          setUploadStatus(`Procesando ${current} de ${total} archivos en Ultra HD...`);
-        },
-      });
+      setUploadStatus('Abriendo selector de fotos y vídeos...');
+      const files = await pickMultipleFiles();
 
-      if (!picked || picked.length === 0) {
+      if (!files || files.length === 0) {
         setIsUploading(false);
         setUploadStatus('');
         return;
       }
 
-      setUploadStatus(`Guardando ${picked.length} archivos en la nube...`);
-      const urls = picked.map((p) => p.base64 || p.uri).filter(Boolean);
+      const total = files.length;
+      const uploadedUrls: string[] = [];
 
-      if (onAddMultiplePhotos) {
-        await onAddMultiplePhotos(place.id, urls);
-      } else {
-        for (const u of urls) {
-          onAddPhoto(place.id, u);
+      for (let i = 0; i < total; i++) {
+        const file = files[i];
+        setUploadStatus(`Optimizando y subiendo ${i + 1} de ${total} recuerdos en Ultra HD...`);
+
+        try {
+          const { blob, mimeType, fileName } = await compressFileToBlob(file, 2048, 2048, 0.92);
+          const publicUrl = await CloudSyncEngine.uploadMediaBlob(blob, `gallery_${place.id}_${fileName}`, mimeType);
+          if (publicUrl) {
+            uploadedUrls.push(publicUrl);
+          }
+        } catch (uploadErr) {
+          console.warn('[Gallery] Error uploading item:', file.name, uploadErr);
+        }
+      }
+
+      if (uploadedUrls.length > 0) {
+        setUploadStatus(`Guardando ${uploadedUrls.length} recuerdos en Supabase...`);
+        if (onAddMultiplePhotos) {
+          await onAddMultiplePhotos(place.id, uploadedUrls);
+        } else {
+          for (const u of uploadedUrls) {
+            onAddPhoto(place.id, u);
+          }
         }
       }
 
