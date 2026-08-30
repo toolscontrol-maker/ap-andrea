@@ -33,6 +33,7 @@ import {
   IconEye,
 } from '../../../src/components/ui/Icons';
 import { StorageEngine } from '../../../src/services/storage';
+import { CloudSyncEngine } from '../../../src/services/cloud-sync/CloudSyncEngine';
 import { triggerHaptic } from '../../../src/utils/haptics';
 
 export default function MapScreen() {
@@ -54,22 +55,98 @@ export default function MapScreen() {
 
   useEffect(() => {
     async function loadPlaces() {
-      const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v4', DEMO_MAP_PLACES);
+      // 1. Load local places
+      const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v5', DEMO_MAP_PLACES);
+      let currentBase = DEMO_MAP_PLACES;
       if (saved && saved.length > 0) {
         const milestoneIds = DEMO_MAP_PLACES.map((p) => p.id);
         const userAddedPlaces = saved.filter((p) => !milestoneIds.includes(p.id));
-        setAllPlaces([...DEMO_MAP_PLACES, ...userAddedPlaces]);
-      } else {
-        setAllPlaces(DEMO_MAP_PLACES);
+        currentBase = [...DEMO_MAP_PLACES, ...userAddedPlaces];
       }
+      setAllPlaces(currentBase);
       setIsLoaded(true);
+
+      // 2. Fetch remote Supabase Cloud State
+      if (CloudSyncEngine.isSupabaseConfigured()) {
+        try {
+          const cloudState = await CloudSyncEngine.fetchFullCloudState();
+          if (cloudState && cloudState.mapPlaces && cloudState.mapPlaces.length > 0) {
+            const cloudPlaces: AndreaMapPlace[] = cloudState.mapPlaces.map((mp: any) => ({
+              id: mp.id,
+              type: mp.category || mp.type || 'memory',
+              title: mp.title,
+              subtitle: mp.subtitle,
+              description: mp.story || mp.description,
+              latitude: Number(mp.lat || mp.latitude),
+              longitude: Number(mp.lng || mp.longitude),
+              precision: mp.locationPrecision || mp.precision || 'exact',
+              date: mp.date,
+              imageUrl: mp.photos?.[0] || mp.imageUrl,
+              city: mp.cityName || mp.city,
+              formattedAddress: mp.subtitle,
+              source: 'google_places',
+              verifiedByUser: true,
+            }));
+
+            setAllPlaces((prev) => {
+              const map = new Map(prev.map((p) => [p.id, p]));
+              cloudPlaces.forEach((cp) => map.set(cp.id, cp));
+              return Array.from(map.values());
+            });
+          }
+        } catch (e) {
+          console.warn('[Map] Cloud hydration error:', e);
+        }
+      }
     }
+
     loadPlaces();
+
+    // 3. Realtime Cross-Device Subscription
+    const unsubscribe = CloudSyncEngine.subscribe({
+      onEntityChange: (entity, eventType, payload) => {
+        if (entity === 'map_places') {
+          if (eventType === 'DELETE') {
+            setAllPlaces((prev) => prev.filter((p) => p.id !== payload.id));
+          } else if (payload) {
+            const updatedPlace: AndreaMapPlace = {
+              id: payload.id,
+              type: payload.category || payload.type || 'memory',
+              title: payload.title,
+              subtitle: payload.subtitle,
+              description: payload.story || payload.description,
+              latitude: Number(payload.lat || payload.latitude),
+              longitude: Number(payload.lng || payload.longitude),
+              precision: payload.locationPrecision || payload.precision || 'exact',
+              date: payload.date,
+              imageUrl: payload.photos?.[0] || payload.imageUrl,
+              city: payload.cityName || payload.city,
+              formattedAddress: payload.subtitle,
+              source: 'google_places',
+              verifiedByUser: true,
+            };
+
+            setAllPlaces((prev) => {
+              const idx = prev.findIndex((p) => p.id === updatedPlace.id);
+              if (idx >= 0) {
+                const next = [...prev];
+                next[idx] = updatedPlace;
+                return next;
+              }
+              return [updatedPlace, ...prev];
+            });
+          }
+        }
+      },
+      onConnectionChange: () => {},
+    });
+
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
     if (!isLoaded) return;
-    StorageEngine.setItem('andrea_map_places_v4', allPlaces);
+    StorageEngine.setItem('andrea_map_places_v5', allPlaces);
   }, [allPlaces, isLoaded]);
 
   const filteredPlaces = useMemo(() => {
@@ -160,6 +237,9 @@ export default function MapScreen() {
     setSelectedGroupId(null);
     setSelectedPlaceId(place.id);
     setEditingPlace(null);
+
+    // Sync to Supabase Cloud & Broadcast in real-time
+    CloudSyncEngine.syncMapPlace(place);
   };
 
   const handleRecenter = () => {
