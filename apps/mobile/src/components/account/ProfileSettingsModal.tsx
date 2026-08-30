@@ -263,7 +263,16 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
               {/* Live Preview */}
               <View style={styles.previewCenter}>
                 {editPhotoUrl ? (
-                  <Image source={{ uri: editPhotoUrl }} style={styles.previewAvatarImg} />
+                  <Image
+                    source={
+                      typeof editPhotoUrl === 'string'
+                        ? { uri: editPhotoUrl }
+                        : (editPhotoUrl as any)?.uri
+                        ? { uri: (editPhotoUrl as any).uri }
+                        : editPhotoUrl
+                    }
+                    style={styles.previewAvatarImg}
+                  />
                 ) : (
                   <View style={[styles.previewAvatarFallback, { backgroundColor: Colors.light.primary }]}>
                     <Text style={styles.previewAvatarFallbackText}>{editName ? editName[0] : 'A'}</Text>
@@ -287,32 +296,30 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
               <View style={styles.inputBlock}>
                 <Text style={styles.inputLabel}>Fotografías Reales de Vuestro Álbum</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetsScroll}>
-                  {INTRO_PHOTOS.map((photo, idx) => (
-                    <TouchableOpacity
-                      key={photo.id || idx}
-                      style={[styles.presetThumb, editPhotoUrl === (photo.source.uri || photo.source) && styles.presetThumbActive]}
-                      onPress={() => {
-                        triggerHaptic('selection');
-                        // Use the photo source object or asset uri
-                        if (typeof photo.source === 'string') {
-                          setEditPhotoUrl(photo.source);
-                        } else if (photo.source && photo.source.uri) {
-                          setEditPhotoUrl(photo.source.uri);
-                        } else {
-                          // Asset number or direct require
-                          setEditPhotoUrl(photo.source);
-                        }
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Image source={photo.source} style={styles.presetImg} resizeMode="cover" />
-                      {editPhotoUrl === (photo.source.uri || photo.source) && (
-                        <View style={styles.presetCheckmark}>
-                          <IconCheck size={11} color="#FFFFFF" />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                  {INTRO_PHOTOS.map((photo, idx) => {
+                    const isSelected = editPhotoUrl === photo.source || editPhotoUrl === (photo.source?.uri || photo.source?.default);
+                    return (
+                      <TouchableOpacity
+                        key={photo.id || idx}
+                        style={[styles.presetThumb, isSelected && styles.presetThumbActive]}
+                        onPress={() => {
+                          triggerHaptic('selection');
+                          const targetUri = typeof photo.source === 'string'
+                            ? photo.source
+                            : (photo.source?.uri || photo.source?.default || photo.source);
+                          setEditPhotoUrl(targetUri);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Image source={photo.source} style={styles.presetImg} resizeMode="cover" />
+                        {isSelected && (
+                          <View style={styles.presetCheckmark}>
+                            <IconCheck size={11} color="#FFFFFF" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
               </View>
 

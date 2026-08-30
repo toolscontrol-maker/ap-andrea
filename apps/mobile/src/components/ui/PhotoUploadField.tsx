@@ -28,7 +28,9 @@ export function PhotoUploadField({
   aspect = [4, 3],
   style,
 }: PhotoUploadFieldProps) {
-  const effectiveImageUri = imageUri !== undefined ? imageUri : photoUrl;
+  const rawUri = imageUri !== undefined && imageUri !== null ? imageUri : photoUrl;
+  const effectiveImageUri = typeof rawUri === 'string' ? rawUri : (rawUri as any)?.uri || '';
+
   const triggerChange = (val: string | null) => {
     if (onImageChange) onImageChange(val);
     if (onPhotoSelected) onPhotoSelected(val);
@@ -49,6 +51,8 @@ export function PhotoUploadField({
     triggerChange(null);
   };
 
+  const cleanPreviewUri = sanitizeImageHotlink(effectiveImageUri);
+
   return (
     <View style={[styles.container, style]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
@@ -58,10 +62,10 @@ export function PhotoUploadField({
         activeOpacity={0.85}
         onPress={handlePress}
       >
-        {imageUri ? (
+        {effectiveImageUri ? (
           <View style={styles.imagePreviewWrapper}>
             <Image
-              source={{ uri: sanitizeImageHotlink(effectiveImageUri!) }}
+              source={{ uri: cleanPreviewUri }}
               style={styles.imagePreview}
               resizeMode="cover"
             />
