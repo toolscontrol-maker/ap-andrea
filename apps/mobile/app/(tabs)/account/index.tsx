@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDev } from '../../../src/context/DevContext';
+import { StorageEngine, STORAGE_KEYS } from '../../../src/services/storage';
+import { PrivacyBetaNotice } from '../../../src/components/privacy/PrivacyBetaNotice';
 import { ScreenWrapper } from '../../../src/components/ui/ScreenWrapper';
 import { SectionHeader } from '../../../src/components/ui/SectionHeader';
 import { Badge } from '../../../src/components/ui/Badge';
@@ -116,11 +118,41 @@ export default function AccountScreen() {
     }
   };
 
+  const {
+    activeRole,
+    switchRole,
+    users,
+    currentDevUser,
+    partnerDevUser,
+    updateUserProfile,
+    wishes,
+    savedPlaces,
+    coupleEvents,
+    ritualSeeds,
+    isDemoModeEnabled,
+    resetAllDataToDefaults,
+    clearAllUserData,
+    exportAllUserData,
+    importAllUserData,
+  } = useDev();
+
+  const [isPrivacyNoticeOpen, setIsPrivacyNoticeOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importJsonText, setImportJsonText] = useState('');
+
+  const handleToggleBiometrics = (val: boolean) => {
+    triggerHaptic('selection');
+    setBiometricsEnabled(val);
+    if (val) {
+      Alert.alert('Face ID Activado', 'Se requerirá autenticación biométrica para abrir tu espacio.');
+    }
+  };
+
   const handleToggleSurpriseMode = (val: boolean) => {
     triggerHaptic('selection');
     setSecretSurpriseMode(val);
     if (val) {
-      Alert.alert('Modo Sorpresa Blindado', 'Las notificaciones no revelarán detalles de regalos o planes secretos a tu pareja.');
+      Alert.alert('Modo Anti-Spoilers', 'Las sorpresas se ocultarán en la pantalla para no arruinar los regalos a tu pareja.');
     }
   };
 
@@ -134,11 +166,76 @@ export default function AccountScreen() {
     );
   };
 
-  const handleExportData = () => {
+  const handleExportData = async () => {
     triggerHaptic('success');
+    try {
+      const json = await exportAllUserData();
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `andrea_app_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        Alert.alert('📦 Copia Generada', 'Copia de seguridad guardada localmente.');
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo exportar la copia local.');
+    }
+  };
+
+  const handleImportData = async () => {
+    if (!importJsonText.trim()) {
+      Alert.alert('Falta el contenido', 'Pega el texto JSON de la copia de seguridad.');
+      return;
+    }
+    triggerHaptic('medium');
+    const res = await importAllUserData(importJsonText.trim());
+    if (res.success) {
+      setIsImportModalOpen(false);
+      setImportJsonText('');
+      Alert.alert('📥 Copia Restaurada', `Se han importado ${res.importedKeys} registros de datos correctamente.`);
+    } else {
+      Alert.alert('Error al importar', res.error || 'Formato de copia inválido.');
+    }
+  };
+
+  const handleConfirmClearAll = () => {
     Alert.alert(
-      '📦 Copia de Seguridad Local',
-      'Vuestro historial de recuerdos, deseos y calendario ha sido exportado en este dispositivo.'
+      '¿Borrar todos los datos locales?',
+      'Esta acción eliminará todos los recuerdos, deseos, citas y fotos guardados en este dispositivo. Te recomendamos exportar una copia antes.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sí, Borrar Todo',
+          style: 'destructive',
+          onPress: async () => {
+            triggerHaptic('heavy');
+            await clearAllUserData();
+            Alert.alert('Datos Borrados', 'El almacenamiento local de este dispositivo ha sido limpiado.');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleConfirmResetDemo = () => {
+    Alert.alert(
+      '¿Restablecer datos demo?',
+      'Se reinsertarán los recuerdos y restaurantes de demostración de Andrea & Ángel.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Restablecer',
+          onPress: async () => {
+            triggerHaptic('medium');
+            await resetAllDataToDefaults();
+            Alert.alert('Datos Demo Restaurados', 'Los datos iniciales han sido recargados.');
+          },
+        },
+      ]
     );
   };
 
@@ -160,16 +257,18 @@ export default function AccountScreen() {
               <Text style={styles.headerSubtitle}>ESPACIO EXCLUSIVO</Text>
               <Text style={styles.headerTitle}>Tu Cuenta</Text>
             </View>
-            <TouchableOpacity
-              style={styles.btnPerspectiveSwitch}
-              activeOpacity={0.8}
-              onPress={handleSwitchUser}
-            >
-              <IconSparkles size={14} color={Colors.light.primary} />
-              <Text style={styles.btnPerspectiveSwitchText}>
-                Ver como {partnerDevUser.name}
-              </Text>
-            </TouchableOpacity>
+            {isDemoModeEnabled && (
+              <TouchableOpacity
+                style={styles.btnPerspectiveSwitch}
+                activeOpacity={0.8}
+                onPress={handleSwitchUser}
+              >
+                <IconSparkles size={14} color={Colors.light.primary} />
+                <Text style={styles.btnPerspectiveSwitchText}>
+                  Ver como {partnerDevUser.name}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -437,24 +536,119 @@ export default function AccountScreen() {
             />
           </View>
 
+        </View>
+
+        {/* LOCAL DATA TOOLS & STORAGE ENGINE */}
+        <SectionHeader
+          title="Datos & Privacidad Local"
+          subtitle="Control y copias del almacenamiento en este dispositivo"
+        />
+        <View style={styles.settingsGroupCard}>
+          {/* Storage stats */}
+          <View style={styles.storageStatusBox}>
+            <View style={styles.storageStatusHeader}>
+              <IconShield size={14} color={Colors.light.primary} />
+              <Text style={styles.storageStatusTitle}>Almacenamiento Local Privado</Text>
+            </View>
+            <Text style={styles.storageStatusDesc}>
+              {wishes.length} deseos · {savedPlaces.length} restaurantes · {coupleEvents.length} fechas · {ritualSeeds.length} momentos
+            </Text>
+            <Text style={styles.storageStatusSub}>
+              Los datos se guardan únicamente en la memoria de este navegador / dispositivo.
+            </Text>
+          </View>
+
           <View style={styles.settingDivider} />
 
+          {/* Privacy Notice modal trigger */}
+          <TouchableOpacity
+            style={styles.settingRow}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerHaptic('selection');
+              setIsPrivacyNoticeOpen(true);
+            }}
+          >
+            <View style={styles.settingIconContainer}>
+              <IconLock size={16} color={Colors.light.primary} />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Aviso de Privacidad & Límites Beta</Text>
+              <Text style={styles.settingDesc}>Información transparente sobre el guardado local</Text>
+            </View>
+            <Text style={styles.settingActionText}>Ver</Text>
+          </TouchableOpacity>
+
+          <View style={styles.settingDivider} />
+
+          {/* Export JSON */}
           <TouchableOpacity style={styles.settingRow} activeOpacity={0.7} onPress={handleExportData}>
             <View style={styles.settingIconContainer}>
               <IconCheck size={16} color={Colors.light.primary} />
             </View>
             <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Exportar Copia de Seguridad</Text>
-              <Text style={styles.settingDesc}>Descargar todos los recuerdos y deseos</Text>
+              <Text style={styles.settingTitle}>Exportar Copia de Seguridad (JSON)</Text>
+              <Text style={styles.settingDesc}>Descargar todos los recuerdos, deseos y citas</Text>
             </View>
             <Text style={styles.settingActionText}>Exportar</Text>
+          </TouchableOpacity>
+
+          <View style={styles.settingDivider} />
+
+          {/* Import JSON */}
+          <TouchableOpacity
+            style={styles.settingRow}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerHaptic('selection');
+              setIsImportModalOpen(true);
+            }}
+          >
+            <View style={styles.settingIconContainer}>
+              <IconSliders size={16} color={Colors.light.primary} />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Importar Copia de Seguridad (JSON)</Text>
+              <Text style={styles.settingDesc}>Restaurar datos desde un archivo o texto JSON</Text>
+            </View>
+            <Text style={styles.settingActionText}>Importar</Text>
+          </TouchableOpacity>
+
+          {isDemoModeEnabled && (
+            <>
+              <View style={styles.settingDivider} />
+              <TouchableOpacity style={styles.settingRow} activeOpacity={0.7} onPress={handleConfirmResetDemo}>
+                <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(212, 175, 55, 0.12)' }]}>
+                  <Text style={{ fontSize: 13 }}>🔄</Text>
+                </View>
+                <View style={styles.settingTextContainer}>
+                  <Text style={styles.settingTitle}>Restablecer Datos Demo</Text>
+                  <Text style={styles.settingDesc}>Cargar hitos y restaurantes de demostración</Text>
+                </View>
+                <Text style={[styles.settingActionText, { color: '#B38B22' }]}>Restablecer</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          <View style={styles.settingDivider} />
+
+          {/* Clear all data */}
+          <TouchableOpacity style={styles.settingRow} activeOpacity={0.7} onPress={handleConfirmClearAll}>
+            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(224, 86, 102, 0.12)' }]}>
+              <Text style={{ fontSize: 13 }}>🗑️</Text>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={[styles.settingTitle, { color: '#E05666' }]}>Borrar Todos los Datos Locales</Text>
+              <Text style={styles.settingDesc}>Limpiar completamente la memoria de este dispositivo</Text>
+            </View>
+            <Text style={[styles.settingActionText, { color: '#E05666' }]}>Borrar</Text>
           </TouchableOpacity>
         </View>
 
         {/* APP INFO & VERSION FOOTER */}
         <View style={styles.footerInfoCard}>
           <Text style={styles.footerBrandName}>ANDREA APP</Text>
-          <Text style={styles.footerVersion}>Versión 1.0.0 (Edición Privada)</Text>
+          <Text style={styles.footerVersion}>Versión 1.0.0 (Edición Privada Local)</Text>
           <Text style={styles.footerDedication}>
             Creado con amor y cuidado para Andrea & Ángel.
           </Text>
@@ -462,6 +656,67 @@ export default function AccountScreen() {
 
         <View style={{ height: Spacing['2xl'] }} />
       </ScrollView>
+
+      {/* ── PRIVACY BETA NOTICE MODAL ── */}
+      <PrivacyBetaNotice
+        forceOpen={isPrivacyNoticeOpen}
+        onClose={() => setIsPrivacyNoticeOpen(false)}
+      />
+
+      {/* ── IMPORT BACKUP MODAL ── */}
+      <Modal
+        visible={isImportModalOpen}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsImportModalOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeaderRow}>
+              <View>
+                <Text style={styles.modalEyebrow}>RESTAURAR DATOS</Text>
+                <Text style={styles.modalTitle}>Importar Copia de Seguridad</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setIsImportModalOpen(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalCloseBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ marginVertical: Spacing.md }}>
+              <Text style={styles.inputLabel}>Pega el contenido JSON de tu copia de seguridad:</Text>
+              <TextInput
+                style={[styles.textInput, { height: 160, textAlignVertical: 'top' }]}
+                value={importJsonText}
+                onChangeText={setImportJsonText}
+                placeholder='{"version": 1, "keys": { ... }}'
+                placeholderTextColor={Colors.light.textMuted}
+                multiline
+              />
+            </View>
+
+            <View style={styles.editModalFooter}>
+              <Button
+                variant="secondary"
+                size="md"
+                onPress={() => setIsImportModalOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                onPress={handleImportData}
+              >
+                📥 Restaurar Copia
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── EDIT PROFILE MODAL ── */}
       <Modal
@@ -1073,5 +1328,42 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     color: Colors.light.textMuted,
     fontStyle: 'italic',
+  },
+  storageStatusBox: {
+    padding: Spacing.md,
+    backgroundColor: 'rgba(212, 175, 55, 0.06)',
+    borderRadius: Radii.lg,
+    marginBottom: Spacing.xs,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
+  },
+  storageStatusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: 4,
+  },
+  storageStatusTitle: {
+    ...Typography.captionBold,
+    fontSize: 13,
+    color: Colors.light.text,
+  },
+  storageStatusDesc: {
+    ...Typography.captionBold,
+    fontSize: 12,
+    color: Colors.light.primaryDark,
+    marginBottom: 2,
+  },
+  storageStatusSub: {
+    ...Typography.caption,
+    fontSize: 11,
+    color: Colors.light.textSecondary,
+    lineHeight: 14,
+  },
+  editModalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
   },
 });

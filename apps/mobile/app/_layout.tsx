@@ -11,6 +11,8 @@ import {
 import { DevProvider } from '../src/context/DevContext';
 import { Colors } from '../src/theme/colors';
 
+import { PrivacyBetaNotice } from '../src/components/privacy/PrivacyBetaNotice';
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
@@ -39,6 +41,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack>
+        <PrivacyBetaNotice />
       </DevProvider>
     </SafeAreaProvider>
   );

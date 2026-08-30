@@ -1575,8 +1575,12 @@ export interface DevContextType {
   // Aya AI Actions
   getRandomAyaQuestion: () => AyaQuestionPrompt;
 
-  // Storage & Reset Actions
+  // Storage & Demo Mode Actions
+  isDemoModeEnabled: boolean;
   resetAllDataToDefaults: () => Promise<void>;
+  clearAllUserData: () => Promise<void>;
+  exportAllUserData: () => Promise<string>;
+  importAllUserData: (jsonString: string) => Promise<{ success: boolean; importedKeys: number; error?: string }>;
 }
 
 const DevContext = createContext<DevContextType | undefined>(undefined);
@@ -2062,6 +2066,52 @@ export function DevProvider({ children }: { children: ReactNode }) {
     }
   ];
 
+  const isDemoModeEnabled = process.env.EXPO_PUBLIC_ENABLE_DEMO_MODE === 'true';
+
+  const resetAllDataToDefaults = async () => {
+    await StorageEngine.setItem(STORAGE_KEYS.WISHES, INITIAL_WISHES);
+    await StorageEngine.setItem(STORAGE_KEYS.PLACES, INITIAL_SAVED_PLACES);
+    await StorageEngine.setItem(STORAGE_KEYS.EVENTS, INITIAL_COUPLE_EVENTS);
+    await StorageEngine.setItem(STORAGE_KEYS.SEEDS, INITIAL_RITUAL_SEEDS);
+    await StorageEngine.setItem('andrea_entries_v1', INITIAL_ENTRIES);
+    setWishes(INITIAL_WISHES);
+    setSavedPlaces(INITIAL_SAVED_PLACES);
+    setCoupleEvents(INITIAL_COUPLE_EVENTS);
+    setRitualSeeds(INITIAL_RITUAL_SEEDS);
+    setEntries(INITIAL_ENTRIES);
+  };
+
+  const clearAllUserData = async () => {
+    await StorageEngine.clearAllData();
+    setWishes([]);
+    setSavedPlaces([]);
+    setCoupleEvents([]);
+    setRitualSeeds([]);
+    setEntries([]);
+    setMapPlaces([]);
+  };
+
+  const exportAllUserData = async () => {
+    return StorageEngine.exportAllLocalData();
+  };
+
+  const importAllUserData = async (jsonString: string) => {
+    const res = await StorageEngine.importAllLocalData(jsonString);
+    if (res.success) {
+      const [w, p, e, s] = await Promise.all([
+        StorageEngine.getItem<WishlistItem[]>(STORAGE_KEYS.WISHES, []),
+        StorageEngine.getItem<Place[]>(STORAGE_KEYS.PLACES, []),
+        StorageEngine.getItem<CoupleEvent[]>(STORAGE_KEYS.EVENTS, []),
+        StorageEngine.getItem<RitualSeed[]>(STORAGE_KEYS.SEEDS, []),
+      ]);
+      setWishes(w);
+      setSavedPlaces(p);
+      setCoupleEvents(e);
+      setRitualSeeds(s);
+    }
+    return res;
+  };
+
   const getRandomAyaQuestion = () => {
     const randomIndex = Math.floor(Math.random() * SAMPLE_AYA_QUESTIONS.length);
     return SAMPLE_AYA_QUESTIONS[randomIndex];
@@ -2110,7 +2160,11 @@ export function DevProvider({ children }: { children: ReactNode }) {
         addSurprise,
         updateSurpriseStatus,
         getRandomAyaQuestion,
+        isDemoModeEnabled,
         resetAllDataToDefaults,
+        clearAllUserData,
+        exportAllUserData,
+        importAllUserData,
       }}
     >
       {children}
