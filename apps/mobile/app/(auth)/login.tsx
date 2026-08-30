@@ -59,18 +59,19 @@ export default function LoginScreen() {
       const success = await loginWithEmail(targetEmail);
       if (success) {
         triggerHaptic('success');
-        if (Platform.OS === 'web') {
-          // Navegación garantizada en navegadores web
+        try {
           router.replace('/(tabs)/home');
-        } else {
-          router.replace('/(tabs)/home');
+        } catch {
+          if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.location.href = '/(tabs)/home';
+          }
         }
       } else {
         setErrorMessage('No se pudo validar el acceso. Inténtalo de nuevo.');
       }
     } catch (e: any) {
-      triggerHaptic('error');
-      setErrorMessage('Error al acceder. Revisa la conexión.');
+      console.warn('Login error:', e);
+      setErrorMessage('Error al acceder. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
