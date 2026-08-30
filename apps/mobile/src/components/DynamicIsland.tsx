@@ -133,7 +133,7 @@ export function DynamicIsland() {
             ) : (
               <View style={styles.expandedBody}>
                 <Text style={styles.idleDesc}>
-                  Vuestro archivo compartido está sincronizado y cifrado de extremo a extremo.
+                  Vuestro archivo compartido está guardado de forma privada en este dispositivo.
                 </Text>
                 <Text style={styles.idleStats}>
                   {ritualSeeds.length} momentos compartidos guardados esta semana

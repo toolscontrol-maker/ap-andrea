@@ -137,14 +137,14 @@ export default function AccountScreen() {
   const handleExportData = () => {
     triggerHaptic('success');
     Alert.alert(
-      '📦 Copia de Seguridad Generada',
-      'Vuestro historial de recuerdos, deseos y calendario ha sido respaldado de forma segura y cifrada.'
+      '📦 Copia de Seguridad Local',
+      'Vuestro historial de recuerdos, deseos y calendario ha sido exportado en este dispositivo.'
     );
   };
 
   const handleCopyKey = () => {
     triggerHaptic('selection');
-    Alert.alert('🔑 Clave Criptográfica Copiada', 'Clave de sincronización privada de vuestra pareja guardada en el portapapeles.');
+    Alert.alert('🔑 Identificador de Pareja', 'Identificador local de vuestra pareja copiado al portapapeles.');
   };
 
   return (
@@ -194,7 +194,7 @@ export default function AccountScreen() {
             <Text style={styles.coupleSubtitle}>Juntos desde el 15 de Febrero de 2025 · Valencia</Text>
             <View style={styles.vaultSecurityBadge}>
               <IconShield size={13} color={Colors.light.primary} />
-              <Text style={styles.vaultSecurityText}>Bóveda Cifrada Punto a Punto (Zero-Knowledge)</Text>
+              <Text style={styles.vaultSecurityText}>Bóveda Privada en Dispositivo</Text>
             </View>
           </View>
         </TiltedCard>

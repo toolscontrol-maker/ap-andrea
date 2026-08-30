@@ -53,7 +53,7 @@ export default function NewSurpriseScreen() {
       <View style={styles.secretNotice}>
         <Text style={styles.secretIcon}>🔒</Text>
         <Text style={styles.secretText}>
-          Esta nota está cifrada en tu dispositivo. {partnerDevUser.name} no podrá verla hasta que decidas entregársela.
+          Esta nota está guardada como borrador privado en tu dispositivo. {partnerDevUser.name} no podrá verla hasta que decidas entregársela.
         </Text>
       </View>
 

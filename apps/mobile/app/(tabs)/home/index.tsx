@@ -196,7 +196,7 @@ export default function HomeScreen() {
           <View style={styles.ritualSubmitRow}>
             <View style={styles.privacyRow}>
               <IconLock size={12} color={Colors.light.textMuted} />
-              <Text style={styles.ritualPrivacyHint}>Cifrado de extremo a extremo</Text>
+              <Text style={styles.ritualPrivacyHint}>Guardado en este dispositivo</Text>
             </View>
             <Button
               variant="primary"

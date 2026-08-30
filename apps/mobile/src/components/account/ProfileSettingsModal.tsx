@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -280,7 +280,7 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
             {/* Bottom App Info */}
             <View style={styles.footerInfo}>
               <Text style={styles.footerAppText}>Andrea App · Edición de Pareja</Text>
-              <Text style={styles.footerVersionText}>v2.4.0 · Cifrado de Extremo a Extremo</Text>
+              <Text style={styles.footerVersionText}>v2.4.0 · Almacenamiento Local Privado</Text>
             </View>
           </ScrollView>
         </View>

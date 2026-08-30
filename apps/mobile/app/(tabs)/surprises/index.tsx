@@ -72,7 +72,7 @@ export default function SurprisesScreen() {
         <View style={{ flex: 1 }}>
           <Text style={styles.vaultTitle}>VAULT SECRETO DE PAREJA</Text>
           <Text style={styles.vaultSub}>
-            Tus planes están cifrados en tu dispositivo. {partnerDevUser.name} no los verá hasta el día de la entrega.
+            Tus planes están guardados como borrador privado en este dispositivo. {partnerDevUser.name} no los verá hasta el día de la entrega.
           </Text>
         </View>
       </View>
