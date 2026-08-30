@@ -9,7 +9,9 @@ import { sanitizeImageHotlink } from '../../utils/linkMetadata';
 
 interface PhotoUploadFieldProps {
   imageUri?: string | null;
-  onImageChange: (imageUri: string | null) => void;
+  onImageChange?: (imageUri: string | null) => void;
+  photoUrl?: string | null;
+  onPhotoSelected?: (imageUri: string | null) => void;
   label?: string;
   placeholderText?: string;
   aspect?: [number, number];
@@ -19,17 +21,24 @@ interface PhotoUploadFieldProps {
 export function PhotoUploadField({
   imageUri,
   onImageChange,
+  photoUrl,
+  onPhotoSelected,
   label = 'Fotografía del momento',
   placeholderText = 'Toca para subir una foto o hacer una captura',
   aspect = [4, 3],
   style,
 }: PhotoUploadFieldProps) {
+  const effectiveImageUri = imageUri !== undefined ? imageUri : photoUrl;
+  const triggerChange = (val: string | null) => {
+    if (onImageChange) onImageChange(val);
+    if (onPhotoSelected) onPhotoSelected(val);
+  };
   const handlePress = () => {
     promptPhotoPicker({
       title: label,
       aspect,
       onImageSelected: (res: PickedImageResult) => {
-        onImageChange(res.base64 || res.uri);
+        triggerChange(res.base64 || res.uri);
       },
     });
   };
@@ -37,7 +46,7 @@ export function PhotoUploadField({
   const handleRemove = (e: any) => {
     e.stopPropagation?.();
     triggerHaptic('light');
-    onImageChange(null);
+    triggerChange(null);
   };
 
   return (
@@ -45,14 +54,14 @@ export function PhotoUploadField({
       {label ? <Text style={styles.label}>{label}</Text> : null}
 
       <TouchableOpacity
-        style={[styles.uploadBox, Boolean(imageUri) && styles.uploadBoxWithImage]}
+        style={[styles.uploadBox, Boolean(effectiveImageUri) && styles.uploadBoxWithImage]}
         activeOpacity={0.85}
         onPress={handlePress}
       >
         {imageUri ? (
           <View style={styles.imagePreviewWrapper}>
             <Image
-              source={{ uri: sanitizeImageHotlink(imageUri) }}
+              source={{ uri: sanitizeImageHotlink(effectiveImageUri!) }}
               style={styles.imagePreview}
               resizeMode="cover"
             />

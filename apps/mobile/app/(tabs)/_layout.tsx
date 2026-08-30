@@ -1,5 +1,6 @@
+import React from 'react';
 import { Tabs, Redirect } from 'expo-router';
-import { View } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { useDev } from '../../src/context/DevContext';
 import { GlobalProfileAvatar } from '../../src/components/GlobalProfileAvatar';
 import { FloatingGlassTabBar } from '../../src/components/navigation/FloatingGlassTabBar';
@@ -7,7 +8,15 @@ import { FloatingGlassTabBar } from '../../src/components/navigation/FloatingGla
 export default function TabLayout() {
   const { isAuthenticated, isLoaded } = useDev();
 
-  if (isLoaded && !isAuthenticated) {
+  if (!isLoaded) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#FAF8F5', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#EF826A" />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
     return <Redirect href="/(auth)/login" />;
   }
 

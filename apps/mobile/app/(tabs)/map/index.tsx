@@ -238,15 +238,24 @@ export default function MapScreen() {
     setIsGalleryModalOpen(true);
   }, []);
 
-  const handleAddPhotoToPlace = useCallback((placeId: string, newPhotoUrl: string) => {
+  const handleAddPhotoToPlace = useCallback(async (placeId: string, newPhotoUrl: string) => {
+    let finalPhotoUrl = newPhotoUrl;
+    if (newPhotoUrl && newPhotoUrl.startsWith('data:')) {
+      try {
+        finalPhotoUrl = await CloudSyncEngine.uploadMediaImage(newPhotoUrl, `map_photo_${placeId}_${Date.now()}.jpg`);
+      } catch (e) {
+        console.warn('[Map] Error uploading gallery photo:', e);
+      }
+    }
+
     setAllPlaces((prev) => {
       const idx = prev.findIndex((p) => p.id === placeId);
       if (idx >= 0) {
         const place = prev[idx];
-        const updatedPhotos = Array.from(new Set([...(place.photos || []), newPhotoUrl]));
+        const updatedPhotos = Array.from(new Set([...(place.photos || []), finalPhotoUrl]));
         const updatedPlace: AndreaMapPlace = {
           ...place,
-          imageUrl: place.imageUrl || newPhotoUrl,
+          imageUrl: place.imageUrl || finalPhotoUrl,
           photos: updatedPhotos,
         };
         const next = [...prev];
@@ -277,23 +286,34 @@ export default function MapScreen() {
     setIsAddModalOpen(true);
   };
 
-  const handleSaveVerifiedPlace = (place: AndreaMapPlace) => {
+  const handleSaveVerifiedPlace = async (place: AndreaMapPlace) => {
+    let updatedPlace = { ...place };
+    if (place.imageUrl && place.imageUrl.startsWith('data:')) {
+      try {
+        const uploaded = await CloudSyncEngine.uploadMediaImage(place.imageUrl, `map_cover_${place.id}_${Date.now()}.jpg`);
+        updatedPlace.imageUrl = uploaded;
+        updatedPlace.photos = updatedPlace.photos ? updatedPlace.photos.map(p => p.startsWith('data:') ? uploaded : p) : [uploaded];
+      } catch (e) {
+        console.warn('[Map] Error uploading cover photo:', e);
+      }
+    }
+
     setAllPlaces((prev) => {
-      const existingIdx = prev.findIndex((p) => p.id === place.id);
+      const existingIdx = prev.findIndex((p) => p.id === updatedPlace.id);
       let next: AndreaMapPlace[];
       if (existingIdx >= 0) {
         next = [...prev];
-        next[existingIdx] = place;
+        next[existingIdx] = updatedPlace;
       } else {
-        next = [place, ...prev];
+        next = [updatedPlace, ...prev];
       }
       StorageEngine.setItem('andrea_map_places_v7', next);
       return next;
     });
     setSelectedGroupId(null);
-    setSelectedPlaceId(place.id);
+    setSelectedPlaceId(updatedPlace.id);
     setEditingPlace(null);
-    CloudSyncEngine.syncMapPlace(place);
+    await CloudSyncEngine.syncMapPlace(updatedPlace);
   };
 
   const handleRecenter = () => {
