@@ -40,12 +40,12 @@ interface FloatingParticle {
 
 export function ConnectedCoupleHeart({
   user1Name,
-  user1Avatar = 'Á',
-  user1PhotoUrl = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+  user1Avatar = 'T',
+  user1PhotoUrl,
   onEditAvatar1,
   user2Name,
   user2Avatar = 'A',
-  user2PhotoUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+  user2PhotoUrl,
   onEditAvatar2,
   currentUserName,
   daysTogether,
