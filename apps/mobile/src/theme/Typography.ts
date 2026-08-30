@@ -1,4 +1,4 @@
-﻿// apps/mobile/src/theme/Typography.ts
+// apps/mobile/src/theme/Typography.ts
 
 export const FontFamily = {
   regular: 'Inter_400Regular',
@@ -8,6 +8,7 @@ export const FontFamily = {
 } as const;
 
 export const Typography = {
+  family: FontFamily,
   display: {
     fontFamily: FontFamily.bold,
     fontSize: 28,
