@@ -7,9 +7,12 @@ async function verify() {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, hasTouch: true });
   const page = await context.newPage();
 
+  page.on('console', (msg) => console.log('BROWSER LOG:', msg.text()));
+  page.on('pageerror', (err) => console.error('BROWSER ERROR:', err.message));
+
   console.log('=== 1. Verificando MapScreen UI Redesign ===');
-  await page.goto(`${LOCAL_URL}`, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(2000);
+  await page.goto(`${LOCAL_URL}`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
 
   // Aceptar aviso de privacidad beta si aparece
   const hasNotice = await page.evaluate(() => document.body.innerText.includes('Transparencia & Privacidad Beta'));
