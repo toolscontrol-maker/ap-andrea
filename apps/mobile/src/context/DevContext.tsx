@@ -15,6 +15,7 @@ import {
   WeeklyRitualSummary
 } from '@andrea/types';
 import { StorageEngine, STORAGE_KEYS } from '../services/storage';
+import { CloudSyncEngine } from '../services/cloud-sync/CloudSyncEngine';
 
 export interface DevUser {
   id: string;
@@ -1260,6 +1261,12 @@ export interface DevContextType {
   toggleUser1Consent: () => void;
   toggleUser2Consent: () => void;
 
+  // Cloud Sync & Realtime
+  isCloudConnected: boolean;
+  cloudSyncStatus: string;
+  forceCloudSync: () => Promise<void>;
+  uploadMediaImage: (fileBase64OrUri: string, fileName: string) => Promise<string>;
+
   // Wishbook Actions
   addWish: (wish: Partial<WishlistItem>) => void;
   updateWishStatus: (id: string, newStatus: WishlistStatus) => void;
@@ -1315,6 +1322,80 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const [entries, setEntries] = useState<DiaryEntryUI[]>(INITIAL_ENTRIES);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(CloudSyncEngine.getIsConnected());
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<string>(CloudSyncEngine.getStatusText());
+
+  // Realtime Cloud Sync Subscription
+  useEffect(() => {
+    CloudSyncEngine.initializeRealtime();
+
+    const unsubscribe = CloudSyncEngine.subscribe({
+      onEntityChange: (entity, eventType, record) => {
+        if (!record) return;
+        if (entity === 'wishes') {
+          if (eventType === 'DELETE') {
+            setWishes((prev) => prev.filter((w) => w.id !== record.id));
+          } else {
+            setWishes((prev) => {
+              const exists = prev.some((w) => w.id === record.id);
+              if (exists) return prev.map((w) => (w.id === record.id ? { ...w, ...record } : w));
+              return [record, ...prev];
+            });
+          }
+        } else if (entity === 'saved_places') {
+          if (eventType === 'DELETE') {
+            setSavedPlaces((prev) => prev.filter((p) => p.id !== record.id));
+          } else {
+            setSavedPlaces((prev) => {
+              const exists = prev.some((p) => p.id === record.id);
+              if (exists) return prev.map((p) => (p.id === record.id ? { ...p, ...record } : p));
+              return [record, ...prev];
+            });
+          }
+        } else if (entity === 'map_places') {
+          if (eventType === 'DELETE') {
+            setMapPlaces((prev) => prev.filter((p) => p.id !== record.id));
+          } else {
+            setMapPlaces((prev) => {
+              const exists = prev.some((p) => p.id === record.id);
+              if (exists) return prev.map((p) => (p.id === record.id ? { ...p, ...record } : p));
+              return [record, ...prev];
+            });
+          }
+        } else if (entity === 'couple_events') {
+          if (eventType === 'DELETE') {
+            setCoupleEvents((prev) => prev.filter((e) => e.id !== record.id));
+          } else {
+            setCoupleEvents((prev) => {
+              const exists = prev.some((e) => e.id === record.id);
+              if (exists) return prev.map((e) => (e.id === record.id ? { ...e, ...record } : e));
+              return [record, ...prev];
+            });
+          }
+        } else if (entity === 'profiles') {
+          if (record.id) {
+            setUsers((prev) => ({
+              user1: prev.user1.id === record.id ? { ...prev.user1, ...record } : prev.user1,
+              user2: prev.user2.id === record.id ? { ...prev.user2, ...record } : prev.user2,
+            }));
+          }
+        } else if (entity === 'ritual_seeds') {
+          setRitualSeeds((prev) => {
+            const exists = prev.some((s) => s.id === record.id);
+            if (exists) return prev.map((s) => (s.id === record.id ? { ...s, ...record } : s));
+            return [record, ...prev];
+          });
+        }
+      },
+      onConnectionChange: (connected, status) => {
+        setIsCloudConnected(connected);
+        setCloudSyncStatus(status);
+      },
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   // 1. Initial load from persistent storage
   useEffect(() => {
     async function loadStoredData() {
@@ -1361,11 +1442,14 @@ export function DevProvider({ children }: { children: ReactNode }) {
 
   const updateUserProfile = async (userId: string, updates: Partial<DevUser>) => {
     setUsers((prev) => {
+      const isUser1 = prev.user1.id === userId;
+      const updatedUser = isUser1 ? { ...prev.user1, ...updates } : { ...prev.user2, ...updates };
       const updated = {
-        user1: prev.user1.id === userId ? { ...prev.user1, ...updates } : prev.user1,
-        user2: prev.user2.id === userId ? { ...prev.user2, ...updates } : prev.user2,
+        user1: isUser1 ? updatedUser : prev.user1,
+        user2: !isUser1 ? updatedUser : prev.user2,
       };
       StorageEngine.setItem('andrea_users_v5', updated);
+      CloudSyncEngine.syncUserProfile(userId, isUser1 ? 'user1' : 'user2', updatedUser);
       return updated;
     });
   };
@@ -1448,12 +1532,16 @@ export function DevProvider({ children }: { children: ReactNode }) {
     };
 
     setWishes((prev) => [item, ...prev]);
+    CloudSyncEngine.syncWish(item);
   };
 
   const updateWishStatus = (id: string, newStatus: WishlistStatus) => {
-    setWishes((prev) =>
-      prev.map((w) => (w.id === id ? { ...w, status: newStatus, updatedAt: new Date().toISOString() } : w))
-    );
+    setWishes((prev) => {
+      const next = prev.map((w) => (w.id === id ? { ...w, status: newStatus, updatedAt: new Date().toISOString() } : w));
+      const target = next.find((w) => w.id === id);
+      if (target) CloudSyncEngine.syncWish(target);
+      return next;
+    });
   };
 
   const convertWishToSurprise = (wishId: string, surpriseNotes?: string) => {
@@ -1522,6 +1610,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
 
   const deleteWish = (id: string) => {
     setWishes((prev) => prev.filter((w) => w.id !== id));
+    CloudSyncEngine.deleteWish(id);
   };
 
   // ── Place / Restaurant Actions ──
@@ -1553,12 +1642,16 @@ export function DevProvider({ children }: { children: ReactNode }) {
     };
 
     setSavedPlaces((prev) => [newPlace, ...prev]);
+    CloudSyncEngine.syncSavedPlace(newPlace);
   };
 
   const updatePlaceStatus = (id: string, status: Place['status']) => {
-    setSavedPlaces((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status, updatedAt: new Date().toISOString() } : p))
-    );
+    setSavedPlaces((prev) => {
+      const next = prev.map((p) => (p.id === id ? { ...p, status, updatedAt: new Date().toISOString() } : p));
+      const target = next.find((p) => p.id === id);
+      if (target) CloudSyncEngine.syncSavedPlace(target);
+      return next;
+    });
   };
 
   const convertPlaceToEvent = (placeId: string, date: string, time?: string) => {
@@ -1593,6 +1686,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
     };
 
     setCoupleEvents((prev) => [newEvent, ...prev]);
+    CloudSyncEngine.syncCoupleEvent(newEvent);
     setSavedPlaces((prev) =>
       prev.map((p) => (p.id === placeId ? { ...p, status: 'planned' } : p))
     );
@@ -1634,6 +1728,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
     };
 
     setCoupleEvents((prev) => [event, ...prev]);
+    CloudSyncEngine.syncCoupleEvent(event);
   };
 
   const revealCoupleEvent = (id: string) => {
@@ -1691,6 +1786,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
     };
 
     setMapPlaces((prev) => [newPlace, ...prev]);
+    CloudSyncEngine.syncMapPlace(newPlace);
   };
 
   const addEntry = (entry: Partial<DiaryEntryUI>) => {
@@ -1821,6 +1917,14 @@ export function DevProvider({ children }: { children: ReactNode }) {
     return SAMPLE_AYA_QUESTIONS[randomIndex];
   };
 
+  const forceCloudSync = async () => {
+    await CloudSyncEngine.initializeRealtime();
+  };
+
+  const uploadMediaImage = async (fileBase64OrUri: string, fileName: string) => {
+    return CloudSyncEngine.uploadMediaImage(fileBase64OrUri, fileName);
+  };
+
   return (
     <DevContext.Provider
       value={{
@@ -1832,6 +1936,10 @@ export function DevProvider({ children }: { children: ReactNode }) {
         isPremium,
         user1Consent,
         user2Consent,
+        isCloudConnected,
+        cloudSyncStatus,
+        forceCloudSync,
+        uploadMediaImage,
         wishes,
         savedPlaces,
         places: mapPlaces,

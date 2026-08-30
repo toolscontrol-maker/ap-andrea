@@ -37,6 +37,7 @@ import { Colors } from '../../../src/theme/colors';
 import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
 import { triggerHaptic } from '../../../src/utils/haptics';
 import { ConnectedCoupleHeart } from '../../../src/components/ui/ConnectedCoupleHeart';
+import { CloudSyncStatusBadge } from '../../../src/components/ui/CloudSyncStatusBadge';
 
 const ANDREA_PRESET_PHOTOS = [
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
@@ -67,6 +68,9 @@ export default function AccountScreen() {
     savedPlaces,
     coupleEvents,
     ritualSeeds,
+    isCloudConnected,
+    cloudSyncStatus,
+    forceCloudSync,
     isDemoModeEnabled,
     resetAllDataToDefaults,
     clearAllUserData,
@@ -237,18 +241,21 @@ export default function AccountScreen() {
               <Text style={styles.headerSubtitle}>ESPACIO EXCLUSIVO</Text>
               <Text style={styles.headerTitle}>Tu Cuenta</Text>
             </View>
-            {isDemoModeEnabled && (
-              <TouchableOpacity
-                style={styles.btnPerspectiveSwitch}
-                activeOpacity={0.8}
-                onPress={handleSwitchUser}
-              >
-                <IconSparkles size={14} color={Colors.light.primary} />
-                <Text style={styles.btnPerspectiveSwitchText}>
-                  Ver como {partnerDevUser.name}
-                </Text>
-              </TouchableOpacity>
-            )}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <CloudSyncStatusBadge onPress={() => forceCloudSync()} />
+              {isDemoModeEnabled && (
+                <TouchableOpacity
+                  style={styles.btnPerspectiveSwitch}
+                  activeOpacity={0.8}
+                  onPress={handleSwitchUser}
+                >
+                  <IconSparkles size={14} color={Colors.light.primary} />
+                  <Text style={styles.btnPerspectiveSwitchText}>
+                    Ver como {partnerDevUser.name}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
 
