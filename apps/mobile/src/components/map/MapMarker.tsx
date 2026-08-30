@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { AndreaMapPlace } from '../../types/map';
 import { Radii } from '../../theme/tokens';
@@ -13,33 +13,39 @@ import {
 
 interface MapMarkerProps {
   place: AndreaMapPlace;
+  itemCount?: number;
   isSelected?: boolean;
   onPress?: () => void;
 }
 
-export function MapMarker({ place, isSelected = false, onPress }: MapMarkerProps) {
+export function MapMarker({
+  place,
+  itemCount = 1,
+  isSelected = false,
+  onPress,
+}: MapMarkerProps) {
   const getMarkerColor = () => {
     if (place.color) return place.color;
     switch (place.type) {
       case 'memory':
-        return '#FF5376'; // Vivid Coral Rose
+        return '#E05666'; // Coral primary
       case 'restaurant':
-        return '#FFB800'; // Apple Maps Warm Gold
+        return '#D4AF37'; // Butter / Gold
       case 'trip':
       case 'future_place':
-        return '#38B6FF'; // Apple Maps Ocean Cyan / Sapphire
+        return '#5C9F9A'; // Lavanda / Teal
       case 'surprise':
-        return '#FF3B30'; // Apple Maps Secret Red
+        return '#C47089'; // Deep Coral
       case 'important_date':
-        return '#FFB800';
+        return '#D4AF37';
       default:
-        return '#2E88FF';
+        return '#5C9F9A';
     }
   };
 
   const renderIcon = () => {
     const iconColor = '#FFFFFF';
-    const iconSize = isSelected ? 17 : 15;
+    const iconSize = isSelected ? 16 : 14;
 
     switch (place.type) {
       case 'memory':
@@ -59,6 +65,7 @@ export function MapMarker({ place, isSelected = false, onPress }: MapMarkerProps
   };
 
   const markerColor = getMarkerColor();
+  const isMulti = itemCount > 1;
 
   return (
     <TouchableOpacity
@@ -69,7 +76,7 @@ export function MapMarker({ place, isSelected = false, onPress }: MapMarkerProps
         isSelected && styles.markerContainerSelected,
       ]}
     >
-      {/* 1. Apple Maps Floating Circular Orb */}
+      {/* 1. Minimalist Circular Orb */}
       <View
         style={[
           styles.markerOrb,
@@ -77,22 +84,23 @@ export function MapMarker({ place, isSelected = false, onPress }: MapMarkerProps
           isSelected && styles.markerOrbSelected,
         ]}
       >
-        {/* Inner Glass Glow */}
-        <View style={styles.innerGlow} />
         {renderIcon()}
+
+        {isMulti && (
+          <View style={styles.badgePill}>
+            <Text style={styles.badgeText}>+{itemCount}</Text>
+          </View>
+        )}
       </View>
 
-      {/* 2. Apple Maps Multi-line Text Label */}
-      <View style={styles.labelContainer}>
-        <Text style={[styles.labelText, isSelected && styles.labelTextSelected]} numberOfLines={2}>
-          {place.title}
-        </Text>
-        {place.subtitle ? (
-          <Text style={styles.labelSubtext} numberOfLines={1}>
-            {place.subtitle}
+      {/* 2. SHORT LABEL RULE: Only visible when isSelected is true */}
+      {isSelected && (
+        <View style={styles.labelContainer}>
+          <Text style={styles.labelText} numberOfLines={2}>
+            {place.title}
           </Text>
-        ) : null}
-      </View>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -101,16 +109,15 @@ const styles = StyleSheet.create({
   markerContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 140,
     zIndex: 10,
   },
   markerContainerSelected: {
-    transform: [{ scale: 1.1 }],
+    transform: [{ scale: 1.15 }],
     zIndex: 999,
   },
   markerOrb: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     borderRadius: Radii.full,
     alignItems: 'center',
     justifyContent: 'center',
@@ -118,62 +125,56 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.95)',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
     elevation: 8,
     position: 'relative',
-    overflow: 'hidden',
   },
   markerOrbSelected: {
-    width: 42,
-    height: 42,
-    borderWidth: 2.5,
+    width: 38,
+    height: 38,
+    borderWidth: 3,
     borderColor: '#FFFFFF',
-    shadowColor: '#38B6FF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 12,
+    shadowColor: '#E05666',
+    shadowOpacity: 0.9,
+    shadowRadius: 16,
   },
-  innerGlow: {
+  badgePill: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    top: -5,
+    right: -7,
+    backgroundColor: '#141210',
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
   },
   labelContainer: {
-    marginTop: 4,
-    alignItems: 'center',
-    paddingHorizontal: 4,
+    marginTop: 5,
+    backgroundColor: 'rgba(18, 16, 15, 0.88)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    maxWidth: 130,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 6,
   },
   labelText: {
-    color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
+    color: '#FFFFFF',
     textAlign: 'center',
     lineHeight: 14,
-    textShadowColor: 'rgba(0, 0, 0, 0.95)',
-    textShadowOffset: { width: 0, height: 1.5 },
-    textShadowRadius: 4,
-  },
-  labelTextSelected: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-    textShadowColor: '#000000',
-    textShadowRadius: 6,
-  },
-  labelSubtext: {
-    color: 'rgba(255, 255, 255, 0.82)',
-    fontSize: 9.5,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 1,
-    textShadowColor: 'rgba(0, 0, 0, 0.95)',
-    textShadowOffset: { width: 0, height: 1.5 },
-    textShadowRadius: 4,
   },
 });

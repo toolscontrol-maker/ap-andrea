@@ -1,31 +1,107 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   View,
   Text,
   Image,
   TouchableOpacity,
+  ScrollView,
   StyleSheet,
   Platform,
 } from 'react-native';
 import { AndreaMapPlace } from '../../types/map';
+import { MapPlaceGroup } from '../../features/places/groupMapPlaces';
 import { Colors } from '../../theme/colors';
-import { Radii, Shadows, Spacing, Typography } from '../../theme/tokens';
-import { Badge, Button } from '../ui';
+import { Radii, Spacing } from '../../theme/tokens';
+import { Badge } from '../ui';
 import { IconLock, IconCalendar } from '../ui/Icons';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface MapBottomSheetProps {
   place: AndreaMapPlace | null;
+  group?: MapPlaceGroup | null;
   onClose: () => void;
   onViewDetail?: (place: AndreaMapPlace) => void;
   onEditLocation?: (place: AndreaMapPlace) => void;
+  onSelectPlaceFromGroup?: (place: AndreaMapPlace) => void;
 }
 
 export function MapBottomSheet({
   place,
+  group,
   onClose,
   onViewDetail,
   onEditLocation,
+  onSelectPlaceFromGroup,
 }: MapBottomSheetProps) {
+  // If we have a group with multiple items and no specific place selected
+  if (group && group.items.length > 1 && !place) {
+    return (
+      <View style={styles.sheetContainer}>
+        <View style={styles.card}>
+          {/* Header */}
+          <View style={styles.headerRow}>
+            <Badge variant="butter">Colección de {group.itemCount} momentos</Badge>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <View style={styles.closeCircle}>
+                <Text style={styles.closeBtn}>✕</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Group Title */}
+          <Text style={styles.groupLocationTitle} numberOfLines={1}>
+            {group.title || 'Mismo rincón'}
+          </Text>
+          <Text style={styles.groupSubtitle}>
+            Historias y recuerdos compartidos en este mismo lugar
+          </Text>
+
+          {/* List of Places in this spot */}
+          <ScrollView style={styles.groupItemsList} showsVerticalScrollIndicator={false}>
+            {group.items.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.groupItemRow}
+                activeOpacity={0.8}
+                onPress={() => {
+                  triggerHaptic('selection');
+                  if (onSelectPlaceFromGroup) {
+                    onSelectPlaceFromGroup(item);
+                  } else if (onViewDetail) {
+                    onViewDetail(item);
+                  }
+                }}
+              >
+                <View style={styles.groupItemEmojiBox}>
+                  <Text style={styles.groupItemEmoji}>
+                    {item.type === 'memory'
+                      ? '♥'
+                      : item.type === 'restaurant'
+                      ? '🍽️'
+                      : item.type === 'surprise'
+                      ? '🎁'
+                      : '✦'}
+                  </Text>
+                </View>
+                <View style={styles.groupItemInfo}>
+                  <Text style={styles.groupItemTitle} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  {item.date && (
+                    <Text style={styles.groupItemDate}>
+                      🗓️ {item.date}
+                    </Text>
+                  )}
+                </View>
+                <Text style={styles.groupItemChevron}>›</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    );
+  }
+
   if (!place) return null;
 
   const isSecretSurprise = place.type === 'surprise' && place.isRevealed === false;
@@ -120,7 +196,7 @@ export function MapBottomSheet({
             activeOpacity={0.85}
             onPress={() => onViewDetail && onViewDetail(place)}
           >
-            <Text style={styles.actionButtonText}>Ver detalle</Text>
+            <Text style={styles.actionButtonText}>Ver detalle completo</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -140,14 +216,14 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 480,
-    backgroundColor: 'rgba(8, 18, 36, 0.88)',
+    backgroundColor: 'rgba(8, 18, 36, 0.92)',
     ...(Platform.OS === 'web'
       ? ({
           backdropFilter: 'blur(30px) saturate(190%)',
           WebkitBackdropFilter: 'blur(30px) saturate(190%)',
         } as any)
       : {}),
-    borderRadius: 4, // Clean squared corners
+    borderRadius: 8,
     padding: Spacing.md,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.22)',
@@ -176,15 +252,72 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
   },
+  groupLocationTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  groupSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.65)',
+    marginBottom: Spacing.sm,
+  },
+  groupItemsList: {
+    maxHeight: 180,
+    marginVertical: Spacing.xs,
+  },
+  groupItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+    borderRadius: 6,
+    padding: Spacing.sm,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  groupItemEmojiBox: {
+    width: 28,
+    height: 28,
+    borderRadius: Radii.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+  groupItemEmoji: {
+    fontSize: 13,
+    color: '#FFFFFF',
+  },
+  groupItemInfo: {
+    flex: 1,
+  },
+  groupItemTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  groupItemDate: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: 1,
+  },
+  groupItemChevron: {
+    fontSize: 18,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginLeft: Spacing.xs,
+  },
   bodyRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    marginBottom: Spacing.xs,
+    alignItems: 'flex-start',
+    marginBottom: Spacing.sm,
   },
   placeImage: {
-    width: 64,
-    height: 64,
-    borderRadius: Radii.lg,
+    width: 60,
+    height: 60,
+    borderRadius: Radii.md,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   detailsBlock: {
@@ -192,83 +325,77 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    ...Typography.h3,
-    fontSize: 15.5,
+    fontSize: 15,
+    fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 2,
-    fontWeight: '700',
+    letterSpacing: -0.2,
   },
   subtitle: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.65)',
+    marginBottom: 4,
   },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 3,
   },
   dateText: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 11.5,
+    color: 'rgba(255, 255, 255, 0.65)',
     fontWeight: '500',
   },
   secretHintRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 4,
-    backgroundColor: 'rgba(255, 59, 48, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: Radii.sm,
+    marginTop: 2,
   },
   secretHintText: {
-    fontSize: 10.5,
+    fontSize: 11,
     color: '#FF8A9E',
-    fontWeight: '600',
+    fontStyle: 'italic',
     flex: 1,
   },
   description: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontStyle: 'italic',
-    marginTop: Spacing.xs,
+    fontSize: 12.5,
+    lineHeight: 17,
+    color: 'rgba(255, 255, 255, 0.85)',
     marginBottom: Spacing.sm,
-    lineHeight: 16,
+    fontStyle: 'italic',
+    paddingLeft: Spacing.xs,
+    borderLeftWidth: 2,
+    borderLeftColor: '#E05666',
   },
   footerRow: {
-    marginTop: Spacing.xs,
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     gap: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   editLocationButton: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: Radii.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    paddingVertical: 8,
-    borderRadius: Radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   editLocationButtonText: {
     fontSize: 12,
-    color: '#FFFFFF',
     fontWeight: '600',
+    color: '#FFFFFF',
   },
   actionButton: {
-    flex: 1,
-    backgroundColor: '#38B6FF',
-    paddingVertical: 8,
-    borderRadius: Radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 16,
+    borderRadius: Radii.full,
+    backgroundColor: '#E05666',
   },
   actionButtonText: {
     fontSize: 12,
-    color: '#FFFFFF',
     fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

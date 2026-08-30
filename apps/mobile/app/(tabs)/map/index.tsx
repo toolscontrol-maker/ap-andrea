@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+﻿import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { MapFilters, MapFilterKey, FILTER_TYPE_MAP } from '../../../src/componen
 import { MapBottomSheet } from '../../../src/components/map/MapBottomSheet';
 import { AddPlaceLocationModal } from '../../../src/components/map/AddPlaceLocationModal';
 import { DEMO_MAP_PLACES } from '../../../src/components/map/map.constants';
+import { groupMapPlaces, MapPlaceGroup } from '../../../src/features/places/groupMapPlaces';
 import { AndreaMapPlace } from '../../../src/types/map';
 import { Colors } from '../../../src/theme/colors';
 import { Radii, Spacing, Typography } from '../../../src/theme/tokens';
@@ -25,6 +26,7 @@ export default function MapScreen() {
 
   const [activeFilter, setActiveFilter] = useState<MapFilterKey>('all');
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState<boolean>(true);
 
   // Dynamic places state with local persistence
@@ -63,11 +65,22 @@ export default function MapScreen() {
     return allPlaces.filter((p) => filterTypes.includes(p.type));
   }, [allPlaces, activeFilter]);
 
+  // Groups for current filtered places
+  const currentGroups = useMemo(() => {
+    return groupMapPlaces(filteredPlaces);
+  }, [filteredPlaces]);
+
   // Selected place for bottom sheet
   const selectedPlace = useMemo(() => {
     if (!selectedPlaceId) return null;
     return allPlaces.find((p) => p.id === selectedPlaceId) || null;
   }, [allPlaces, selectedPlaceId]);
+
+  // Selected group for bottom sheet
+  const selectedGroup = useMemo(() => {
+    if (!selectedGroupId) return null;
+    return currentGroups.find((g) => g.id === selectedGroupId) || null;
+  }, [currentGroups, selectedGroupId]);
 
   // Filter counts
   const filterCounts = useMemo(() => {
@@ -82,12 +95,26 @@ export default function MapScreen() {
 
   const handlePlacePress = useCallback((place: AndreaMapPlace) => {
     triggerHaptic('medium');
+    setSelectedGroupId(null);
+    setSelectedPlaceId(place.id);
+  }, []);
+
+  const handleGroupPress = useCallback((group: MapPlaceGroup) => {
+    triggerHaptic('medium');
+    setSelectedPlaceId(null);
+    setSelectedGroupId(group.id);
+  }, []);
+
+  const handleSelectPlaceFromGroup = useCallback((place: AndreaMapPlace) => {
+    triggerHaptic('selection');
+    setSelectedGroupId(null);
     setSelectedPlaceId(place.id);
   }, []);
 
   const handleCloseSheet = useCallback(() => {
     triggerHaptic('light');
     setSelectedPlaceId(null);
+    setSelectedGroupId(null);
   }, []);
 
   const handleViewDetail = useCallback((place: AndreaMapPlace) => {
@@ -106,6 +133,7 @@ export default function MapScreen() {
   const handleEditLocation = (place: AndreaMapPlace) => {
     triggerHaptic('light');
     setSelectedPlaceId(null);
+    setSelectedGroupId(null);
     setEditingPlace(place);
     setIsAddModalOpen(true);
   };
@@ -120,6 +148,7 @@ export default function MapScreen() {
       }
       return [place, ...prev];
     });
+    setSelectedGroupId(null);
     setSelectedPlaceId(place.id);
     setEditingPlace(null);
   };
@@ -127,17 +156,20 @@ export default function MapScreen() {
   const handleRecenter = () => {
     triggerHaptic('light');
     setSelectedPlaceId(null);
+    setSelectedGroupId(null);
   };
 
   const topOffset = Math.max(insets.top + 8, 14);
 
   return (
     <View style={styles.container}>
-      {/* 1. Cross-Platform Mapbox Map (Apple Maps Midnight Aesthetic) */}
+      {/* 1. Cross-Platform Mapbox Map (Apple Maps Midnight Aesthetic) with Clustering */}
       <AndreaMap
         places={filteredPlaces}
         selectedPlaceId={selectedPlaceId}
+        selectedGroupId={selectedGroupId}
         onPlacePress={handlePlacePress}
+        onGroupPress={handleGroupPress}
         onAddPlacePress={handleOpenAddModal}
       />
 
@@ -149,13 +181,14 @@ export default function MapScreen() {
       {/* 3. Top-Right Floating iOS Glass HUD Controls (Under Global Profile Avatar) */}
       <View style={[styles.hudControls, { top: topOffset + 50 }]} pointerEvents="box-none">
         {/* Close / Reset Selection */}
-        {selectedPlaceId ? (
+        {selectedPlaceId || selectedGroupId ? (
           <TouchableOpacity
             style={styles.hudButton}
             activeOpacity={0.8}
             onPress={() => {
               triggerHaptic('light');
               setSelectedPlaceId(null);
+              setSelectedGroupId(null);
             }}
           >
             <Text style={styles.hudButtonText}>✕</Text>
@@ -210,12 +243,14 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* 5. Place Detail Bottom Sheet with Edit/Move Pin support */}
+      {/* 5. Place Detail / Group Bottom Sheet */}
       <MapBottomSheet
         place={selectedPlace}
+        group={selectedGroup}
         onClose={handleCloseSheet}
         onViewDetail={handleViewDetail}
         onEditLocation={handleEditLocation}
+        onSelectPlaceFromGroup={handleSelectPlaceFromGroup}
       />
 
       {/* 6. Real Mapbox Geocoding & Visual Pin Confirmation Modal */}
@@ -248,44 +283,59 @@ const styles = StyleSheet.create({
     zIndex: 90,
   },
   headerTitle: {
-    ...Typography.h3,
-    color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    letterSpacing: -0.2,
-    textShadowColor: 'rgba(0, 0, 0, 0.9)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+    backgroundColor: 'rgba(3, 12, 30, 0.72)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        } as any)
+      : {}),
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    overflow: 'hidden',
   },
   hudControls: {
     position: 'absolute',
-    right: Spacing.md,
-    zIndex: 100,
-    flexDirection: 'column',
+    right: 14,
+    zIndex: 95,
     gap: 10,
+    alignItems: 'center',
   },
   hudButton: {
-    width: 42,
-    height: 42,
+    width: 38,
+    height: 38,
     borderRadius: Radii.full,
-    backgroundColor: 'rgba(12, 24, 48, 0.78)',
+    backgroundColor: 'rgba(8, 18, 36, 0.78)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(25px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(25px) saturate(180%)',
+        } as any)
+      : {}),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.5,
     shadowRadius: 10,
-    elevation: 8,
+    elevation: 6,
   },
   hudButtonActive: {
-    backgroundColor: 'rgba(56, 182, 255, 0.35)',
-    borderColor: '#38B6FF',
+    backgroundColor: 'rgba(224, 86, 102, 0.35)',
+    borderColor: '#E05666',
   },
   hudButtonText: {
+    fontSize: 14,
     color: '#FFFFFF',
-    fontSize: 15,
     fontWeight: '700',
   },
   layersIconStack: {
@@ -296,120 +346,13 @@ const styles = StyleSheet.create({
   layersBar: {
     width: 14,
     height: 2,
-    backgroundColor: '#FFFFFF',
     borderRadius: 1,
+    backgroundColor: '#FFFFFF',
   },
   filtersContainer: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 95,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    backgroundColor: Platform.OS === 'web' ? 'rgba(253, 252, 250, 0.90)' : '#FFFFFF',
-    ...(Platform.OS === 'web'
-      ? ({
-          backdropFilter: 'blur(30px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(30px) saturate(180%)',
-        } as any)
-      : {}),
-    borderTopLeftRadius: 4, // Squared corners
-    borderTopRightRadius: 4, // Squared corners
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.75)',
-    maxHeight: '85%',
-    padding: Spacing.lg,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
-  },
-  modalTitle: {
-    ...Typography.h2,
-    fontSize: 19,
-    color: Colors.light.text,
-  },
-  modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.light.surfaceSubtle,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalCloseText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.light.textMuted,
-  },
-  modalBody: {
-    maxHeight: 400,
-  },
-  inputLabel: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    color: Colors.light.text,
-    marginTop: Spacing.sm,
-    marginBottom: 4,
-  },
-  typeSelectorRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: Spacing.xs,
-  },
-  typePill: {
-    flex: 1,
-    paddingVertical: 7,
-    borderRadius: Radii.sm,
-    backgroundColor: Colors.light.surfaceSubtle,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  typePillActive: {
-    backgroundColor: Colors.light.primaryLight,
-    borderColor: Colors.light.primary,
-  },
-  typePillText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.light.textMuted,
-  },
-  typePillTextActive: {
-    color: Colors.light.primaryDark,
-    fontWeight: '700',
-  },
-  textInput: {
-    backgroundColor: Colors.light.surfaceSubtle,
-    borderWidth: 1,
-    borderColor: 'rgba(43, 33, 41, 0.1)',
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: Colors.light.text,
-    marginBottom: Spacing.xs,
-  },
-  textArea: {
-    minHeight: 65,
-    textAlignVertical: 'top',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.divider,
-    paddingTop: Spacing.sm,
+    left: 14,
+    right: 60,
+    zIndex: 90,
   },
 });

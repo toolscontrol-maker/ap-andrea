@@ -1,18 +1,21 @@
-import React, { useRef, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+﻿import React, { useRef, useEffect, useMemo, useCallback } from 'react';
+import { View, StyleSheet, Text } from 'react-native';
 import { AndreaMapPlace, MapBounds, MapCameraState } from '../../types/map';
 import { MAPBOX_ACCESS_TOKEN, MAPBOX_STYLE_URL, Mapbox } from '../../lib/mapbox';
-import { DEFAULT_MAP_CAMERA } from './map.constants';
+import { DEFAULT_MAP_CAMERA, MAP_CLUSTER_CONFIG } from './map.constants';
 import { MapMarker } from './MapMarker';
+import { groupMapPlaces, MapPlaceGroup } from '../../features/places/groupMapPlaces';
 import { Radii, Spacing } from '../../theme/tokens';
 import { triggerHaptic } from '../../utils/haptics';
 
 export interface AndreaMapProps {
   places: AndreaMapPlace[];
   selectedPlaceId?: string | null;
+  selectedGroupId?: string | null;
   initialCamera?: MapCameraState;
   activeFilters?: string[];
   onPlacePress?: (place: AndreaMapPlace) => void;
+  onGroupPress?: (group: MapPlaceGroup) => void;
   onCameraIdle?: (bounds: MapBounds) => void;
   onAddPlacePress?: () => void;
 }
@@ -20,12 +23,15 @@ export interface AndreaMapProps {
 export function AndreaMap({
   places,
   selectedPlaceId,
+  selectedGroupId,
   initialCamera = DEFAULT_MAP_CAMERA,
   onPlacePress,
+  onGroupPress,
   onCameraIdle,
 }: AndreaMapProps) {
   const cameraRef = useRef<any>(null);
   const mapRef = useRef<any>(null);
+  const shapeSourceRef = useRef<any>(null);
   const idleTimeoutRef = useRef<any>(null);
 
   // Filter out places with 'hidden' precision if not revealed
@@ -37,6 +43,11 @@ export function AndreaMap({
     });
   }, [places]);
 
+  // Group places within 20m / same address
+  const placeGroups = useMemo(() => {
+    return groupMapPlaces(visiblePlaces);
+  }, [visiblePlaces]);
+
   // Fly to selected place
   useEffect(() => {
     if (selectedPlaceId && cameraRef.current) {
@@ -44,8 +55,8 @@ export function AndreaMap({
       if (selected) {
         cameraRef.current.setCamera({
           centerCoordinate: [selected.longitude, selected.latitude],
-          zoomLevel: 14,
-          animationDuration: 1000,
+          zoomLevel: 15,
+          animationDuration: 700,
           animationMode: 'flyTo',
         });
       }
@@ -116,26 +127,43 @@ export function AndreaMap({
           }}
         />
 
-        {visiblePlaces.map((place) => (
-          <PointAnnotation
-            key={place.id}
-            id={place.id}
-            coordinate={[place.longitude, place.latitude]}
-            onSelected={() => {
-              triggerHaptic('selection');
-              onPlacePress && onPlacePress(place);
-            }}
-          >
-            <MapMarker
-              place={place}
-              isSelected={place.id === selectedPlaceId}
-              onPress={() => {
+        {placeGroups.map((group) => {
+          const isSamePlaceGroup = group.kind === 'same_place_group';
+          const primaryPlace = group.items[0];
+          const isSelected =
+            (selectedGroupId && selectedGroupId === group.id) ||
+            (selectedPlaceId && group.items.some((i) => i.id === selectedPlaceId));
+
+          return (
+            <PointAnnotation
+              key={group.id}
+              id={group.id}
+              coordinate={[group.longitude, group.latitude]}
+              onSelected={() => {
                 triggerHaptic('selection');
-                onPlacePress && onPlacePress(place);
+                if (isSamePlaceGroup && onGroupPress) {
+                  onGroupPress(group);
+                } else if (onPlacePress) {
+                  onPlacePress(primaryPlace);
+                }
               }}
-            />
-          </PointAnnotation>
-        ))}
+            >
+              <MapMarker
+                place={primaryPlace}
+                itemCount={group.itemCount}
+                isSelected={!!isSelected}
+                onPress={() => {
+                  triggerHaptic('selection');
+                  if (isSamePlaceGroup && onGroupPress) {
+                    onGroupPress(group);
+                  } else if (onPlacePress) {
+                    onPlacePress(primaryPlace);
+                  }
+                }}
+              />
+            </PointAnnotation>
+          );
+        })}
       </MapView>
     </View>
   );
