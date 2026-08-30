@@ -17,6 +17,9 @@ import {
 import { StorageEngine, STORAGE_KEYS } from '../services/storage';
 import { CloudSyncEngine } from '../services/cloud-sync/CloudSyncEngine';
 
+export const AUTH_SESSION_KEY = 'andrea_auth_session_v7';
+export const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
 export interface DevUser {
   id: string;
   name: string;
@@ -1437,9 +1440,6 @@ export function DevProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function loadStoredData() {
       try {
-        const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-        const AUTH_SESSION_KEY = 'andrea_auth_session_v7';
-
         // 1. Purge legacy sessions to force fresh login on all devices
         StorageEngine.setItem('andrea_auth_session_v5', null);
         StorageEngine.setItem('andrea_auth_session_v6', null);
