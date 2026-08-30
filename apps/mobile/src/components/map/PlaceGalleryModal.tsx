@@ -14,6 +14,7 @@ import {
 import { AndreaMapPlace } from '../../types/map';
 import { triggerHaptic } from '../../utils/haptics';
 import { PhotoUploadField } from '../ui/PhotoUploadField';
+import { IconTrash, IconSparkles } from '../ui/Icons';
 
 interface PlaceGalleryModalProps {
   visible: boolean;
@@ -21,6 +22,7 @@ interface PlaceGalleryModalProps {
   onClose: () => void;
   onAddPhoto: (placeId: string, newPhotoUrl: string) => void;
   onRemovePhoto?: (placeId: string, photoUrl: string) => void;
+  onReorderPhotos?: (placeId: string, updatedPhotos: string[]) => void;
 }
 
 export function PlaceGalleryModal({
@@ -28,8 +30,11 @@ export function PlaceGalleryModal({
   place,
   onClose,
   onAddPhoto,
+  onRemovePhoto,
+  onReorderPhotos,
 }: PlaceGalleryModalProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   if (!place) return null;
 
@@ -44,8 +49,78 @@ export function PlaceGalleryModal({
     if (url) {
       triggerHaptic('success');
       onAddPhoto(place.id, url);
-      Alert.alert('📸 Foto Añadida', 'La foto se ha guardado en la galería compartida del rincón.');
     }
+  };
+
+  const handleSetAsCover = (photoUrl: string) => {
+    triggerHaptic('selection');
+    const filtered = allPhotos.filter((p) => p !== photoUrl);
+    const updated = [photoUrl, ...filtered];
+    if (onReorderPhotos) {
+      onReorderPhotos(place.id, updated);
+    }
+  };
+
+  const handleMovePhoto = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= allPhotos.length || fromIndex === toIndex) return;
+    triggerHaptic('selection');
+    const next = [...allPhotos];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    if (onReorderPhotos) {
+      onReorderPhotos(place.id, next);
+    }
+  };
+
+  const confirmDeletePhoto = (photoUrl: string) => {
+    triggerHaptic('warning');
+    if (Platform.OS === 'web') {
+      const ok = window.confirm('¿Quieres eliminar esta fotografía de la galería compartida?');
+      if (ok) {
+        triggerHaptic('error');
+        if (onRemovePhoto) onRemovePhoto(place.id, photoUrl);
+        if (selectedImage === photoUrl) setSelectedImage(null);
+      }
+    } else {
+      Alert.alert(
+        '🗑️ Eliminar Fotografía',
+        '¿Quieres eliminar esta fotografía de la galería compartida?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Eliminar',
+            style: 'destructive',
+            onPress: () => {
+              triggerHaptic('error');
+              if (onRemovePhoto) onRemovePhoto(place.id, photoUrl);
+              if (selectedImage === photoUrl) setSelectedImage(null);
+            },
+          },
+        ]
+      );
+    }
+  };
+
+  // Drag and drop handlers for web
+  const handleDragStart = (e: any, index: number) => {
+    setDraggedIndex(index);
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(index));
+    }
+  };
+
+  const handleDragOver = (e: any) => {
+    if (e.preventDefault) e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: any, dropIndex: number) => {
+    if (e.preventDefault) e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== dropIndex) {
+      handleMovePhoto(draggedIndex, dropIndex);
+    }
+    setDraggedIndex(null);
   };
 
   return (
@@ -62,7 +137,7 @@ export function PlaceGalleryModal({
                 {place.title}
               </Text>
               <Text style={styles.photoCountText}>
-                {allPhotos.length} {allPhotos.length === 1 ? 'fotografía guardada' : 'fotografías guardadas'}
+                {allPhotos.length} {allPhotos.length === 1 ? 'fotografía guardada' : 'fotografías guardadas'} · Arrastra o usa las flechas para ordenar
               </Text>
             </View>
 
@@ -97,22 +172,96 @@ export function PlaceGalleryModal({
 
             {allPhotos.length > 0 ? (
               <View style={styles.photosGridWrapper}>
-                {allPhotos.map((photo, index) => (
-                  <TouchableOpacity
-                    key={photo + '-' + index}
-                    style={styles.photoThumbnailCard}
-                    activeOpacity={0.85}
-                    onPress={() => {
-                      triggerHaptic('selection');
-                      setSelectedImage(photo);
-                    }}
-                  >
-                    <Image source={{ uri: photo }} style={styles.photoThumbnail} resizeMode="cover" />
-                    <View style={styles.photoBadgeOverlay}>
-                      <Text style={styles.photoBadgeText}>Foto #{index + 1}</Text>
+                {allPhotos.map((photo, index) => {
+                  const isCover = index === 0;
+                  const isBeingDragged = draggedIndex === index;
+
+                  const cardProps: any = Platform.OS === 'web' ? {
+                    draggable: true,
+                    onDragStart: (e: any) => handleDragStart(e, index),
+                    onDragOver: handleDragOver,
+                    onDrop: (e: any) => handleDrop(e, index),
+                    onDragEnd: () => setDraggedIndex(null),
+                  } : {};
+
+                  return (
+                    <View
+                      key={photo + '-' + index}
+                      style={[
+                        styles.photoThumbnailCard,
+                        isCover && styles.photoThumbnailCardCover,
+                        isBeingDragged && styles.photoThumbnailDragging,
+                      ]}
+                      {...cardProps}
+                    >
+                      <TouchableOpacity
+                        activeOpacity={0.9}
+                        style={styles.imageTapArea}
+                        onPress={() => {
+                          triggerHaptic('selection');
+                          setSelectedImage(photo);
+                        }}
+                      >
+                        <Image source={{ uri: photo }} style={styles.photoThumbnail} resizeMode="cover" />
+                      </TouchableOpacity>
+
+                      {/* Header Badge Overlay: Cover or Photo index */}
+                      <View style={styles.cardTopBar}>
+                        {isCover ? (
+                          <View style={styles.coverBadge}>
+                            <Text style={styles.coverBadgeText}>⭐ Portada</Text>
+                          </View>
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.setCoverBtn}
+                            activeOpacity={0.8}
+                            onPress={() => handleSetAsCover(photo)}
+                          >
+                            <Text style={styles.setCoverBtnText}>⭐ Hacer portada</Text>
+                          </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                          style={styles.deletePhotoBtn}
+                          activeOpacity={0.7}
+                          onPress={() => confirmDeletePhoto(photo)}
+                          accessibilityLabel="Eliminar fotografía"
+                        >
+                          <IconTrash size={13} color="#FFFFFF" />
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Bottom Controls Bar: Reorder buttons & Position indicator */}
+                      <View style={styles.cardBottomBar}>
+                        <View style={styles.reorderGroup}>
+                          {index > 0 && (
+                            <TouchableOpacity
+                              style={styles.arrowBtn}
+                              activeOpacity={0.7}
+                              onPress={() => handleMovePhoto(index, index - 1)}
+                              accessibilityLabel="Mover hacia la izquierda"
+                            >
+                              <Text style={styles.arrowBtnText}>◀</Text>
+                            </TouchableOpacity>
+                          )}
+                          {index < allPhotos.length - 1 && (
+                            <TouchableOpacity
+                              style={styles.arrowBtn}
+                              activeOpacity={0.7}
+                              onPress={() => handleMovePhoto(index, index + 1)}
+                              accessibilityLabel="Mover hacia la derecha"
+                            >
+                              <Text style={styles.arrowBtnText}>▶</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                        <View style={styles.photoBadgeOverlay}>
+                          <Text style={styles.photoBadgeText}>#{index + 1}</Text>
+                        </View>
+                      </View>
                     </View>
-                  </TouchableOpacity>
-                ))}
+                  );
+                })}
               </View>
             ) : (
               <View style={styles.emptyGalleryCard}>
@@ -135,18 +284,48 @@ export function PlaceGalleryModal({
             onRequestClose={() => setSelectedImage(null)}
           >
             <View style={styles.lightboxOverlay}>
-              <TouchableOpacity
-                style={styles.lightboxCloseBtn}
-                onPress={() => setSelectedImage(null)}
-              >
-                <Text style={styles.lightboxCloseText}>✕ Cerrar</Text>
-              </TouchableOpacity>
+              <View style={styles.lightboxTopBar}>
+                <Text style={styles.lightboxCounter}>
+                  Foto {allPhotos.indexOf(selectedImage) + 1} de {allPhotos.length}
+                </Text>
+                <TouchableOpacity
+                  style={styles.lightboxCloseBtn}
+                  onPress={() => setSelectedImage(null)}
+                >
+                  <Text style={styles.lightboxCloseText}>✕ Cerrar</Text>
+                </TouchableOpacity>
+              </View>
 
               <Image
                 source={{ uri: selectedImage }}
                 style={styles.lightboxImage}
                 resizeMode="contain"
               />
+
+              <View style={styles.lightboxActionsBar}>
+                {allPhotos.indexOf(selectedImage) !== 0 && (
+                  <TouchableOpacity
+                    style={styles.lightboxCoverAction}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      handleSetAsCover(selectedImage);
+                      setSelectedImage(null);
+                    }}
+                  >
+                    <IconSparkles size={15} color="#3A2F38" />
+                    <Text style={styles.lightboxCoverActionText}>Poner de portada</Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  style={styles.lightboxDeleteAction}
+                  activeOpacity={0.8}
+                  onPress={() => confirmDeletePhoto(selectedImage)}
+                >
+                  <IconTrash size={15} color="#FFFFFF" />
+                  <Text style={styles.lightboxDeleteActionText}>Eliminar foto</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </Modal>
         )}
@@ -272,23 +451,109 @@ const styles = StyleSheet.create({
   },
   photoThumbnailCard: {
     width: (screenWidth > 680 ? 680 : screenWidth - 52) / 2 - 6,
-    height: 180,
+    height: 190,
     borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#F5EFE8',
     position: 'relative',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: 'rgba(58, 47, 56, 0.08)',
+    ...(Platform.OS === 'web' ? { cursor: 'grab', userSelect: 'none' } : {}),
+  } as any,
+  photoThumbnailCardCover: {
+    borderColor: '#F4C95D',
+    shadowColor: '#F4C95D',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  photoThumbnailDragging: {
+    opacity: 0.45,
+    transform: [{ scale: 0.96 }],
+  },
+  imageTapArea: {
+    width: '100%',
+    height: '100%',
   },
   photoThumbnail: {
     width: '100%',
     height: '100%',
   },
-  photoBadgeOverlay: {
+  cardTopBar: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 5,
+  },
+  coverBadge: {
+    backgroundColor: '#F4C95D',
+    paddingVertical: 3,
+    paddingHorizontal: 7,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  coverBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#3A2F38',
+  },
+  setCoverBtn: {
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+  },
+  setCoverBtnText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  deletePhotoBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(217, 67, 84, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  cardBottomBar: {
     position: 'absolute',
     bottom: 8,
     left: 8,
-    backgroundColor: 'rgba(58, 47, 56, 0.65)',
+    right: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 5,
+  },
+  reorderGroup: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  arrowBtn: {
+    width: 26,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  arrowBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  photoBadgeOverlay: {
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     paddingVertical: 2,
     paddingHorizontal: 6,
     borderRadius: 6,
@@ -325,24 +590,71 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.94)',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  lightboxTopBar: {
+    position: 'absolute',
+    top: 44,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  lightboxCounter: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   lightboxCloseBtn: {
-    position: 'absolute',
-    top: 50,
-    right: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
     borderRadius: 20,
-    zIndex: 10,
   },
   lightboxCloseText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
   lightboxImage: {
-    width: '92%',
-    height: '80%',
+    width: '100%',
+    height: '75%',
+  },
+  lightboxActionsBar: {
+    position: 'absolute',
+    bottom: 40,
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  lightboxCoverAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F4C95D',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 24,
+  },
+  lightboxCoverActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#3A2F38',
+  },
+  lightboxDeleteAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#D94354',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 24,
+  },
+  lightboxDeleteActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

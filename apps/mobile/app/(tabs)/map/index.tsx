@@ -271,6 +271,53 @@ export default function MapScreen() {
     });
   }, [activeDetailPlace]);
 
+  const handleReorderPlacePhotos = useCallback((placeId: string, updatedPhotos: string[]) => {
+    setAllPlaces((prev) => {
+      const idx = prev.findIndex((p) => p.id === placeId);
+      if (idx >= 0) {
+        const place = prev[idx];
+        const updatedPlace: AndreaMapPlace = {
+          ...place,
+          imageUrl: updatedPhotos[0] || undefined,
+          photos: updatedPhotos,
+        };
+        const next = [...prev];
+        next[idx] = updatedPlace;
+        if (activeDetailPlace && activeDetailPlace.id === placeId) {
+          setActiveDetailPlace(updatedPlace);
+        }
+        StorageEngine.setItem('andrea_map_places_v7', next);
+        CloudSyncEngine.syncMapPlace(updatedPlace);
+        return next;
+      }
+      return prev;
+    });
+  }, [activeDetailPlace]);
+
+  const handleRemovePhotoFromPlace = useCallback((placeId: string, photoUrlToRemove: string) => {
+    setAllPlaces((prev) => {
+      const idx = prev.findIndex((p) => p.id === placeId);
+      if (idx >= 0) {
+        const place = prev[idx];
+        const updatedPhotos = (place.photos || []).filter((p) => p !== photoUrlToRemove);
+        const updatedPlace: AndreaMapPlace = {
+          ...place,
+          imageUrl: updatedPhotos.length > 0 ? updatedPhotos[0] : undefined,
+          photos: updatedPhotos,
+        };
+        const next = [...prev];
+        next[idx] = updatedPlace;
+        if (activeDetailPlace && activeDetailPlace.id === placeId) {
+          setActiveDetailPlace(updatedPlace);
+        }
+        StorageEngine.setItem('andrea_map_places_v7', next);
+        CloudSyncEngine.syncMapPlace(updatedPlace);
+        return next;
+      }
+      return prev;
+    });
+  }, [activeDetailPlace]);
+
   const handleOpenAddModal = () => {
     triggerHaptic('light');
     setEditingPlace(null);
@@ -395,6 +442,8 @@ export default function MapScreen() {
         place={activeDetailPlace}
         onClose={() => setIsGalleryModalOpen(false)}
         onAddPhoto={handleAddPhotoToPlace}
+        onRemovePhoto={handleRemovePhotoFromPlace}
+        onReorderPhotos={handleReorderPlacePhotos}
       />
 
       <AddPlaceLocationModal
