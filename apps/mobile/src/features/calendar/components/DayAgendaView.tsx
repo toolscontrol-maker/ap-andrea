@@ -128,7 +128,9 @@ export function DayAgendaView({
         </View>
       ) : (
         <View style={styles.emptyBox}>
-          <Text style={styles.emptyEmoji}>🍃</Text>
+          <View style={styles.emptyEmojiHalo}>
+            <Text style={styles.emptyEmoji}>🍃</Text>
+          </View>
           <Text style={styles.emptyTitle}>No tenéis nada planeado todavía</Text>
           <Text style={styles.emptyText}>
             ¿Os apetece dejar hueco para algo bonito o guardar un sitio que tengáis ganas?
@@ -271,37 +273,53 @@ const styles = StyleSheet.create({
   },
   emptyBox: {
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: '#FAF8F5',
+    borderRadius: Radii.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(20, 19, 18, 0.04)',
+  },
+  emptyEmojiHalo: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(109, 158, 123, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
   },
   emptyEmoji: {
-    fontSize: 28,
-    marginBottom: Spacing.xs,
+    fontSize: 24,
   },
   emptyTitle: {
     ...Typography.bodyMedium,
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: '700',
     color: Colors.light.text,
-    marginBottom: 2,
+    marginBottom: 4,
+    textAlign: 'center',
   },
   emptyText: {
     ...Typography.caption,
     fontSize: 12,
     color: Colors.light.textMuted,
     textAlign: 'center',
+    lineHeight: 16,
     marginBottom: Spacing.md,
-    maxWidth: 290,
+    maxWidth: 280,
   },
   emptyButtonsRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: Spacing.sm,
   },
   emptyActionPrimary: {
     backgroundColor: Colors.light.primary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 7,
-    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md + 2,
+    paddingVertical: 8,
+    borderRadius: Radii.full,
     ...Shadows.subtle,
   },
   emptyActionPrimaryText: {
@@ -310,14 +328,17 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   emptyActionSecondary: {
-    backgroundColor: '#FAF8F5',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: Spacing.md,
-    paddingVertical: 7,
-    borderRadius: Radii.md,
+    paddingVertical: 8,
+    borderRadius: Radii.full,
     borderWidth: 1,
-    borderColor: 'rgba(20, 19, 18, 0.08)',
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+    ...Shadows.subtle,
   },
   emptyActionSecondaryText: {
-    color: Colors.light.text,
+    ...Typography.captionBold,
+    fontSize: 12,
+    color: '#8A6812',
   },
 });

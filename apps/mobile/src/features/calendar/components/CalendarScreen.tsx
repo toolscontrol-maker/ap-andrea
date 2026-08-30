@@ -263,6 +263,22 @@ export function CalendarScreen() {
       contentContainerStyle={[styles.content, { paddingTop: topPadding, paddingBottom: bottomPadding }]}
       showsVerticalScrollIndicator={false}
     >
+      {/* 0. Romantic Dynamic Island Capsule */}
+      <TouchableOpacity
+        style={styles.dynamicIslandCapsule}
+        onPress={() => {
+          triggerHaptic('light');
+          setExpandedMode('history');
+          setIsExpandedModalOpen(true);
+        }}
+        activeOpacity={0.85}
+      >
+        <View style={styles.islandPulseDot} />
+        <Text style={styles.islandText}>
+          <Text style={styles.islandBold}>Ángel & Andrea</Text> · 💕 {daysTogether} días juntos · ✦ {upcomingEvents.length} planes
+        </Text>
+      </TouchableOpacity>
+
       {/* 1. Header with Month switcher, [Mes]/[Agenda] toggle, and [⛶ Expandir] */}
       <CalendarHeader
         year={store.currentYear}
@@ -322,55 +338,62 @@ export function CalendarScreen() {
           </View>
 
           <View style={styles.upcomingList}>
-            {upcomingEvents.map((ev) => (
-              <TouchableOpacity
-                key={ev.id}
-                style={[
-                  styles.upcomingCard,
-                  ev.eventType === 'surprise' && styles.upcomingCardSurprise,
-                ]}
-                onPress={() => {
-                  triggerHaptic('selection');
-                  store.setSelectedEventId(ev.id);
-                }}
-                activeOpacity={0.8}
-              >
-                <View
+            {upcomingEvents.map((ev) => {
+              const isSurprise = ev.eventType === 'surprise';
+              const isTrip = ev.eventType === 'future_trip';
+              const isImportant = ev.eventType === 'important_date';
+
+              const iconEmoji = isSurprise ? '✦' : isTrip ? '✈️' : isImportant ? '✨' : '🍽️';
+              const accentColor = isSurprise ? '#E86A58' : isTrip ? '#5C9F9A' : isImportant ? '#D4AF37' : '#E05666';
+
+              return (
+                <TouchableOpacity
+                  key={ev.id}
                   style={[
-                    styles.upcomingIconCircle,
-                    ev.eventType === 'surprise'
-                      ? { backgroundColor: 'rgba(232, 106, 88, 0.12)' }
-                      : { backgroundColor: 'rgba(224, 86, 102, 0.12)' },
+                    styles.upcomingCard,
+                    { borderLeftColor: accentColor, borderLeftWidth: 3.5 },
                   ]}
+                  onPress={() => {
+                    triggerHaptic('selection');
+                    store.setSelectedEventId(ev.id);
+                  }}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.upcomingIconEmoji}>
-                    {ev.eventType === 'surprise' ? '✦' : '🗓️'}
-                  </Text>
-                </View>
+                  <View
+                    style={[
+                      styles.upcomingIconCircle,
+                      { backgroundColor: `${accentColor}18` },
+                    ]}
+                  >
+                    <Text style={styles.upcomingIconEmoji}>{iconEmoji}</Text>
+                  </View>
 
-                <View style={styles.upcomingInfo}>
-                  <Text style={styles.upcomingItemTitle} numberOfLines={1}>
-                    {ev.title}
-                  </Text>
-                  <Text style={styles.upcomingItemDate}>
-                    {formatDateNice(ev.date)} {ev.time ? `· ${ev.time}` : ''}
-                  </Text>
-                </View>
+                  <View style={styles.upcomingInfo}>
+                    <Text style={styles.upcomingItemTitle} numberOfLines={1}>
+                      {ev.title}
+                    </Text>
+                    <Text style={styles.upcomingItemDate}>
+                      {formatDateNice(ev.date)} {ev.time ? `· ${ev.time}` : ''}
+                    </Text>
+                  </View>
 
-                <Badge
-                  variant={
-                    ev.eventType === 'surprise'
-                      ? 'secondary'
-                      : ev.eventType === 'future_trip'
-                      ? 'mistBlue'
-                      : 'primary'
-                  }
-                  size="sm"
-                >
-                  {ev.eventType === 'surprise' ? 'Sorpresa' : 'Plan'}
-                </Badge>
-              </TouchableOpacity>
-            ))}
+                  <Badge
+                    variant={
+                      isSurprise
+                        ? 'secondary'
+                        : isTrip
+                        ? 'mistBlue'
+                        : isImportant
+                        ? 'butter'
+                        : 'primary'
+                    }
+                    size="sm"
+                  >
+                    {isSurprise ? 'Sorpresa' : isTrip ? 'Viaje' : isImportant ? 'Especial' : 'Plan'}
+                  </Badge>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
       )}
@@ -492,6 +515,36 @@ const styles = StyleSheet.create({
     maxWidth: 540,
     alignSelf: 'center',
     width: '100%',
+  },
+  dynamicIslandCapsule: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 7,
+    borderRadius: Radii.full,
+    marginBottom: Spacing.sm,
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(224, 86, 102, 0.2)',
+    ...Shadows.subtle,
+  },
+  islandPulseDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#E05666',
+    marginRight: 7,
+  },
+  islandText: {
+    ...Typography.caption,
+    fontSize: 11.5,
+    color: Colors.light.text,
+  },
+  islandBold: {
+    fontWeight: '800',
+    color: Colors.light.primary,
   },
   upcomingBlock: {
     marginBottom: Spacing.lg,

@@ -4,6 +4,7 @@ import { ROMANTIC_IDEAS_CATALOG } from '../domain/calendar.ideas';
 import { RomanticIdea } from '../domain/calendar.types';
 import { triggerHaptic } from '../../../utils/haptics';
 import { Radii, Shadows, Spacing, Typography } from '../../../theme/tokens';
+import { Colors } from '../../../theme/colors';
 
 interface ActivableModesModuleProps {
   onTriggerIdea: (idea: RomanticIdea) => void;
@@ -29,7 +30,7 @@ export function ActivableModesModule({
           }}
           activeOpacity={0.7}
         >
-          <Text style={styles.viewAllText}>Ver todas ➔</Text>
+          <Text style={styles.viewAllText}>Ver todas ›</Text>
         </TouchableOpacity>
       </View>
 
@@ -42,8 +43,13 @@ export function ActivableModesModule({
       >
         {featuredIdeas.map((item) => (
           <View key={item.id} style={styles.ideaCard}>
-            <View style={styles.emojiCircle}>
-              <Text style={styles.emojiText}>{item.emoji}</Text>
+            <View style={styles.cardTopRow}>
+              <View style={styles.emojiCircle}>
+                <Text style={styles.emojiText}>{item.emoji}</Text>
+              </View>
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryBadgeText}>Inspiración</Text>
+              </View>
             </View>
 
             <Text style={styles.cardTitle}>{item.title}</Text>
@@ -71,6 +77,7 @@ export function ActivableModesModule({
 const styles = StyleSheet.create({
   container: {
     marginBottom: Spacing.xl,
+    marginTop: Spacing.xs,
   },
   headerRow: {
     flexDirection: 'row',
@@ -80,69 +87,85 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
   },
   sectionTitle: {
-    ...Typography.h3,
+    ...Typography.h2,
     fontSize: 16,
-    color: '#1E252B',
-    fontWeight: '800',
+    color: Colors.light.text,
   },
   viewAllText: {
     ...Typography.captionBold,
-    color: '#E86A58',
+    color: Colors.light.primary,
     fontSize: 12,
   },
   cardsScroll: {
-    gap: Spacing.md,
+    gap: Spacing.sm + 4,
     paddingRight: Spacing.md,
   },
   ideaCard: {
-    width: 210,
+    width: 200,
     backgroundColor: '#FFFFFF',
-    borderRadius: Radii['2xl'],
+    borderRadius: Radii.xl,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(43, 33, 41, 0.08)',
-    ...Shadows.sm,
+    borderColor: 'rgba(20, 19, 18, 0.05)',
+    ...Shadows.subtle,
     justifyContent: 'space-between',
   },
-  emojiCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FAF6F0',
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: Spacing.xs + 2,
   },
+  emojiCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FAF8F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   emojiText: {
-    fontSize: 20,
+    fontSize: 18,
+  },
+  categoryBadge: {
+    backgroundColor: 'rgba(20, 19, 18, 0.04)',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: Radii.sm,
+  },
+  categoryBadgeText: {
+    ...Typography.captionBold,
+    fontSize: 9.5,
+    color: Colors.light.textMuted,
   },
   cardTitle: {
     ...Typography.bodyMedium,
     fontSize: 14,
-    color: '#1E252B',
-    fontWeight: '800',
+    fontWeight: '700',
+    color: Colors.light.text,
     marginBottom: 2,
   },
   cardSubtitle: {
     ...Typography.caption,
-    fontSize: 11,
-    lineHeight: 16,
-    color: '#66737C',
+    fontSize: 11.5,
+    lineHeight: 15,
+    color: Colors.light.textMuted,
     marginBottom: Spacing.md,
-    height: 32,
+    height: 30,
   },
   actionBtn: {
-    backgroundColor: '#FDEEEB',
-    paddingVertical: 7,
+    backgroundColor: 'rgba(224, 86, 102, 0.08)',
+    paddingVertical: 6.5,
     borderRadius: Radii.full,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(232, 106, 88, 0.25)',
+    borderColor: 'rgba(224, 86, 102, 0.2)',
   },
   actionBtnText: {
     ...Typography.captionBold,
-    color: '#E86A58',
+    color: Colors.light.primary,
     fontSize: 11.5,
   },
 });
+
