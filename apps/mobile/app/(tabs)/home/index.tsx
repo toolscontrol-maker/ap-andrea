@@ -28,7 +28,7 @@ import {
   IconCalendar
 } from '../../../src/components/ui/Icons';
 import { Colors } from '../../../src/theme/colors';
-import { Spacing, Radii, Shadows } from '../../../src/theme/tokens';
+import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
 import { DailyRitualType } from '@andrea/types';
 
 export default function HomeScreen() {
