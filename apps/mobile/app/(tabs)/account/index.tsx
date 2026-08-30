@@ -37,6 +37,7 @@ import { Colors } from '../../../src/theme/colors';
 import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
 import { triggerHaptic } from '../../../src/utils/haptics';
 import { ConnectedCoupleHeart } from '../../../src/components/ui/ConnectedCoupleHeart';
+import { RotatingAffectionText } from '../../../src/components/ui/RotatingAffectionText';
 import { CloudSyncStatusBadge } from '../../../src/components/ui/CloudSyncStatusBadge';
 import { INTRO_PHOTOS } from '../../../src/constants/introImages';
 import { THEME_PALETTES, ThemePalette } from '../../../src/theme/colors';
@@ -689,10 +690,10 @@ export default function AccountScreen() {
         {/* APP INFO & VERSION FOOTER */}
         <View style={styles.footerInfoCard}>
           <Text style={styles.footerBrandName}>ANDREA APP</Text>
-          <Text style={styles.footerVersion}>Versión 1.0.0 (Edición Privada)</Text>
-          <Text style={styles.footerDedication}>
-            Creado con amor y cuidado para Andrea & Tonet.
-          </Text>
+          <View style={styles.footerAffectionRow}>
+            <Text style={styles.footerDedicationText}>Made with love for </Text>
+            <RotatingAffectionText />
+          </View>
         </View>
 
         <View style={{ height: Spacing['2xl'] }} />
@@ -1368,11 +1369,17 @@ const styles = StyleSheet.create({
     color: Colors.light.textMuted,
     marginBottom: 4,
   },
-  footerDedication: {
-    ...Typography.caption,
-    fontSize: 11.5,
-    color: Colors.light.textMuted,
-    fontStyle: 'italic',
+  footerAffectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  footerDedicationText: {
+    fontSize: 13,
+    color: '#7D7571',
+    fontWeight: '500',
+    fontFamily: 'Inter, sans-serif',
   },
   storageStatusBox: {
     padding: Spacing.md,
