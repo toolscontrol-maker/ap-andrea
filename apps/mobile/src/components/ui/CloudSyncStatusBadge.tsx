@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useDev } from '../../context/DevContext';
-import { Colors } from '../../constants/colors';
-import { Typography } from '../../constants/typography';
+import { Colors } from '../../theme/colors';
+import { Typography } from '../../theme/tokens';
 import { triggerHaptic } from '../../utils/haptics';
 
 interface CloudSyncStatusBadgeProps {
