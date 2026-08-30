@@ -1,73 +1,113 @@
-import React, { ReactNode } from 'react';
-import { View, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
-import { Colors } from '../../theme/colors';
-import { Radii, Shadows, Spacing } from '../../theme/tokens';
+import React, { useState, ReactNode } from 'react';
+import { View, StyleSheet, Pressable, Animated, ViewStyle } from 'react-native';
+import { Colors, Radius, Space, Shadows, Motion } from '../../theme';
+import { triggerHaptic } from '../../utils/haptics';
 
-interface CardProps {
+export type CardType = 'standard' | 'interactive' | 'hero';
+
+export interface CardProps {
   children: ReactNode;
-  variant?: 'default' | 'elevated' | 'subtle' | 'outlined' | 'interactive';
+  type?: CardType;
   onPress?: () => void;
   style?: ViewStyle;
-  padding?: keyof typeof Spacing;
+  selected?: boolean;
 }
 
 export function Card({
   children,
-  variant = 'default',
+  type = 'standard',
   onPress,
   style,
-  padding = 'xl',
+  selected = false,
 }: CardProps) {
-  const cardStyle = [
-    styles.base,
-    styles[variant],
-    { padding: Spacing[padding] },
-    style,
-  ];
+  const [scaleAnim] = useState(new Animated.Value(1));
+  const isInteractive = Boolean(onPress) || type === 'interactive';
 
-  if (onPress || variant === 'interactive') {
+  const handlePressIn = () => {
+    if (!isInteractive) return;
+    Animated.spring(scaleAnim, {
+      toValue: Motion.pressScale,
+      useNativeDriver: true,
+      speed: 30,
+      bounciness: 0,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    if (!isInteractive) return;
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 25,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handlePress = () => {
+    if (!onPress) return;
+    triggerHaptic('light');
+    onPress();
+  };
+
+  const getRadius = () => {
+    if (type === 'hero') return Radius.xl; // 24
+    return Radius.lg; // 20
+  };
+
+  const getPadding = () => {
+    if (type === 'hero') return Space[5]; // 20
+    return Space[4]; // 16
+  };
+
+  const getShadow = () => {
+    if (type === 'standard') return Shadows.none;
+    return Shadows.soft;
+  };
+
+  const getBackground = () => {
+    if (type === 'standard') return Colors.light.surface;
+    return Colors.light.surfaceElevated;
+  };
+
+  const content = (
+    <View
+      style={[
+        styles.cardBase,
+        {
+          borderRadius: getRadius(),
+          padding: getPadding(),
+          backgroundColor: getBackground(),
+          borderColor: selected ? Colors.light.primary : Colors.light.border,
+          borderWidth: selected ? 1.5 : 1,
+          ...getShadow(),
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+
+  if (isInteractive && onPress) {
     return (
-      <TouchableOpacity
-        style={cardStyle}
-        onPress={onPress}
-        activeOpacity={0.75}
-      >
-        {children}
-      </TouchableOpacity>
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        <Pressable
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          onPress={handlePress}
+          accessibilityRole="button"
+        >
+          {content}
+        </Pressable>
+      </Animated.View>
     );
   }
 
-  return <View style={cardStyle}>{children}</View>;
+  return content;
 }
 
 const styles = StyleSheet.create({
-  base: {
-    borderRadius: Radii['2xl'],
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    marginBottom: Spacing.lg,
-  },
-  default: {
-    backgroundColor: Colors.light.surface,
-    ...Shadows.sm,
-  },
-  elevated: {
-    backgroundColor: Colors.light.surfaceElevated,
-    borderColor: 'rgba(58, 47, 56, 0.06)',
-    ...Shadows.md,
-  },
-  subtle: {
-    backgroundColor: Colors.light.surfaceSubtle,
-    borderColor: 'transparent',
-    ...Shadows.none,
-  },
-  outlined: {
-    backgroundColor: 'transparent',
-    borderColor: Colors.light.borderStrong,
-    ...Shadows.none,
-  },
-  interactive: {
-    backgroundColor: Colors.light.surface,
-    ...Shadows.sm,
+  cardBase: {
+    width: '100%',
   },
 });

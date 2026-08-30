@@ -1,176 +1,209 @@
-import React, { ReactNode } from 'react';
-import { Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
-import { Colors } from '../../theme/colors';
-import { Radii, Spacing, Typography, Shadows } from '../../theme/tokens';
-import { PressableScale } from './PressableScale';
+import React, { useState } from 'react';
+import {
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Animated,
+  Pressable,
+  ViewStyle,
+  TextStyle,
+  View,
+} from 'react-native';
+import { Colors, Typography, Radius, Space, Motion, Layout } from '../../theme';
+import { triggerHaptic } from '../../utils/haptics';
 
-interface ButtonProps {
-  children: ReactNode;
-  onPress?: () => void;
-  variant?: 'primary' | 'secondary' | 'sage' | 'butter' | 'mistBlue' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
-  loading?: boolean;
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'icon';
+export type ButtonSize = 'sm' | 'md' | 'lg';
+
+export interface ButtonProps {
+  title?: string;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  onPress: () => void;
   disabled?: boolean;
+  loading?: boolean;
+  icon?: React.ReactNode;
+  iconPosition?: 'left' | 'right';
+  fullWidth?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
-  iconLeft?: ReactNode;
-  iconRight?: ReactNode;
+  accessibilityLabel?: string;
 }
 
 export function Button({
-  children,
-  onPress,
+  title,
   variant = 'primary',
   size = 'md',
-  loading = false,
+  onPress,
   disabled = false,
+  loading = false,
+  icon,
+  iconPosition = 'left',
+  fullWidth = false,
   style,
   textStyle,
-  iconLeft,
-  iconRight,
+  accessibilityLabel,
 }: ButtonProps) {
-  const isOutline = variant === 'outline';
-  const isGhost = variant === 'ghost';
+  const [scaleAnim] = useState(new Animated.Value(1));
+
+  const handlePressIn = () => {
+    if (disabled || loading) return;
+    Animated.spring(scaleAnim, {
+      toValue: Motion.pressScale,
+      useNativeDriver: true,
+      speed: 30,
+      bounciness: 0,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    if (disabled || loading) return;
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 25,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handlePress = () => {
+    if (disabled || loading) return;
+    triggerHaptic(variant === 'primary' ? 'medium' : 'light');
+    onPress();
+  };
+
+  const height = size === 'sm' ? 36 : size === 'md' ? Layout.touchTarget : 52;
+  const paddingHorizontal = size === 'sm' ? Space[3] : size === 'md' ? Space[4] : Space[6];
+  const borderRadius = size === 'sm' ? Radius.sm : size === 'md' ? Radius.md : Radius.lg;
+
+  const getBackgroundColor = () => {
+    if (disabled) return Colors.light.surfaceMuted;
+    switch (variant) {
+      case 'primary':
+        return Colors.light.primary;
+      case 'secondary':
+        return Colors.light.primarySoft;
+      case 'destructive':
+        return Colors.light.dangerSoft;
+      case 'icon':
+        return Colors.light.surfaceElevated;
+      case 'ghost':
+      default:
+        return 'transparent';
+    }
+  };
+
+  const getTextColor = () => {
+    if (disabled) return Colors.light.textTertiary;
+    switch (variant) {
+      case 'primary':
+        return Colors.light.textInverse;
+      case 'secondary':
+        return Colors.light.text;
+      case 'destructive':
+        return Colors.light.danger;
+      case 'icon':
+      case 'ghost':
+      default:
+        return Colors.light.text;
+    }
+  };
+
+  const getBorder = () => {
+    if (variant === 'icon') {
+      return {
+        borderWidth: 1,
+        borderColor: Colors.light.border,
+      };
+    }
+    if (variant === 'ghost') {
+      return {
+        borderWidth: 0,
+      };
+    }
+    return {
+      borderWidth: 1,
+      borderColor: variant === 'secondary' ? 'rgba(239, 130, 106, 0.2)' : 'transparent',
+    };
+  };
 
   return (
-    <PressableScale
-      onPress={onPress}
-      disabled={disabled || loading}
-      scaleTo={0.97}
-      haptic="light"
+    <Animated.View
       style={[
-        styles.base,
-        styles[variant],
-        styles[`size_${size}`],
-        (disabled || loading) && styles.disabled,
-        style,
+        { transform: [{ scale: scaleAnim }] },
+        fullWidth && styles.fullWidth,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator
-          size="small"
-          color={isOutline || isGhost ? Colors.light.primary : '#FFFFFF'}
-        />
-      ) : (
-        <>
-          {iconLeft}
-          <Text
-            style={[
-              styles.baseText,
-              styles[`text_${variant}`],
-              styles[`textSize_${size}`],
-              textStyle,
-            ]}
-          >
-            {children}
-          </Text>
-          {iconRight}
-        </>
-      )}
-    </PressableScale>
+      <Pressable
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={handlePress}
+        disabled={disabled || loading}
+        accessibilityLabel={accessibilityLabel || title}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: disabled || loading }}
+        style={[
+          styles.baseButton,
+          {
+            height,
+            paddingHorizontal: variant === 'icon' ? 0 : paddingHorizontal,
+            width: variant === 'icon' ? height : fullWidth ? '100%' : undefined,
+            borderRadius,
+            backgroundColor: getBackgroundColor(),
+            ...getBorder(),
+          },
+          style,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator color={getTextColor()} size="small" />
+        ) : (
+          <View style={styles.contentRow}>
+            {icon && iconPosition === 'left' && <View style={styles.iconLeft}>{icon}</View>}
+            {title && (
+              <Text
+                style={[
+                  styles.titleText,
+                  {
+                    color: getTextColor(),
+                    fontSize: size === 'sm' ? Typography.label.fontSize : Typography.button.fontSize,
+                  },
+                  textStyle,
+                ]}
+              >
+                {title}
+              </Text>
+            )}
+            {icon && iconPosition === 'right' && <View style={styles.iconRight}>{icon}</View>}
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  base: {
+  baseButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  fullWidth: {
+    width: '100%',
+  },
+  contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radii.md,
-    gap: Spacing.xs,
   },
-  primary: {
-    backgroundColor: Colors.light.primary,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    ...Shadows.sm,
+  iconLeft: {
+    marginRight: Space[2],
   },
-  secondary: {
-    backgroundColor: Colors.light.secondary,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    ...Shadows.sm,
+  iconRight: {
+    marginLeft: Space[2],
   },
-  sage: {
-    backgroundColor: Colors.light.sage,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    ...Shadows.sm,
-  },
-  butter: {
-    backgroundColor: Colors.light.butterDark,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    ...Shadows.sm,
-  },
-  mistBlue: {
-    backgroundColor: Colors.light.mistBlue,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    ...Shadows.sm,
-  },
-  outline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: Colors.light.primary,
-  },
-  ghost: {
-    backgroundColor: 'transparent',
-  },
-  size_sm: {
-    paddingVertical: Spacing.xs + 2,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.sm,
-  },
-  size_md: {
-    paddingVertical: Spacing.sm + 2,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.md,
-  },
-  size_lg: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: Radii.lg,
-  },
-  disabled: {
-    opacity: 0.45,
-  },
-  baseText: {
-    fontWeight: '600',
-    textAlign: 'center',
-    letterSpacing: -0.2,
-  },
-  text_primary: {
-    color: '#FFFFFF',
-  },
-  text_secondary: {
-    color: '#FFFFFF',
-  },
-  text_sage: {
-    color: '#FFFFFF',
-  },
-  text_butter: {
-    color: '#FFFFFF',
-  },
-  text_mistBlue: {
-    color: '#FFFFFF',
-  },
-  text_outline: {
-    color: Colors.light.primary,
-  },
-  text_ghost: {
-    color: Colors.light.textSecondary,
-  },
-  textSize_sm: {
-    ...Typography.footnote,
-    fontWeight: '600',
-  },
-  textSize_md: {
-    ...Typography.body,
-    fontWeight: '600',
-  },
-  textSize_lg: {
-    ...Typography.headline,
-    fontWeight: '600',
+  titleText: {
+    fontFamily: Typography.family.semiBold,
+    letterSpacing: Typography.button.letterSpacing,
   },
 });

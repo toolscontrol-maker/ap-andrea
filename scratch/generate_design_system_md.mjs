@@ -1,4 +1,7 @@
-# 📜 ANDREA DESIGN SYSTEM v1 — CONSTITUCIÓN VISUAL
+import fs from 'fs';
+import path from 'path';
+
+const content = `# 📜 ANDREA DESIGN SYSTEM v1 — CONSTITUCIÓN VISUAL
 
 > **Fuente Única de Verdad** para Andrea App.  
 > Cada pantalla debe construirse exclusivamente utilizando los tokens y componentes definidos en este sistema. Si se requiere una pieza nueva, debe formalizarse primero en este documento antes de aplicarse en código.
@@ -27,9 +30,9 @@ Debe sentirse:
 
 ## 2. Foundations: Reglas Numéricas
 
-### 📐 Grid y Espaciado (`Space`)
+### 📐 Grid y Espaciado (\`Space\`)
 Escala geométrica discreta base 4 px:
-```ts
+\`\`\`ts
 export const Space = {
   0: 0,
   1: 4,   // Micro-ajustes y paddings mínimos
@@ -44,18 +47,18 @@ export const Space = {
   10: 56, // Altura de headers
   11: 64, // Separaciones máximas
 } as const;
-```
+\`\`\`
 
 #### 🚫 Prohibido:
-`marginTop: 13`, `paddingHorizontal: 19`, `gap: 11`, `borderRadius: 17`
+\`marginTop: 13\`, \`paddingHorizontal: 19\`, \`gap: 11\`, \`borderRadius: 17\`
 
 #### ✅ Permitido:
-`marginTop: Space[4]`, `paddingHorizontal: Space[5]`, `gap: Space[3]`
+\`marginTop: Space[4]\`, \`paddingHorizontal: Space[5]\`, \`gap: Space[3]\`
 
 ---
 
-### 📱 Tamaños y Layout (`Layout`)
-```ts
+### 📱 Tamaños y Layout (\`Layout\`)
+\`\`\`ts
 export const Layout = {
   screenPadding: 20,
   screenPaddingCompact: 16,
@@ -68,10 +71,10 @@ export const Layout = {
   avatarMedium: 40,
   avatarLarge: 56,
 } as const;
-```
+\`\`\`
 
 #### Reglas obligatorias:
-- Toda pantalla normal usa `ScreenWrapper`.
+- Toda pantalla normal usa \`ScreenWrapper\`.
 - En web/desktop, contenido máximo de **680 px**.
 - En móvil, padding estándar de **20 px**.
 - Full bleed solo para **mapa**, **cámara**, **hero de imagen** o **media**.
@@ -81,10 +84,10 @@ export const Layout = {
 
 ---
 
-### 🎨 Color: Roles Semánticos (`Colors`)
+### 🎨 Color: Roles Semánticos (\`Colors\`)
 
-#### Tokens Base (`Palette`):
-```ts
+#### Tokens Base (\`Palette\`):
+\`\`\`ts
 export const Palette = {
   cream: '#FFF8F2',
   blush: '#FFFCFA',
@@ -102,25 +105,25 @@ export const Palette = {
   line: 'rgba(58, 47, 56, 0.08)',
   lineStrong: 'rgba(58, 47, 56, 0.14)',
 } as const;
-```
+\`\`\`
 
 #### Roles Semánticos Obligatorios:
 | Situación | Token Obligatorio |
 |---|---|
-| Fondo de pantalla | `Colors.light.background` |
-| Card estándar | `Colors.light.surface` |
-| Card activa / modal | `Colors.light.surfaceElevated` |
-| Texto principal | `Colors.light.text` |
-| Texto secundario | `Colors.light.textSecondary` |
-| CTA principal | `Colors.light.primary` |
-| Acciones suaves | `Colors.light.primarySoft` / `accentSageSoft` |
-| Bordes | `Colors.light.border` |
-| Peligro | `Colors.light.danger` |
-| Éxito / completado | `Colors.light.success` |
+| Fondo de pantalla | \`Colors.light.background\` |
+| Card estándar | \`Colors.light.surface\` |
+| Card activa / modal | \`Colors.light.surfaceElevated\` |
+| Texto principal | \`Colors.light.text\` |
+| Texto secundario | \`Colors.light.textSecondary\` |
+| CTA principal | \`Colors.light.primary\` |
+| Acciones suaves | \`Colors.light.primarySoft\` / \`accentSageSoft\` |
+| Bordes | \`Colors.light.border\` |
+| Peligro | \`Colors.light.danger\` |
+| Éxito / completado | \`Colors.light.success\` |
 
 #### 🚫 Prohibiciones:
 - No usar azul brillante genérico de SaaS.
-- No usar negro puro `#000000`.
+- No usar negro puro \`#000000\`.
 - No usar gris de sistema sin token.
 - No crear un color "solo para esta pantalla".
 - No usar más de un color de acento fuerte por card.
@@ -128,9 +131,9 @@ export const Palette = {
 
 ---
 
-### ✍️ Tipografía (`Typography`)
+### ✍️ Tipografía (\`Typography\`)
 Fuente única: **Inter** calibrada.
-```ts
+\`\`\`ts
 export const Typography = {
   display:   { fontFamily: 'Inter_700Bold', fontSize: 30, lineHeight: 36, letterSpacing: -0.8 },
   h1:        { fontFamily: 'Inter_700Bold', fontSize: 24, lineHeight: 30, letterSpacing: -0.45 },
@@ -142,22 +145,22 @@ export const Typography = {
   caption:   { fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 14, letterSpacing: 0.15 },
   button:    { fontFamily: 'Inter_600SemiBold', fontSize: 15, lineHeight: 20, letterSpacing: -0.1 },
 } as const;
-```
+\`\`\`
 
 #### Regla de jerarquía:
-- `Display` → máximo una vez por pantalla.
-- `H1` → título principal de pantalla.
-- `H2` → título de sección.
-- `Title` → título de card / item.
-- `Body` → contenido normal.
-- `BodySmall` → información secundaria.
-- `Label` → chips, badges, botones, metadata.
-- `Caption` → fechas, contador, microcopy.
+- \`Display\` → máximo una vez por pantalla.
+- \`H1\` → título principal de pantalla.
+- \`H2\` → título de sección.
+- \`Title\` → título de card / item.
+- \`Body\` → contenido normal.
+- \`BodySmall\` → información secundaria.
+- \`Label\` → chips, badges, botones, metadata.
+- \`Caption\` → fechas, contador, microcopy.
 
 ---
 
-### 🔘 Bordes y Formas (`Radius`)
-```ts
+### 🔘 Bordes y Formas (\`Radius\`)
+\`\`\`ts
 export const Radius = {
   none: 0,
   xs: 8,      // Micro tags, metadata
@@ -168,12 +171,12 @@ export const Radius = {
   sheet: 28,  // Bottom sheets
   pill: 999,  // Chips, badges, botones redondos, avatares
 } as const;
-```
+\`\`\`
 
 ---
 
-### ☁️ Elevación y Sombras (`Shadows`)
-```ts
+### ☁️ Elevación y Sombras (\`Shadows\`)
+\`\`\`ts
 export const Shadows = {
   none: {},
   soft: {
@@ -191,11 +194,11 @@ export const Shadows = {
     elevation: 7,
   },
 } as const;
-```
+\`\`\`
 
 ---
 
-### 🔘 Botones (`Button`) — 5 Variantes
+### 🔘 Botones (\`Button\`) — 5 Variantes
 1. **Primary**: Coral, texto blanco (Acción protagonista).
 2. **Secondary**: Coral suave, texto ciruela (Acción secundaria).
 3. **Ghost**: Transparente, texto ciruela/coral (Navegación o acción terciaria).
@@ -204,15 +207,15 @@ export const Shadows = {
 
 ---
 
-### 🃏 Cards (`Card`) — 3 Tipos
-1. **Standard**: informativo, resumen (`padding: 16`, `radius: 20`, `bg: surface`, `border: border`, `shadow: none`).
-2. **Interactive**: abre detalle (`padding: 16`, `radius: 20`, `bg: surfaceElevated`, `border: border`, `shadow: soft`, `pressScale: 0.98`).
-3. **Hero**: foto, recuerdo principal (`padding: 20`, `radius: 24`, `bg: surfaceElevated`, `shadow: soft`).
+### 🃏 Cards (\`Card\`) — 3 Tipos
+1. **Standard**: informativo, resumen (\`padding: 16\`, \`radius: 20\`, \`bg: surface\`, \`border: border\`, \`shadow: none\`).
+2. **Interactive**: abre detalle (\`padding: 16\`, \`radius: 20\`, \`bg: surfaceElevated\`, \`border: border\`, \`shadow: soft\`, \`pressScale: 0.98\`).
+3. **Hero**: foto, recuerdo principal (\`padding: 20\`, \`radius: 24\`, \`bg: surfaceElevated\`, \`shadow: soft\`).
 
 ---
 
 ### 🏷️ Iconografía
-- **Librería Única**: `lucide-react-native`.
+- **Librería Única**: \`lucide-react-native\`.
 - **Tamaño normal**: 20 px.
 - **Tamaño pequeño**: 16 px.
 - **Tamaño navegación**: 22 px.
@@ -221,8 +224,8 @@ export const Shadows = {
 
 ---
 
-### 🎬 Motion (`Motion`)
-```ts
+### 🎬 Motion (\`Motion\`)
+\`\`\`ts
 export const Motion = {
   fast: 140,
   normal: 200,
@@ -231,7 +234,7 @@ export const Motion = {
   sheetDuration: 260,
   mapCameraDuration: 420,
 } as const;
-```
+\`\`\`
 
 ---
 
@@ -250,10 +253,14 @@ export const Motion = {
 ---
 
 ## 4. Checklist de Revisión
-- [ ] ¿Usa `ScreenWrapper` y `Layout.maxContentWidth`?
-- [ ] ¿Todos los colores provienen de `Colors.light` sin hex strings hardcodeados?
-- [ ] ¿Todos los márgenes y paddings usan `Space[n]`?
-- [ ] ¿Todos los bordes usan `Radius[key]`?
-- [ ] ¿Hay una sola acción `Primary` por viewport?
-- [ ] ¿Todos los botones tienen tamaño mínimo 44×44 px y `accessibilityLabel`?
+- [ ] ¿Usa \`ScreenWrapper\` y \`Layout.maxContentWidth\`?
+- [ ] ¿Todos los colores provienen de \`Colors.light\` sin hex strings hardcodeados?
+- [ ] ¿Todos los márgenes y paddings usan \`Space[n]\`?
+- [ ] ¿Todos los bordes usan \`Radius[key]\`?
+- [ ] ¿Hay una sola acción \`Primary\` por viewport?
+- [ ] ¿Todos los botones tienen tamaño mínimo 44×44 px y \`accessibilityLabel\`?
 - [ ] ¿Los iconos son de Lucide con grosor consistente?
+`;
+
+fs.writeFileSync(path.join(process.cwd(), 'DESIGN_SYSTEM.md'), content, 'utf8');
+console.log('✅ DESIGN_SYSTEM.md created at root.');

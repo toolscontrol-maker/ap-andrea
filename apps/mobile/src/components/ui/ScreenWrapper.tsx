@@ -1,45 +1,46 @@
 import React, { ReactNode } from 'react';
-import { View, StyleSheet, ScrollView, SafeAreaView, Platform, ViewStyle } from 'react-native';
-import { Colors } from '../../theme/colors';
-import { Layout, Spacing } from '../../theme/tokens';
+import { View, StyleSheet, SafeAreaView, ViewStyle } from 'react-native';
+import { Colors, Space, Layout } from '../../theme';
 
-interface ScreenWrapperProps {
+export interface ScreenWrapperProps {
   children: ReactNode;
-  scrollable?: boolean;
-  contentContainerStyle?: ViewStyle;
   style?: ViewStyle;
-  headerComponent?: ReactNode;
-  bottomComponent?: ReactNode;
+  contentStyle?: ViewStyle;
+  fullBleed?: boolean;
+  compact?: boolean;
+  withTopInset?: boolean;
+  backgroundColor?: string;
 }
 
 export function ScreenWrapper({
   children,
-  scrollable = true,
-  contentContainerStyle,
   style,
-  headerComponent,
-  bottomComponent,
+  contentStyle,
+  fullBleed = false,
+  compact = false,
+  withTopInset = false,
+  backgroundColor = Colors.light.background,
 }: ScreenWrapperProps) {
+  const horizontalPadding = fullBleed
+    ? 0
+    : compact
+    ? Layout.screenPaddingCompact
+    : Layout.screenPadding;
+
   return (
-    <SafeAreaView style={[styles.safeArea, style]}>
-      {/* Outer Center Container for Web / Desktop / Tablet */}
-      <View style={styles.outerContainer}>
-        <View style={styles.innerContainer}>
-          {headerComponent}
-
-          {scrollable ? (
-            <ScrollView
-              contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-              {children}
-            </ScrollView>
-          ) : (
-            <View style={[styles.fixedContent, contentContainerStyle]}>{children}</View>
-          )}
-
-          {bottomComponent}
+    <SafeAreaView style={[styles.safeArea, { backgroundColor }, style]}>
+      <View style={[styles.rootContainer, { backgroundColor }]}>
+        <View
+          style={[
+            styles.contentContainer,
+            {
+              paddingHorizontal: horizontalPadding,
+              paddingTop: withTopInset ? Space[4] : 0,
+            },
+            contentStyle,
+          ]}
+        >
+          {children}
         </View>
       </View>
     </SafeAreaView>
@@ -49,26 +50,17 @@ export function ScreenWrapper({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    width: '100%',
   },
-  outerContainer: {
+  rootContainer: {
     flex: 1,
+    width: '100%',
     alignItems: 'center',
-    backgroundColor: Colors.light.background,
   },
-  innerContainer: {
+  contentContainer: {
     flex: 1,
     width: '100%',
     maxWidth: Layout.maxContentWidth,
-    backgroundColor: Colors.light.background,
-  },
-  scrollContent: {
-    paddingHorizontal: Layout.screenPaddingHorizontal,
-    paddingTop: Platform.OS === 'web' ? Spacing.xl : Spacing.md,
-    paddingBottom: Spacing['5xl'],
-  },
-  fixedContent: {
-    flex: 1,
-    paddingHorizontal: Layout.screenPaddingHorizontal,
+    alignSelf: 'center',
   },
 });

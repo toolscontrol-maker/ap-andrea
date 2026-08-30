@@ -1,57 +1,39 @@
 import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { Colors } from '../../theme/colors';
-import { Radii, Spacing, Typography } from '../../theme/tokens';
+import { Colors, Typography, Radius, Space } from '../../theme';
 import { Button } from './Button';
-import { IconSparkles } from './Icons';
 
-interface EmptyStateProps {
-  emoji?: string;
-  icon?: ReactNode;
+export interface EmptyStateProps {
+  icon: ReactNode;
   title: string;
-  subtitle: string;
-  actionText?: string;
+  description: string;
+  actionTitle?: string;
   onAction?: () => void;
-  actionVariant?: 'primary' | 'secondary' | 'sage' | 'butter' | 'mistBlue';
-  iconBgColor?: string;
   style?: ViewStyle;
 }
 
 export function EmptyState({
-  emoji,
   icon,
   title,
-  subtitle,
-  actionText,
+  description,
+  actionTitle,
   onAction,
-  actionVariant = 'primary',
-  iconBgColor = Colors.light.primaryLight,
   style,
 }: EmptyStateProps) {
   return (
     <View style={[styles.container, style]}>
-      <View style={[styles.iconCircle, { backgroundColor: iconBgColor }]}>
-        {emoji ? (
-          <Text style={styles.emoji}>{emoji}</Text>
-        ) : icon ? (
-          icon
-        ) : (
-          <IconSparkles size={20} color={Colors.light.primary} strokeWidth={1.8} />
-        )}
-      </View>
+      <View style={styles.iconCircle}>{icon}</View>
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
-
-      {actionText && onAction ? (
+      <Text style={styles.description}>{description}</Text>
+      {actionTitle && onAction && (
         <Button
-          variant={actionVariant}
-          size="md"
+          title={actionTitle}
+          variant="secondary"
+          size="sm"
           onPress={onAction}
-          style={styles.actionBtn}
-        >
-          {actionText}
-        </Button>
-      ) : null}
+          style={styles.actionButton}
+        />
+      )}
     </View>
   );
 }
@@ -60,35 +42,41 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing['2xl'],
-    paddingHorizontal: Spacing.xl,
+    paddingVertical: Space[7], // 32px
+    paddingHorizontal: Space[5], // 20px
+    backgroundColor: Colors.light.surface,
+    borderRadius: Radius.lg, // 20px
+    borderWidth: 1,
+    borderColor: Colors.light.border,
   },
   iconCircle: {
     width: 56,
     height: 56,
-    borderRadius: Radii.full,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.light.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
-  emoji: {
-    fontSize: 26,
+    marginBottom: Space[4], // 16px
+    borderWidth: 1,
+    borderColor: Colors.light.border,
   },
   title: {
-    ...Typography.h3,
+    fontFamily: Typography.family.bold,
+    fontSize: Typography.h2.fontSize,
+    lineHeight: Typography.h2.lineHeight,
     color: Colors.light.text,
     textAlign: 'center',
-    marginBottom: Spacing.xs,
+    marginBottom: Space[2], // 8px
   },
-  subtitle: {
-    ...Typography.caption,
-    color: Colors.light.textMuted,
+  description: {
+    fontFamily: Typography.family.regular,
+    fontSize: Typography.bodySmall.fontSize,
+    lineHeight: Typography.bodySmall.lineHeight,
+    color: Colors.light.textSecondary,
     textAlign: 'center',
-    lineHeight: 18,
     maxWidth: 280,
-    marginBottom: Spacing.lg,
   },
-  actionBtn: {
-    minWidth: 160,
+  actionButton: {
+    marginTop: Space[5], // 20px
   },
 });

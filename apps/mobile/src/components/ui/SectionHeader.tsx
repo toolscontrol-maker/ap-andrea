@@ -1,28 +1,45 @@
 import React, { ReactNode } from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { Colors } from '../../theme/colors';
-import { Spacing, Typography } from '../../theme/tokens';
+import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
+import { Colors, Typography, Space } from '../../theme';
+import { triggerHaptic } from '../../utils/haptics';
 
-interface SectionHeaderProps {
+export interface SectionHeaderProps {
   title: string;
   subtitle?: string;
-  action?: ReactNode;
+  actionText?: string;
+  onAction?: () => void;
+  rightElement?: ReactNode;
   style?: ViewStyle;
 }
 
 export function SectionHeader({
   title,
   subtitle,
-  action,
+  actionText,
+  onAction,
+  rightElement,
   style,
 }: SectionHeaderProps) {
+  const handleAction = () => {
+    if (!onAction) return;
+    triggerHaptic('light');
+    onAction();
+  };
+
   return (
     <View style={[styles.container, style]}>
-      <View style={styles.textContainer}>
+      <View style={styles.titleWrapper}>
         <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
-      {action ? <View style={styles.actionContainer}>{action}</View> : null}
+
+      {rightElement ? (
+        rightElement
+      ) : actionText && onAction ? (
+        <TouchableOpacity onPress={handleAction} activeOpacity={0.7}>
+          <Text style={styles.actionText}>{actionText}</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
@@ -31,24 +48,29 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-    paddingTop: Spacing.sm,
+    alignItems: 'flex-end',
+    marginBottom: Space[3], // 12px
+    marginTop: Space[4], // 16px
   },
-  textContainer: {
+  titleWrapper: {
     flex: 1,
-    paddingRight: Spacing.md,
   },
   title: {
-    ...Typography.h1,
+    fontFamily: Typography.family.bold,
+    fontSize: Typography.h2.fontSize,
+    lineHeight: Typography.h2.lineHeight,
     color: Colors.light.text,
+    letterSpacing: Typography.h2.letterSpacing,
   },
   subtitle: {
-    ...Typography.caption,
+    fontFamily: Typography.family.regular,
+    fontSize: Typography.bodySmall.fontSize,
     color: Colors.light.textSecondary,
-    marginTop: Spacing.xxs,
+    marginTop: 2,
   },
-  actionContainer: {
-    alignItems: 'flex-end',
+  actionText: {
+    fontFamily: Typography.family.semiBold,
+    fontSize: Typography.label.fontSize,
+    color: Colors.light.primary,
   },
 });

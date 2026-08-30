@@ -1,98 +1,110 @@
-import React, { ReactNode } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { Colors } from '../../theme/colors';
-import { Radii, Spacing, Typography } from '../../theme/tokens';
+import { Colors, Typography, Radius, Space } from '../../theme';
+import { SemanticCategory } from './Chip';
 
-interface BadgeProps {
-  children: ReactNode;
-  variant?: 'primary' | 'secondary' | 'sage' | 'butter' | 'mistBlue' | 'neutral';
-  size?: 'sm' | 'md';
-  icon?: ReactNode;
+export interface BadgeProps {
+  label: string;
+  category?: SemanticCategory | 'danger' | 'success';
   style?: ViewStyle;
   textStyle?: TextStyle;
+  icon?: React.ReactNode;
 }
 
 export function Badge({
-  children,
-  variant = 'neutral',
-  size = 'md',
-  icon,
+  label,
+  category = 'default',
   style,
   textStyle,
+  icon,
 }: BadgeProps) {
+  const getColors = () => {
+    switch (category) {
+      case 'danger':
+        return {
+          bg: Colors.light.dangerSoft,
+          text: Colors.light.danger,
+          border: 'rgba(217, 93, 93, 0.2)',
+        };
+      case 'success':
+        return {
+          bg: Colors.light.successSoft,
+          text: Colors.light.success,
+          border: 'rgba(94, 148, 112, 0.2)',
+        };
+      case 'butter':
+        return {
+          bg: Colors.light.accentButterSoft,
+          text: '#7A5E0B',
+          border: 'rgba(244, 201, 93, 0.25)',
+        };
+      case 'sage':
+        return {
+          bg: Colors.light.accentSageSoft,
+          text: '#375E42',
+          border: 'rgba(131, 169, 140, 0.25)',
+        };
+      case 'lavender':
+        return {
+          bg: Colors.light.accentLavenderSoft,
+          text: '#4F4270',
+          border: 'rgba(158, 138, 205, 0.25)',
+        };
+      case 'coral':
+        return {
+          bg: Colors.light.primarySoft,
+          text: Colors.light.primary,
+          border: 'rgba(239, 130, 106, 0.25)',
+        };
+      default:
+        return {
+          bg: Colors.light.surfaceMuted,
+          text: Colors.light.textSecondary,
+          border: Colors.light.border,
+        };
+    }
+  };
+
+  const themeColors = getColors();
+
   return (
-    <View style={[styles.base, styles[variant], styles[`size_${size}`], style]}>
-      {icon}
-      <Text style={[styles.baseText, styles[`text_${variant}`], styles[`textSize_${size}`], textStyle]}>
-        {children}
+    <View
+      style={[
+        styles.badge,
+        {
+          backgroundColor: themeColors.bg,
+          borderColor: themeColors.border,
+        },
+        style,
+      ]}
+    >
+      {icon && <View style={styles.iconContainer}>{icon}</View>}
+      <Text style={[styles.badgeText, { color: themeColors.text }, textStyle]}>
+        {label}
       </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  base: {
+  badge: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: Space[1], // 4px
+    paddingHorizontal: Space[2] + 2, // 10px
+    borderRadius: Radius.pill,
+    borderWidth: 1,
     alignSelf: 'flex-start',
-    borderRadius: Radii.sm,
-    gap: Spacing.xs,
+    gap: 4,
   },
-  size_sm: {
-    paddingHorizontal: Spacing.xs + 2,
-    paddingVertical: 2,
-    borderRadius: Radii.xs + 2,
+  iconContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  size_md: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.sm,
-  },
-  primary: {
-    backgroundColor: Colors.light.primaryLight,
-  },
-  secondary: {
-    backgroundColor: Colors.light.secondaryLight,
-  },
-  sage: {
-    backgroundColor: Colors.light.sageLight,
-  },
-  butter: {
-    backgroundColor: Colors.light.butterLight,
-  },
-  mistBlue: {
-    backgroundColor: Colors.light.mistBlueLight,
-  },
-  neutral: {
-    backgroundColor: Colors.light.surfaceSubtle,
-  },
-  baseText: {
-    ...Typography.captionBold,
-  },
-  textSize_sm: {
-    fontSize: 10,
-    lineHeight: 13,
-  },
-  textSize_md: {
-    fontSize: 11,
-    lineHeight: 15,
-  },
-  text_primary: {
-    color: Colors.light.primaryDark,
-  },
-  text_secondary: {
-    color: Colors.light.secondaryDark,
-  },
-  text_sage: {
-    color: Colors.light.sageDark,
-  },
-  text_butter: {
-    color: Colors.light.butterDark,
-  },
-  text_mistBlue: {
-    color: '#2A5570',
-  },
-  text_neutral: {
-    color: Colors.light.textSecondary,
+  badgeText: {
+    fontFamily: Typography.family.semiBold,
+    fontSize: Typography.caption.fontSize,
+    lineHeight: Typography.caption.lineHeight,
+    letterSpacing: Typography.caption.letterSpacing,
   },
 });
