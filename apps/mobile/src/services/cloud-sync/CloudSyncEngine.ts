@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { WishlistItem, Place, CoupleEvent, RitualSeed } from '@andrea/types';
 import { DevUser } from '../../context/DevContext';
 import { Platform } from 'react-native';
@@ -73,12 +73,9 @@ class CloudSyncEngineService {
    */
   public async initializeRealtime() {
     try {
-      const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      const configured = this.isSupabaseConfigured();
 
-      const isConfigured = url && key && !url.includes('xyzcompany');
-
-      if (!isConfigured) {
+      if (!configured) {
         this.setConnectionState(true, 'Almacenamiento Local Seguro (P2P Activo)');
         return;
       }
@@ -333,8 +330,7 @@ class CloudSyncEngineService {
   }
 
   public isSupabaseConfigured(): boolean {
-    const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-    return !!url && !url.includes('xyzcompany');
+    return isSupabaseConfigured();
   }
 
   public getStatusText(): string {

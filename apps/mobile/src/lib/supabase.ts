@@ -2,11 +2,17 @@ import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 import { SecureStorage } from './storage';
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_URL = 
+  process.env.EXPO_PUBLIC_SUPABASE_URL || 
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 
+  'https://qxnsksrdqmrsjsqxyxtq.supabase.co';
+
 const SUPABASE_ANON_KEY = 
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 
-  '';
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
+  'sb_publishable_KUj-Fe-pc8rGo4FPb6wOIQ_JTikwRfz';
 
 export const isSupabaseConfigured = (): boolean => {
   return (
