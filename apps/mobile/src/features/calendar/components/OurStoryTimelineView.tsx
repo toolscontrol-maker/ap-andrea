@@ -171,7 +171,7 @@ export function OurStoryTimelineView({
         <Text style={styles.footerText}>
           "Lo mejor de nuestra historia es que aún queda casi todo por escribir."
         </Text>
-        <Text style={styles.footerSign}>Ángel & Andrea 💕</Text>
+        <Text style={styles.footerSign}>Andrea & Tonet 💕</Text>
       </View>
     </View>
   );

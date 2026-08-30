@@ -58,8 +58,29 @@ async function verify() {
   const atlasMenuVisible = await page.evaluate(() => document.body.innerText.includes('Vistas del Atlas'));
   console.log('¿Modal "Vistas del Atlas" se abre al pulsar cabecera?:', atlasMenuVisible);
 
+  // Cerrar modal
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(500);
+
+  console.log('\n=== 2. Verificando Cuenta de Andrea & Tonet ===');
+  await page.goto(`${LOCAL_URL}/account`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+
+  const accountText = await page.evaluate(() => document.body.innerText);
+  console.log('¿Aparece "Andrea & Tonet"?:', accountText.includes('Andrea & Tonet'));
+  console.log('¿Aparece "Perfil de Tonet" o "Foto & Perfil de Tonet"?:', accountText.includes('Tonet'));
+  console.log('¿CERO menciones a Ángel en texto de cuenta?:', !accountText.includes('Ángel') && !accountText.includes('Angel'));
+
+  console.log('\n=== 3. Verificando Limpieza de Datos Mock ===');
+  const wishesCount = await page.evaluate(() => {
+    const raw = localStorage.getItem('andrea_wishes_v5');
+    if (!raw) return 0;
+    try { return JSON.parse(raw).length; } catch { return 0; }
+  });
+  console.log('Deseos iniciales en storage (debe ser 0 mock):', wishesCount);
+
   await browser.close();
-  console.log('✅ Verificación de MapScreen UI finalizada exitosamente.');
+  console.log('✅ Verificación de datos reales de Andrea & Tonet finalizada exitosamente.');
 }
 
 verify().catch((e) => {

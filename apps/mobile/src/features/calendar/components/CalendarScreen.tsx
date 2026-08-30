@@ -275,7 +275,7 @@ export function CalendarScreen() {
       >
         <View style={styles.islandPulseDot} />
         <Text style={styles.islandText}>
-          <Text style={styles.islandBold}>Ángel & Andrea</Text> · 💕 {daysTogether} días juntos · ✦ {upcomingEvents.length} planes
+          <Text style={styles.islandBold}>Andrea & Tonet</Text> · 💕 {daysTogether} días juntos · ✦ {upcomingEvents.length} planes
         </Text>
       </TouchableOpacity>
 

@@ -1,4 +1,4 @@
-﻿import { Platform } from 'react-native';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ValidatorFn<T> = (value: unknown) => value is T;
@@ -320,16 +320,16 @@ export const StorageEngine = {
 };
 
 export const STORAGE_KEYS = {
-  ACTIVE_USER: 'andrea_active_user_v1',
-  ACTIVE_ROLE: 'andrea_active_dev_role',
-  WISHES: 'andrea_wishes_v1',
-  PLACES: 'andrea_places_v4',
-  EVENTS: 'andrea_events_v2',
-  SEEDS: 'andrea_ritual_seeds_v1',
-  AYA_MESSAGES: 'andrea_aya_messages_v1',
-  AYA_INSIGHTS: 'andrea_aya_insights_v1',
-  FEELINGS: 'andrea_feelings_v1',
-  MAP_PLACES: 'andrea_map_places_v4',
+  ACTIVE_USER: 'andrea_active_user_v5',
+  ACTIVE_ROLE: 'andrea_active_dev_role_v5',
+  WISHES: 'andrea_wishes_v5',
+  PLACES: 'andrea_places_v5',
+  EVENTS: 'andrea_events_v5',
+  SEEDS: 'andrea_ritual_seeds_v5',
+  AYA_MESSAGES: 'andrea_aya_messages_v5',
+  AYA_INSIGHTS: 'andrea_aya_insights_v5',
+  FEELINGS: 'andrea_feelings_v5',
+  MAP_PLACES: 'andrea_map_places_v5',
   BETA_NOTICE_ACCEPTED: 'andrea_beta_notice_accepted_v1',
   DEMO_MODE_FLAG: 'andrea_demo_mode_enabled_v1',
 } as const;

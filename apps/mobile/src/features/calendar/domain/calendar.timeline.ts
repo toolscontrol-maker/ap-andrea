@@ -52,7 +52,7 @@ export function buildOurStoryTimeline(params: {
     time: '22:00',
     title: 'Primer Beso & Empezamos a Salir',
     subtitle: "Pg. de l'Albereda, 44, Camins al Grau · Valencia",
-    description: "El rincón mágico de nuestro primer beso y donde Ángel le pidió salir a Andrea. El comienzo oficial de nuestro camino juntos.",
+    description: "El rincón mágico de nuestro primer beso y donde Tonet le pidió salir a Andrea. El comienzo oficial de nuestro camino juntos.",
     locationName: "Pg. de l'Albereda, 44, Valencia",
     emoji: '💋',
     badgeLabel: 'Aniversario Oficial',

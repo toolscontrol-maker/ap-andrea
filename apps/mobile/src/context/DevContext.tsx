@@ -27,8 +27,8 @@ export interface DevUser {
 export const DEV_USERS: { user1: DevUser; user2: DevUser } = {
   user1: {
     id: '11111111-aaaa-bbbb-cccc-111111111111',
-    name: 'Ángel',
-    avatar: 'Á',
+    name: 'Tonet',
+    avatar: 'T',
     avatarPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
     roleDescription: 'Quien suele iniciar planes y documentar detalles'
   },
@@ -41,110 +41,7 @@ export const DEV_USERS: { user1: DevUser; user2: DevUser } = {
   }
 };
 
-export const INITIAL_WISHES: WishlistItem[] = [
-  {
-    id: 'wish-1',
-    coupleId: 'demo-couple-id',
-    ownerUserId: DEV_USERS.user2.id,
-    createdByUserId: DEV_USERS.user2.id,
-    title: 'Bolso de hombro de piel café minimalista',
-    description: 'En tono caramelo o chocolate con hebilla dorada sutil para diario.',
-    type: 'fashion',
-    status: 'dreaming', // Me hace ilusión
-    visibility: 'shared',
-    brand: 'Sézane / Massimo Dutti',
-    sourceUrl: 'https://www.sezane.com',
-    sourceDomain: 'sezane.com',
-    externalImageUrl: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=600&auto=format&fit=crop',
-    estimatedPrice: 135,
-    currency: 'EUR',
-    priceNote: 'Aprox. 120-150€',
-    color: 'Caramelo / Café',
-    desiredFor: 'Cumpleaños o regalo especial',
-    occasion: 'cumpleaños',
-    tags: ['moda', 'diario', 'elegante'],
-    isForSelf: false,
-    createdAt: '2026-08-15T14:20:00Z',
-    updatedAt: '2026-08-15T14:20:00Z'
-  },
-  {
-    id: 'wish-2',
-    coupleId: 'demo-couple-id',
-    ownerUserId: DEV_USERS.user2.id,
-    createdByUserId: DEV_USERS.user2.id,
-    title: 'Cena Omakase en Kibo Sushi Bar',
-    description: 'Menú degustación del chef en barra japonesa íntima de 8 comensales.',
-    type: 'restaurant',
-    status: 'planned', // Para una ocasión especial
-    visibility: 'shared',
-    brand: 'Kibo Omakase',
-    externalImageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&auto=format&fit=crop',
-    estimatedPrice: 90,
-    currency: 'EUR',
-    priceNote: '90€ por persona',
-    occasion: 'aniversario',
-    tags: ['restaurante', 'japones', 'romantico', 'cita'],
-    isForSelf: false,
-    restaurantId: 'place-rest-1',
-    createdAt: '2026-08-10T19:00:00Z',
-    updatedAt: '2026-08-10T19:00:00Z'
-  },
-  {
-    id: 'wish-3',
-    coupleId: 'demo-couple-id',
-    ownerUserId: DEV_USERS.user1.id,
-    createdByUserId: DEV_USERS.user1.id,
-    title: 'Zapatillas de ante beige estilo retro 70s',
-    description: 'Ligeras, suela color caramelo, perfectas para caminar en viajes.',
-    type: 'fashion',
-    status: 'considering', // Lo estoy pensando
-    visibility: 'shared',
-    brand: 'Adidas Originals / Veja',
-    externalImageUrl: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=600&auto=format&fit=crop',
-    estimatedPrice: 110,
-    currency: 'EUR',
-    size: '42.5',
-    color: 'Beige / Almendra',
-    tags: ['zapatillas', 'calzado', 'viajes'],
-    isForSelf: true,
-    createdAt: '2026-08-18T11:30:00Z',
-    updatedAt: '2026-08-18T11:30:00Z'
-  },
-  {
-    id: 'wish-4',
-    coupleId: 'demo-couple-id',
-    ownerUserId: DEV_USERS.user2.id,
-    createdByUserId: DEV_USERS.user2.id,
-    title: 'Escapada a una cabaña con chimenea en Asturias',
-    description: 'Dos días de desconexión entre montañas verdes, lluvia y manta.',
-    type: 'trip',
-    status: 'someday', // Algún día
-    visibility: 'shared',
-    externalImageUrl: 'https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?w=600&auto=format&fit=crop',
-    estimatedPrice: 220,
-    currency: 'EUR',
-    tags: ['viaje', 'escapada', 'naturaleza', 'asturias'],
-    createdAt: '2026-08-01T09:00:00Z',
-    updatedAt: '2026-08-01T09:00:00Z'
-  },
-  {
-    id: 'wish-5',
-    coupleId: 'demo-couple-id',
-    ownerUserId: DEV_USERS.user1.id,
-    createdByUserId: DEV_USERS.user1.id,
-    title: 'Juego de mesa cooperativo para dos (Pandemic / Unmatched)',
-    description: 'Para tardes de domingo de lluvia con chocolate caliente.',
-    type: 'home',
-    status: 'dreaming',
-    visibility: 'shared',
-    externalImageUrl: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=600&auto=format&fit=crop',
-    estimatedPrice: 35,
-    currency: 'EUR',
-    tags: ['casa', 'juegos', 'domingos'],
-    createdAt: '2026-08-22T16:00:00Z',
-    updatedAt: '2026-08-22T16:00:00Z'
-  }
-];
+export const INITIAL_WISHES: WishlistItem[] = [];
 
 export const INITIAL_SAVED_PLACES: Place[] = [
   {
@@ -493,174 +390,10 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     ],
     createdAt: '2025-11-15T21:30:00Z',
     updatedAt: '2025-11-15T21:30:00Z'
-  },
-  {
-    id: 'place-rest-1',
-    coupleId: 'demo-couple-id',
-    createdByUserId: DEV_USERS.user2.id,
-    name: 'Kibo Omakase',
-    category: 'restaurant',
-    status: 'want_to_go',
-    address: 'Calle de Claudio Coello 45, Barrio de Salamanca, 28001 Madrid',
-    city: 'Madrid',
-    country: 'España',
-    countryCode: 'ES',
-    phoneNumber: '+34 914 35 12 89',
-    googleMapsUrl: 'https://maps.google.com/?q=Kibo+Omakase+Claudio+Coello+Madrid',
-    latitude: 40.4285,
-    longitude: -3.6872,
-    cuisine: ['Japonesa', 'Sushi de autor', 'Omakase'],
-    priceLevel: 3,
-    vibe: 'romantico',
-    tags: ['para_cita_especial', 'alta_cocina', 'intimo', 'proximo_aniversario'],
-    ratingPersonal: 5,
-    note: 'El sitio que Andrea guardó para nuestro próximo aniversario del 15 de Febrero. Barra japonesa íntima de 8 comensales con menú degustación del chef.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&auto=format&fit=crop',
-    photos: [
-      'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=800&auto=format&fit=crop'
-    ],
-    linkedWishlistItemId: 'wish-2',
-    createdAt: '2026-08-10T19:00:00Z',
-    updatedAt: '2026-08-10T19:00:00Z'
-  },
-  {
-    id: 'place-rest-2',
-    coupleId: 'demo-couple-id',
-    createdByUserId: DEV_USERS.user1.id,
-    name: 'Trattoria Popolare',
-    category: 'restaurant',
-    status: 'visited',
-    address: 'Piazza Navona 12, Roma',
-    city: 'Roma',
-    country: 'Italia',
-    countryCode: 'IT',
-    phoneNumber: '+39 06 6880 1234',
-    googleMapsUrl: 'https://maps.google.com/?q=Piazza+Navona+Roma',
-    latitude: 41.8992,
-    longitude: 12.4731,
-    cuisine: ['Italiana', 'Pasta Fresca', 'Tiramisú'],
-    priceLevel: 2,
-    vibe: 'romantico',
-    tags: ['favorito', 'queremos_repetir', 'viaje_italia'],
-    ratingPersonal: 5,
-    note: 'La mejor pasta cacio e pepe que hemos probado nunca. Pedimos dos raciones de tiramisú.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop',
-    photos: [
-      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop'
-    ],
-    visits: [
-      {
-        id: 'v-roma-1',
-        date: '2025-05-14',
-        title: 'Viaje a Roma',
-        note: 'Cena inolvidable en Trastevere / Piazza Navona.'
-      }
-    ],
-    createdAt: '2025-05-14T21:00:00Z',
-    updatedAt: '2025-05-14T21:00:00Z'
-  },
-  {
-    id: 'place-rest-3',
-    coupleId: 'demo-couple-id',
-    createdByUserId: DEV_USERS.user2.id,
-    name: 'Café de Flore',
-    category: 'cafe',
-    status: 'favorite',
-    address: '172 Boulevard Saint-Germain, París',
-    city: 'París',
-    country: 'Francia',
-    countryCode: 'FR',
-    phoneNumber: '+33 1 45 48 55 26',
-    googleMapsUrl: 'https://maps.google.com/?q=Cafe+de+Flore+Paris',
-    latitude: 48.8543,
-    longitude: 2.3328,
-    cuisine: ['Café de Especialidad', 'Croissants', 'Bistró'],
-    priceLevel: 2,
-    vibe: 'tranquilo',
-    tags: ['desayuno', 'con_encanto', 'paris'],
-    ratingPersonal: 5,
-    note: 'Desayuno bajo la lona verde viendo llover sobre París.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop',
-    photos: [
-      'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop'
-    ],
-    visits: [
-      {
-        id: 'v-paris-1',
-        date: '2025-09-22',
-        title: 'Desayuno en París',
-        note: 'Croissants y café caliente viendo llover en Saint-Germain.'
-      }
-    ],
-    createdAt: '2025-09-22T10:00:00Z',
-    updatedAt: '2025-09-22T10:00:00Z'
-  },
-  {
-    id: 'place-rest-4',
-    coupleId: 'demo-couple-id',
-    createdByUserId: DEV_USERS.user1.id,
-    name: 'El Mirador del Carmen',
-    category: 'restaurant',
-    status: 'planned', // Planificado
-    address: 'Paseo de los Tristes',
-    city: 'Granada',
-    country: 'España',
-    countryCode: 'ES',
-    phoneNumber: '+34 958 22 14 56',
-    latitude: 37.1785,
-    longitude: -3.5932,
-    cuisine: ['Mediterránea', 'Tapas de autor', 'Vinos'],
-    priceLevel: 2,
-    vibe: 'vistas',
-    tags: ['con_vistas', 'alhambra', 'terraza'],
-    ratingPersonal: 4,
-    note: 'Terraza con vistas directas a la Alhambra iluminada.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1568084680786-a84f91d1153c?w=600&auto=format&fit=crop',
-    createdAt: '2026-08-20T12:00:00Z',
-    updatedAt: '2026-08-20T12:00:00Z'
   }
 ];
 
-export const INITIAL_RITUAL_SEEDS: RitualSeed[] = [
-  {
-    id: 'seed-1',
-    coupleId: 'demo-couple-id',
-    authorId: DEV_USERS.user2.id,
-    date: '2026-08-29',
-    type: 'gratitude_note',
-    title: 'Agradecimiento de hoy',
-    body: 'Me ha encantado cuando me has traído el café a la cama sin pedirlo.',
-    mood: 'grateful',
-    isSharedWithPartner: true,
-    partnerResponded: true,
-    createdAt: '2026-08-29T08:30:00Z'
-  },
-  {
-    id: 'seed-2',
-    coupleId: 'demo-couple-id',
-    authorId: DEV_USERS.user1.id,
-    date: '2026-08-28',
-    type: 'question_answer',
-    title: 'Pregunta de Andrea',
-    body: '¿Qué es lo que más valoras de nuestros domingos juntos?',
-    isSharedWithPartner: true,
-    partnerResponded: true,
-    createdAt: '2026-08-28T21:15:00Z'
-  },
-  {
-    id: 'seed-3',
-    coupleId: 'demo-couple-id',
-    authorId: DEV_USERS.user2.id,
-    date: '2026-08-27',
-    type: 'daily_photo',
-    title: 'Paseo al atardecer',
-    body: 'El cielo de hoy parecía una acuarela.',
-    imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&auto=format&fit=crop',
-    isSharedWithPartner: true,
-    createdAt: '2026-08-27T20:10:00Z'
-  }
-];
+export const INITIAL_RITUAL_SEEDS: RitualSeed[] = [];
 
 export const SAMPLE_MAP_PLACES: MapPlace[] = [
   {
@@ -852,7 +585,7 @@ export const SAMPLE_MAP_PLACES: MapPlace[] = [
     lat: 39.4632,
     lng: -0.3546,
     date: '2025-02-15',
-    story: "El 15 de febrero de 2025 en Pg. de l'Albereda, 44 (Camins al Grau, Valencia). El rincón mágico donde nos dimos nuestro primer beso y donde Ángel le pidió salir a Andrea. El comienzo oficial de nuestra historia de amor.",
+    story: "El 15 de febrero de 2025 en Pg. de l'Albereda, 44 (Camins al Grau, Valencia). El rincón mágico donde nos dimos nuestro primer beso y donde Tonet le pidió salir a Andrea. El comienzo oficial de nuestra historia de amor.",
     category: 'especial',
     moodTag: 'love',
     photos: ['https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&auto=format&fit=crop'],
@@ -863,7 +596,7 @@ export const SAMPLE_MAP_PLACES: MapPlace[] = [
   },
   {
     id: 'place-casa-tonet',
-    title: 'Casa de Ángel · Conde de Real',
+    title: 'Casa de Tonet · Conde de Real',
     cityName: 'Valencia',
     country: 'España',
     countryCode: 'ES',
@@ -935,25 +668,7 @@ export const SAMPLE_MAP_PLACES: MapPlace[] = [
   },
 ];
 
-export const INITIAL_ENTRIES: DiaryEntryUI[] = [
-  {
-    id: 'entry-1',
-    coupleId: 'demo-couple-id',
-    authorId: DEV_USERS.user1.id,
-    type: 'diary_shared',
-    visibility: 'shared',
-    date: '2026-08-28',
-    content: {
-      title: 'Tarde de lluvia y café',
-      body: 'Me ha encantado estar los dos leyendo en el salón mientras llovía fuera.'
-    },
-    moodTag: 'calm',
-    ayaConsentBoth: true,
-    createdAt: '2026-08-28T19:00:00Z',
-    updatedAt: '2026-08-28T19:00:00Z',
-    isMine: true
-  }
-];
+export const INITIAL_ENTRIES: DiaryEntryUI[] = [];
 
 export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 1. Donde nos conocimos (23 Nov 2024)
@@ -1614,20 +1329,20 @@ export function DevProvider({ children }: { children: ReactNode }) {
           savedUsers,
         ] = await Promise.all([
           StorageEngine.getItem<'user1' | 'user2'>(STORAGE_KEYS.ACTIVE_USER, 'user2'),
-          StorageEngine.getItem<WishlistItem[]>(STORAGE_KEYS.WISHES, INITIAL_WISHES),
-          StorageEngine.getItem<Place[]>(STORAGE_KEYS.PLACES, INITIAL_SAVED_PLACES),
-          StorageEngine.getItem<CoupleEvent[]>(STORAGE_KEYS.EVENTS, INITIAL_COUPLE_EVENTS),
-          StorageEngine.getItem<RitualSeed[]>(STORAGE_KEYS.SEEDS, INITIAL_RITUAL_SEEDS),
-          StorageEngine.getItem<DiaryEntryUI[]>('andrea_entries_v1', INITIAL_ENTRIES),
-          StorageEngine.getItem<{ user1: DevUser; user2: DevUser }>('andrea_users_v1', DEV_USERS),
+          StorageEngine.getItem<WishlistItem[] | null>(STORAGE_KEYS.WISHES, null),
+          StorageEngine.getItem<Place[] | null>(STORAGE_KEYS.PLACES, null),
+          StorageEngine.getItem<CoupleEvent[] | null>(STORAGE_KEYS.EVENTS, null),
+          StorageEngine.getItem<RitualSeed[] | null>(STORAGE_KEYS.SEEDS, null),
+          StorageEngine.getItem<DiaryEntryUI[] | null>('andrea_entries_v5', null),
+          StorageEngine.getItem<{ user1: DevUser; user2: DevUser } | null>('andrea_users_v5', null),
         ]);
 
         if (savedRole) setActiveRole(savedRole);
-        if (savedWishes && savedWishes.length > 0) setWishes(savedWishes);
-        if (savedPlacesData && savedPlacesData.length > 0) setSavedPlaces(savedPlacesData);
-        if (savedEvents && savedEvents.length > 0) setCoupleEvents(savedEvents);
-        if (savedSeeds && savedSeeds.length > 0) setRitualSeeds(savedSeeds);
-        if (savedEntries && savedEntries.length > 0) setEntries(savedEntries);
+        if (savedWishes !== null && Array.isArray(savedWishes)) setWishes(savedWishes);
+        if (savedPlacesData !== null && Array.isArray(savedPlacesData)) setSavedPlaces(savedPlacesData);
+        if (savedEvents !== null && Array.isArray(savedEvents)) setCoupleEvents(savedEvents);
+        if (savedSeeds !== null && Array.isArray(savedSeeds)) setRitualSeeds(savedSeeds);
+        if (savedEntries !== null && Array.isArray(savedEntries)) setEntries(savedEntries);
         if (savedUsers && (savedUsers.user1 || savedUsers.user2)) {
           setUsers((prev) => ({
             user1: { ...prev.user1, ...(savedUsers.user1 || {}) },
@@ -1650,7 +1365,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
         user1: prev.user1.id === userId ? { ...prev.user1, ...updates } : prev.user1,
         user2: prev.user2.id === userId ? { ...prev.user2, ...updates } : prev.user2,
       };
-      StorageEngine.setItem('andrea_users_v1', updated);
+      StorageEngine.setItem('andrea_users_v5', updated);
       return updated;
     });
   };
@@ -1683,7 +1398,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isLoaded) return;
-    StorageEngine.setItem('andrea_entries_v1', entries);
+    StorageEngine.setItem('andrea_entries_v5', entries);
   }, [entries, isLoaded]);
 
   const currentDevUser = activeRole === 'user1' ? users.user1 : users.user2;
@@ -1692,11 +1407,11 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const weeklySummary: WeeklyRitualSummary = {
     weekStartDate: '2026-08-24',
     totalMomentsSeeded: ritualSeeds.length + wishes.length,
-    gentleMessage: `Esta semana habéis guardado ${ritualSeeds.length} pequeños momentos juntos. Ya forman parte de vuestra historia.`,
+    gentleMessage: `Esta semana habéis guardado vuestros rincones y recuerdos en vuestro espacio compartido.`,
     highlights: [
-      'Andrea guardó el deseo "Bolso de hombro café"',
-      'Ángel preparó una sorpresa para esta noche',
-      'Compartisteis una nota de agradecimiento matutina'
+      'Tonet & Andrea han guardado momentos únicos',
+      'Planes de citas y restaurantes en Valencia',
+      'Vuestro atlas y recuerdos vivos listos para crecer'
     ]
   };
 
@@ -2049,8 +1764,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
     },
     {
       id: 'ins-2',
-      title: 'Pasión por la gastronomía japonesa',
-      description: 'Tanto Ángel como Andrea han guardado planes y deseos vinculados a cenas omakase íntimas.',
+      title: 'Pasión por la gastronomía italiana',
+      description: 'Tanto Tonet como Andrea disfrutan descubriendo restaurantes italianos y rincones con encanto en Valencia.',
       date: '25 de agosto'
     }
   ];
@@ -2062,7 +1777,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
     await StorageEngine.setItem(STORAGE_KEYS.PLACES, INITIAL_SAVED_PLACES);
     await StorageEngine.setItem(STORAGE_KEYS.EVENTS, INITIAL_COUPLE_EVENTS);
     await StorageEngine.setItem(STORAGE_KEYS.SEEDS, INITIAL_RITUAL_SEEDS);
-    await StorageEngine.setItem('andrea_entries_v1', INITIAL_ENTRIES);
+    await StorageEngine.setItem('andrea_entries_v5', INITIAL_ENTRIES);
     setWishes(INITIAL_WISHES);
     setSavedPlaces(INITIAL_SAVED_PLACES);
     setCoupleEvents(INITIAL_COUPLE_EVENTS);

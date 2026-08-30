@@ -35,7 +35,7 @@ const ANDREA_PRESET_PHOTOS = [
   'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&auto=format&fit=crop&q=80',
 ];
 
-const ANGEL_PRESET_PHOTOS = [
+const TONET_PRESET_PHOTOS = [
   'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
   'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80',
   'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&auto=format&fit=crop&q=80',
@@ -137,7 +137,7 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
 
               <Text style={styles.userNameTitle}>{currentDevUser.name}</Text>
               <Text style={styles.userRoleSubtitle}>
-                {activeRole === 'user2' ? 'Perfil Principal · Andrea' : 'Perfil Principal · Ángel'}
+                {activeRole === 'user2' ? 'Perfil Principal · Andrea' : 'Perfil Principal · Tonet'}
               </Text>
 
               {/* Perspective Switcher Button */}
@@ -325,7 +325,7 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
               <View style={styles.inputBlock}>
                 <Text style={styles.inputLabel}>Retratos Estéticos Sugeridos</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetsScroll}>
-                  {(activeRole === 'user1' ? ANGEL_PRESET_PHOTOS : ANDREA_PRESET_PHOTOS).map((url, idx) => (
+                  {(activeRole === 'user1' ? TONET_PRESET_PHOTOS : ANDREA_PRESET_PHOTOS).map((url, idx) => (
                     <TouchableOpacity
                       key={idx}
                       style={[styles.presetThumb, editPhotoUrl === url && styles.presetThumbActive]}

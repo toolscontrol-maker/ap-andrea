@@ -60,8 +60,8 @@ export function DevSwitcherBar() {
             onPress={() => switchRole('user1')}
             activeOpacity={0.7}
           >
-            <Text style={styles.roleAvatar}>Á</Text>
-            <Text style={styles.roleCardName}>Ángel</Text>
+            <Text style={styles.roleAvatar}>T</Text>
+            <Text style={styles.roleCardName}>Tonet</Text>
             <Text style={styles.roleCardSub}>Usuario 1</Text>
           </TouchableOpacity>
 
@@ -98,7 +98,7 @@ export function DevSwitcherBar() {
         {/* AYA Consents */}
         <View style={styles.switchRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.switchTitle}>🔒 Consentimiento AYA de Ángel</Text>
+            <Text style={styles.switchTitle}>🔒 Consentimiento AYA de Tonet</Text>
             <Text style={styles.switchDesc}>Autoriza análisis de diario compartido</Text>
           </View>
           <Switch

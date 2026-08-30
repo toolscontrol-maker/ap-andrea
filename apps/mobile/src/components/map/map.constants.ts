@@ -228,7 +228,7 @@ export const DEMO_MAP_PLACES: AndreaMapPlace[] = [
     type: 'memory',
     title: 'Primer Beso & Donde Empezamos a Salir',
     subtitle: "Pg. de l'Albereda, 44, Camins al Grau, Valencia",
-    description: "El 15 de febrero de 2025 en el Paseo de la Alameda, 44. El rincón mágico de nuestro primer beso y donde Ángel le pidió salir a Andrea. El comienzo oficial de nuestro camino juntos.",
+    description: "El 15 de febrero de 2025 en el Paseo de la Alameda, 44. El rincón mágico de nuestro primer beso y donde Tonet le pidió salir a Andrea. El comienzo oficial de nuestro camino juntos.",
     latitude: 39.4632,
     longitude: -0.3546,
     precision: 'exact',
@@ -238,11 +238,11 @@ export const DEMO_MAP_PLACES: AndreaMapPlace[] = [
     imageUrl: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&auto=format&fit=crop',
   },
 
-  // 15. Casa de Ángel / Tonet
+  // 15. Casa de Tonet
   {
     id: 'place-casa-tonet',
     type: 'memory',
-    title: 'Casa de Ángel · Conde de Real',
+    title: 'Casa de Tonet · Conde de Real',
     subtitle: 'Calle Conde de Real, 16B, Valencia',
     description: 'Nuestro hogar y refugio de amor compartido en Valencia.',
     latitude: 39.4768,

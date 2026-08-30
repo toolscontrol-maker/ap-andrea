@@ -63,7 +63,7 @@ export function DynamicIsland() {
         {/* COMPACT VIEW */}
         {!isExpanded && (
           <View style={styles.compactRow}>
-            {/* Pulsing Dots for Ángel & Andrea */}
+            {/* Pulsing Dots for Tonet & Andrea */}
             <View style={styles.dotsGroup}>
               <View style={[styles.statusDot, { backgroundColor: Colors.light.primary }]} />
               <View style={styles.connectingLine} />

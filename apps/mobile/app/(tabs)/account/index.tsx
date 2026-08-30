@@ -46,7 +46,7 @@ const ANDREA_PRESET_PHOTOS = [
   'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&auto=format&fit=crop&q=80',
 ];
 
-const ANGEL_PRESET_PHOTOS = [
+const TONET_PRESET_PHOTOS = [
   'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
   'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80',
   'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&auto=format&fit=crop&q=80',
@@ -110,7 +110,7 @@ export default function AccountScreen() {
   const handleSaveProfile = async () => {
     triggerHaptic('success');
     const isUser1 = editingUserId === users.user1.id;
-    const finalName = editName.trim() || (isUser1 ? 'Ángel' : 'Andrea');
+    const finalName = editName.trim() || (isUser1 ? 'Tonet' : 'Andrea');
     await updateUserProfile(editingUserId, {
       name: finalName,
       avatarPhoto: editPhotoUrl.trim() || undefined,
@@ -142,7 +142,7 @@ export default function AccountScreen() {
     switchRole(newRole);
     Alert.alert(
       'Perspectiva Cambiada',
-      `Ahora estás viendo Andrea App como ${newRole === 'user1' ? 'Ángel' : 'Andrea'}.`
+      `Ahora estás viendo Andrea App como ${newRole === 'user1' ? 'Tonet' : 'Andrea'}.`
     );
   };
 
@@ -204,7 +204,7 @@ export default function AccountScreen() {
   const handleConfirmResetDemo = () => {
     Alert.alert(
       '¿Restablecer datos demo?',
-      'Se reinsertarán los recuerdos y restaurantes de demostración de Andrea & Ángel.',
+      'Se reinsertarán los recuerdos y restaurantes de demostración de Andrea & Tonet.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -269,7 +269,7 @@ export default function AccountScreen() {
           />
 
           <View style={styles.coupleInfoSection}>
-            <Text style={styles.coupleNames}>Andrea & Ángel</Text>
+            <Text style={styles.coupleNames}>Andrea & Tonet</Text>
             <Text style={styles.coupleSubtitle}>Juntos desde el 15 de Febrero de 2025 · Valencia</Text>
             <View style={styles.vaultSecurityBadge}>
               <IconShield size={13} color={Colors.light.primary} />
@@ -281,7 +281,7 @@ export default function AccountScreen() {
         {/* NUESTROS HITOS INOLVIDABLES */}
         <SectionHeader
           title="Nuestra Historia & Hitos"
-          subtitle="Los momentos fundacionales de Andrea & Ángel"
+          subtitle="Los momentos fundacionales de Andrea & Tonet"
         />
         <View style={styles.milestonesCard}>
           <View style={styles.milestoneItem}>
@@ -331,7 +331,7 @@ export default function AccountScreen() {
               </View>
               <Text style={styles.milestoneLocation}>Pg. de l'Albereda, 44, Camins al Grau · Valencia</Text>
               <Text style={styles.milestoneDesc}>
-                Donde nos dimos nuestro primer beso y donde Ángel le pidió salir a Andrea ({diffDays} días juntos).
+                Donde nos dimos nuestro primer beso y donde Tonet le pidió salir a Andrea ({diffDays} días juntos).
               </Text>
             </View>
           </View>
@@ -360,7 +360,7 @@ export default function AccountScreen() {
         {/* PROFILES & PHOTOS EDITING SECTION */}
         <SectionHeader
           title="Perfiles & Fotografías"
-          subtitle="Personaliza las fotos y nombres de Andrea & Ángel"
+          subtitle="Personaliza las fotos y nombres de Andrea & Tonet"
         />
         <View style={styles.settingsGroupCard}>
           {/* ANDREA PROFILE ROW */}
@@ -390,7 +390,7 @@ export default function AccountScreen() {
 
           <View style={styles.settingDivider} />
 
-          {/* ANGEL PROFILE ROW */}
+          {/* TONET PROFILE ROW */}
           <TouchableOpacity
             style={styles.settingRow}
             activeOpacity={0.7}
@@ -464,7 +464,7 @@ export default function AccountScreen() {
             </View>
             <View style={styles.settingTextContainer}>
               <Text style={styles.settingTitle}>Clave de Sincronización Privada</Text>
-              <Text style={styles.settingDesc}>ed25519-andrea-angel-88a9...</Text>
+              <Text style={styles.settingDesc}>ed25519-andrea-tonet-88a9...</Text>
             </View>
             <Text style={styles.settingActionText}>Copiar</Text>
           </TouchableOpacity>
@@ -630,7 +630,7 @@ export default function AccountScreen() {
           <Text style={styles.footerBrandName}>ANDREA APP</Text>
           <Text style={styles.footerVersion}>Versión 1.0.0 (Edición Privada Local)</Text>
           <Text style={styles.footerDedication}>
-            Creado con amor y cuidado para Andrea & Ángel.
+            Creado con amor y cuidado para Andrea & Tonet.
           </Text>
         </View>
 
@@ -712,7 +712,7 @@ export default function AccountScreen() {
               <View>
                 <Text style={styles.modalEyebrow}>PERSONALIZAR PERFIL</Text>
                 <Text style={styles.modalTitle}>
-                  {editingUserId === users.user1.id ? 'Perfil de Ángel' : 'Perfil de Andrea'}
+                  {editingUserId === users.user1.id ? 'Perfil de Tonet' : 'Perfil de Andrea'}
                 </Text>
               </View>
               <TouchableOpacity
@@ -744,7 +744,7 @@ export default function AccountScreen() {
                       ]}
                     >
                       <Text style={styles.previewAvatarFallbackText}>
-                        {(editName.trim() || (editingUserId === users.user1.id ? 'Á' : 'A'))[0]}
+                        {(editName.trim() || (editingUserId === users.user1.id ? 'T' : 'A'))[0]}
                       </Text>
                     </View>
                   )}
@@ -759,7 +759,7 @@ export default function AccountScreen() {
                   style={styles.textInput}
                   value={editName}
                   onChangeText={setEditName}
-                  placeholder="Ej. Andrea, Ángel..."
+                  placeholder="Ej. Andrea, Tonet..."
                   placeholderTextColor={Colors.light.textMuted}
                 />
               </View>
@@ -769,7 +769,7 @@ export default function AccountScreen() {
                 <Text style={styles.inputLabel}>Retratos y Estilos Sugeridos</Text>
                 <Text style={styles.inputSublabel}>Selecciona en 1 toque una fotografía estética:</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsRow}>
-                  {(editingUserId === users.user1.id ? ANGEL_PRESET_PHOTOS : ANDREA_PRESET_PHOTOS).map(
+                  {(editingUserId === users.user1.id ? TONET_PRESET_PHOTOS : ANDREA_PRESET_PHOTOS).map(
                     (url, idx) => {
                       const isSelected = editPhotoUrl === url;
                       return (
