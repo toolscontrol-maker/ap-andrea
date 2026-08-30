@@ -216,7 +216,7 @@ export function PlaceDetailModal({
                   </View>
                 )}
 
-                {place.visitedPlaces && place.visitedPlaces.length > 0 && (
+                {Array.isArray(place.visitedPlaces) && place.visitedPlaces.length > 0 && (
                   <View style={{ marginTop: 8 }}>
                     <Text style={styles.detailLabel}>Restaurantes y sitios visitados:</Text>
                     <View style={styles.visitedTagsRow}>
