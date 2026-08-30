@@ -2,7 +2,7 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { Colors, ColorTheme, Palette } from './colors';
 import { Space } from './spacing';
 import { Radius } from './radius';
-import { Typography } from './typography';
+import { Typography } from './Typography';
 import { Shadows } from './shadows';
 import { Layout } from './layout';
 import { Motion } from './motion';
