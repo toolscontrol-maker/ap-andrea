@@ -353,6 +353,9 @@ export default function AccountScreen() {
                 <Text style={styles.milestoneTitle}>Inicio de Nuestra Relación</Text>
                 <Text style={styles.milestoneDate}>15 Feb 2025</Text>
               </View>
+              <Text style={styles.milestoneLocation}>Valencia, España</Text>
+              <Text style={styles.milestoneDesc}>
+                El día que formalizamos nuestro amor y prometimos construir un hogar juntos ({diffDays} días).
               </Text>
             </View>
           </View>
