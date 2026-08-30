@@ -21,11 +21,13 @@ import { StaggeredItem } from '../../../src/components/ui/StaggeredList';
 import { DynamicIsland } from '../../../src/components/DynamicIsland';
 import { SectionHeader } from '../../../src/components/ui/SectionHeader';
 import { PhotoUploadField } from '../../../src/components/ui/PhotoUploadField';
+import { ConnectedCoupleHeart } from '../../../src/components/ui/ConnectedCoupleHeart';
 import {
   IconLock,
   IconSparkles,
   IconGift,
-  IconCalendar
+  IconCalendar,
+  IconHeart
 } from '../../../src/components/ui/Icons';
 import { Colors } from '../../../src/theme/colors';
 import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
@@ -37,6 +39,7 @@ export default function HomeScreen() {
   const {
     currentDevUser,
     partnerDevUser,
+    users,
     ritualSeeds,
     weeklySummary,
     coupleEvents,
@@ -51,6 +54,7 @@ export default function HomeScreen() {
   const [uploadedPhotoUri, setUploadedPhotoUri] = useState<string | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(getRandomAyaQuestion());
   const [isSeedSubmitted, setIsSeedSubmitted] = useState(false);
+  const [selectedFeeling, setSelectedFeeling] = useState<string | null>(null);
 
   // Dynamic days calculation from 15 Feb 2025
   const ANNIVERSARY_DATE = new Date('2025-02-15');
@@ -86,23 +90,95 @@ export default function HomeScreen() {
     Alert.alert('🌱 Momento Sembrado', 'Se ha guardado en vuestra memoria compartida.');
   };
 
+  const handleSelectFeeling = (feeling: string) => {
+    triggerHaptic('selection');
+    setSelectedFeeling(feeling);
+    Alert.alert('💖 Sentimiento Compartido', 'Has enviado un mensaje de ' + feeling + ' a ' + partnerDevUser.name + '.');
+  };
+
   return (
     <ScreenWrapper>
       {/* ── DYNAMIC ISLAND HEADER PILL ── */}
       <DynamicIsland />
 
-      {/* ── GREETING & AMBIENT HEADER (PERSONAL ENFOCADO EN TI) ── */}
+      {/* ── GREETING & AMBIENT HEADER ── */}
       <View style={styles.headerBlock}>
         <View style={styles.greetingTextGroup}>
-          <Text style={styles.greetingEyebrow}>TU ESPACIO PERSONAL</Text>
+          <Text style={styles.greetingEyebrow}>NUESTRO NIDO</Text>
           <Text style={styles.greetingTitle}>
             Hola, {currentDevUser.name}
           </Text>
           <Text style={styles.greetingSubtitle}>
-            Un día bonito para ti y vuestra historia.
+            {daysTogether} días juntos construyendo nuestra historia de amor.
           </Text>
         </View>
       </View>
+
+      {/* ── HERO CONNECTED HEART ── */}
+      <View style={{ marginBottom: Spacing.lg }}>
+        <ConnectedCoupleHeart
+          user1Name={users?.user1?.name || 'Tonet'}
+          user1Avatar={users?.user1?.avatar || 'T'}
+          user1PhotoUrl={users?.user1?.avatarPhoto}
+          onEditAvatar1={() => router.push('/(tabs)/account')}
+          user2Name={users?.user2?.name || 'Andrea'}
+          user2Avatar={users?.user2?.avatar || 'A'}
+          user2PhotoUrl={users?.user2?.avatarPhoto}
+          onEditAvatar2={() => router.push('/(tabs)/account')}
+          currentUserName={currentDevUser.name}
+          daysTogether={daysTogether}
+          startDateFormatted="15 de Febrero de 2025"
+        />
+      </View>
+
+      {/* ── FEELING CHECK-IN DIAL ── */}
+      <Card style={[styles.ritualCard, { marginBottom: Spacing.lg }]} variant="elevated">
+        <View style={styles.ritualCardHeader}>
+          <View style={styles.ritualTitleGroup}>
+            <Badge variant="rose">SINTONÍA</Badge>
+            <Text style={styles.ritualCardTitle}>¿Cómo te sientes ahora?</Text>
+          </View>
+          <Text style={styles.ritualCardSubtitle}>
+            Un toque sutil para conectar con {partnerDevUser.name} sin palabras.
+          </Text>
+        </View>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.sm, gap: 8 }}>
+          {[
+            { emoji: '🥰', label: 'Cariñoso/a', key: 'love' },
+            { emoji: '✨', label: 'Ilusionado/a', key: 'spark' },
+            { emoji: '☕', label: 'Tranquilo/a', key: 'calm' },
+            { emoji: '🫂', label: 'Mimos', key: 'cuddle' },
+          ].map((f) => (
+            <TouchableOpacity
+              key={f.key}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                paddingVertical: 12,
+                borderRadius: Radii.lg,
+                backgroundColor: selectedFeeling === f.key ? '#EF826A' : '#FAF8F5',
+                borderWidth: 1,
+                borderColor: selectedFeeling === f.key ? '#EF826A' : 'rgba(58, 47, 56, 0.06)',
+              }}
+              activeOpacity={0.8}
+              onPress={() => handleSelectFeeling(f.label)}
+            >
+              <Text style={{ fontSize: 20, marginBottom: 4 }}>{f.emoji}</Text>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '700',
+                  color: selectedFeeling === f.key ? '#FFFFFF' : '#3A2F38',
+                  fontFamily: 'Inter, sans-serif',
+                }}
+              >
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </Card>
 
       {/* ── DAILY RITUAL: SEMILLA DEL DÍA (CERO PRESIÓN) ── */}
       <Card style={styles.ritualCard} variant="elevated">
