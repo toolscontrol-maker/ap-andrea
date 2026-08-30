@@ -53,6 +53,20 @@ export function PhotoUploadField({
 
   const cleanPreviewUri = sanitizeImageHotlink(effectiveImageUri);
 
+  const isVideo = (url?: string | null): boolean => {
+    if (!url || typeof url !== 'string') return false;
+    return (
+      url.startsWith('data:video/') ||
+      url.endsWith('.mp4') ||
+      url.endsWith('.mov') ||
+      url.endsWith('.webm') ||
+      url.endsWith('.m4v') ||
+      url.includes('video')
+    );
+  };
+
+  const isVideoMedia = isVideo(effectiveImageUri);
+
   return (
     <View style={[styles.container, style]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
@@ -64,17 +78,28 @@ export function PhotoUploadField({
       >
         {effectiveImageUri ? (
           <View style={styles.imagePreviewWrapper}>
-            <Image
-              source={{ uri: cleanPreviewUri }}
-              style={styles.imagePreview}
-              resizeMode="cover"
-            />
+            {isVideoMedia ? (
+              <video
+                src={cleanPreviewUri}
+                autoPlay
+                loop
+                muted
+                playsInline
+                style={{ width: '100%', height: '100%', objectFit: 'cover' } as any}
+              />
+            ) : (
+              <Image
+                source={{ uri: cleanPreviewUri }}
+                style={styles.imagePreview}
+                resizeMode="cover"
+              />
+            )}
             <TouchableOpacity style={styles.removeBtn} onPress={handleRemove} activeOpacity={0.7}>
               <Text style={styles.removeBtnText}>✕</Text>
             </TouchableOpacity>
             <View style={styles.changeBadge}>
               <IconCamera size={13} color="#FFFFFF" strokeWidth={2} />
-              <Text style={styles.changeBadgeText}>Cambiar</Text>
+              <Text style={styles.changeBadgeText}>{isVideoMedia ? 'Cambiar vídeo' : 'Cambiar'}</Text>
             </View>
           </View>
         ) : (
@@ -82,7 +107,7 @@ export function PhotoUploadField({
             <View style={styles.iconCircle}>
               <IconCamera size={20} color={Colors.light.primary} strokeWidth={2} />
             </View>
-            <Text style={styles.placeholderMain}>Subir foto</Text>
+            <Text style={styles.placeholderMain}>Subir foto o vídeo</Text>
             <Text style={styles.placeholderSub}>{placeholderText}</Text>
           </View>
         )}

@@ -45,6 +45,18 @@ export function PlaceGalleryModal({
     ])
   ).filter(Boolean);
 
+  const isVideoMedia = (url?: string | null): boolean => {
+    if (!url || typeof url !== 'string') return false;
+    return (
+      url.startsWith('data:video/') ||
+      url.endsWith('.mp4') ||
+      url.endsWith('.mov') ||
+      url.endsWith('.webm') ||
+      url.endsWith('.m4v') ||
+      url.includes('video')
+    );
+  };
+
   const handlePhotoUploaded = (url: string | null) => {
     if (url) {
       triggerHaptic('success');
@@ -202,7 +214,23 @@ export function PlaceGalleryModal({
                           setSelectedImage(photo);
                         }}
                       >
-                        <Image source={{ uri: photo }} style={styles.photoThumbnail} resizeMode="cover" />
+                        {isVideoMedia(photo) ? (
+                          <View style={{ width: '100%', height: '100%', position: 'relative' }}>
+                            <video
+                              src={photo}
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' } as any}
+                            />
+                            <View style={styles.videoBadge}>
+                              <Text style={styles.videoBadgeText}>▶ VÍDEO</Text>
+                            </View>
+                          </View>
+                        ) : (
+                          <Image source={{ uri: photo }} style={styles.photoThumbnail} resizeMode="cover" />
+                        )}
                       </TouchableOpacity>
 
                       {/* Header Badge Overlay: Cover or Photo index */}
@@ -266,9 +294,9 @@ export function PlaceGalleryModal({
             ) : (
               <View style={styles.emptyGalleryCard}>
                 <Text style={styles.emptyEmoji}>📸</Text>
-                <Text style={styles.emptyTitle}>Aún no hay fotos subidas</Text>
+                <Text style={styles.emptyTitle}>Aún no hay fotos o vídeos subidos</Text>
                 <Text style={styles.emptySubtitle}>
-                  Sé el primero en subir una foto de este lugar inolvidable
+                  Sé el primero en subir fotos o vídeos de este lugar inolvidable
                 </Text>
               </View>
             )}
@@ -286,7 +314,7 @@ export function PlaceGalleryModal({
             <View style={styles.lightboxOverlay}>
               <View style={styles.lightboxTopBar}>
                 <Text style={styles.lightboxCounter}>
-                  Foto {allPhotos.indexOf(selectedImage) + 1} de {allPhotos.length}
+                  {isVideoMedia(selectedImage) ? '🎬 Vídeo' : 'Foto'} {allPhotos.indexOf(selectedImage) + 1} de {allPhotos.length}
                 </Text>
                 <TouchableOpacity
                   style={styles.lightboxCloseBtn}
@@ -296,11 +324,21 @@ export function PlaceGalleryModal({
                 </TouchableOpacity>
               </View>
 
-              <Image
-                source={{ uri: selectedImage }}
-                style={styles.lightboxImage}
-                resizeMode="contain"
-              />
+              {isVideoMedia(selectedImage) ? (
+                <video
+                  src={selectedImage}
+                  controls
+                  autoPlay
+                  playsInline
+                  style={{ width: '92%', maxHeight: '72%', borderRadius: 16, outline: 'none' } as any}
+                />
+              ) : (
+                <Image
+                  source={{ uri: selectedImage }}
+                  style={styles.lightboxImage}
+                  resizeMode="contain"
+                />
+              )}
 
               <View style={styles.lightboxActionsBar}>
                 {allPhotos.indexOf(selectedImage) !== 0 && (
@@ -656,5 +694,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  videoBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 36,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+  },
+  videoBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
 });

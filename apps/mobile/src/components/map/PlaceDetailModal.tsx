@@ -33,6 +33,18 @@ export function PlaceDetailModal({
 }: PlaceDetailModalProps) {
   if (!place) return null;
 
+  const isVideoMedia = (url?: string | null): boolean => {
+    if (!url || typeof url !== 'string') return false;
+    return (
+      url.startsWith('data:video/') ||
+      url.endsWith('.mp4') ||
+      url.endsWith('.mov') ||
+      url.endsWith('.webm') ||
+      url.endsWith('.m4v') ||
+      url.includes('video')
+    );
+  };
+
   const handleDeleteConfirm = () => {
     triggerHaptic('warning');
     if (Platform.OS === 'web') {
@@ -126,7 +138,18 @@ export function PlaceDetailModal({
           <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
             {place.imageUrl && (
               <View style={styles.heroImageContainer}>
-                <Image source={{ uri: place.imageUrl }} style={styles.heroImage} resizeMode="cover" />
+                {isVideoMedia(place.imageUrl) ? (
+                  <video
+                    src={place.imageUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' } as any}
+                  />
+                ) : (
+                  <Image source={{ uri: place.imageUrl }} style={styles.heroImage} resizeMode="cover" />
+                )}
                 <TouchableOpacity
                   style={styles.galleryOverlayBtn}
                   activeOpacity={0.85}

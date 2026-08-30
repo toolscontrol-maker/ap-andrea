@@ -78,13 +78,31 @@ export async function pickImageFromGallery(
 
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/*';
+    input.accept = 'image/*,video/*';
     input.style.display = 'none';
 
     input.onchange = async (event: any) => {
       const file = event.target?.files?.[0];
       if (!file) {
         resolve(null);
+        return;
+      }
+
+      if (file.type && file.type.startsWith('video/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const rawBase64 = e.target?.result as string;
+          triggerHaptic('selection');
+          resolve({
+            uri: rawBase64,
+            base64: rawBase64,
+            mimeType: file.type || 'video/mp4',
+          });
+        };
+        reader.onerror = () => {
+          resolve(null);
+        };
+        reader.readAsDataURL(file);
         return;
       }
 
