@@ -20,7 +20,7 @@ export function useCouple(_currentUserProfile?: Profile | null) {
 
   return {
     partnerProfile,
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     isPaired: true,
     loading: false,
     generateMyPairingCode: async () => '789123',

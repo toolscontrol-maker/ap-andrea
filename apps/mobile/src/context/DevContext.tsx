@@ -92,7 +92,7 @@ export const INITIAL_WISHES: WishlistItem[] = [
 export const INITIAL_SAVED_PLACES: Place[] = [
   {
     id: 'place-rest-alqueria-pou',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     createdByUserId: DEV_USERS.user1.id,
     name: 'Restaurante Alqueria del Pou',
     category: 'restaurant',
@@ -130,7 +130,7 @@ export const INITIAL_SAVED_PLACES: Place[] = [
   },
   {
     id: 'place-rest-pasta-passione',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     createdByUserId: DEV_USERS.user1.id,
     name: 'Pasta & Passione',
     category: 'restaurant',
@@ -168,7 +168,7 @@ export const INITIAL_SAVED_PLACES: Place[] = [
   },
   {
     id: 'place-rest-honest-greens',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     createdByUserId: DEV_USERS.user2.id,
     name: 'Honest Greens',
     category: 'restaurant',
@@ -205,7 +205,7 @@ export const INITIAL_SAVED_PLACES: Place[] = [
   },
   {
     id: 'place-rest-don-salvatore',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     createdByUserId: DEV_USERS.user1.id,
     name: 'Ristorante Don Salvatore',
     category: 'restaurant',
@@ -242,7 +242,7 @@ export const INITIAL_SAVED_PLACES: Place[] = [
   },
   {
     id: 'place-cafe-mercado-colon',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     createdByUserId: DEV_USERS.user1.id,
     name: 'Merienda cerca del Mercado de Colón',
     category: 'cafe',
@@ -278,7 +278,7 @@ export const INITIAL_SAVED_PLACES: Place[] = [
   },
   {
     id: 'place-rest-casa-daragona',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     createdByUserId: DEV_USERS.user1.id,
     name: "Ristorante Casa d'Aragona",
     category: 'restaurant',
@@ -328,7 +328,7 @@ export const INITIAL_SAVED_PLACES: Place[] = [
   },
   {
     id: 'place-rest-latte-farina',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     createdByUserId: DEV_USERS.user1.id,
     name: 'Latte & Farina',
     category: 'restaurant',
@@ -365,7 +365,7 @@ export const INITIAL_SAVED_PLACES: Place[] = [
   },
   {
     id: 'place-rest-le-favole',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     createdByUserId: DEV_USERS.user2.id,
     name: 'Ristorante Le Favole',
     category: 'restaurant',
@@ -402,7 +402,7 @@ export const INITIAL_SAVED_PLACES: Place[] = [
   },
   {
     id: 'place-rest-la-salvaora',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     createdByUserId: DEV_USERS.user1.id,
     name: 'Restaurante La Salvaora',
     category: 'restaurant',
@@ -720,7 +720,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 1. Donde nos conocimos (23 Nov 2024)
   {
     id: 'cev-first-met',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -747,7 +747,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 2. Primera Cita (5 Dic 2024)
   {
     id: 'cev-first-date',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -774,7 +774,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 3. Primer Italiano · Pasta e Passione (13 Dic 2024)
   {
     id: 'cev-pasta-passione',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -801,7 +801,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 4. Tercera Cita · Plaza de la Virgen (15 Dic 2024)
   {
     id: 'cev-tercera-cita',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -828,7 +828,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 5. Primera foto enviada a los padres (27 Dic 2024)
   {
     id: 'cev-primera-foto-padres',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -855,7 +855,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 6. Descubrimos Honest Greens (30 Dic 2024)
   {
     id: 'cev-honest-greens',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user2.id,
     partnerId: DEV_USERS.user1.id,
     eventType: 'important_date',
@@ -882,7 +882,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 7. Nuestra Etapa en Canet (5 Enero 2025 a Noviembre 2025)
   {
     id: 'cev-etapa-canet',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -909,7 +909,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 8. Segundo Airbnb Romántico (21-23 Ene 2025)
   {
     id: 'cev-segundo-airbnb',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -936,7 +936,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 9. Don Salvatore (22 Ene 2025)
   {
     id: 'cev-don-salvatore',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -963,7 +963,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 10. Conocer a los padres en Manises (28 Ene 2025)
   {
     id: 'cev-padres-manises',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -990,7 +990,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 11. Merienda Mercado de Colón (11 Feb 2025)
   {
     id: 'cev-merienda-colon',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -1017,7 +1017,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 12. Tercer y Mejor Airbnb (13-16 Feb 2025)
   {
     id: 'cev-tercer-airbnb',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -1044,7 +1044,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 13. Casa d'Aragona (14 Feb 2025 · San Valentín)
   {
     id: 'cev-casa-daragona-sanvalentin',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -1071,7 +1071,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 14. Aniversario & Primer Beso (15 Feb 2025)
   {
     id: 'cev-anniversary',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'anniversary',
@@ -1098,7 +1098,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 15. Latte & Farina (10 Mayo 2025)
   {
     id: 'cev-latte-farina',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -1125,7 +1125,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 16. Casa d'Aragona (11 Mayo 2025)
   {
     id: 'cev-casa-daragona-mayo',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -1152,7 +1152,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 17. Le Favole (Verano 2025 · 15 Julio 2025)
   {
     id: 'cev-le-favole',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user2.id,
     partnerId: DEV_USERS.user1.id,
     eventType: 'important_date',
@@ -1179,7 +1179,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 18. Casa d'Aragona (15 Agosto 2025)
   {
     id: 'cev-casa-daragona-agosto',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -1206,7 +1206,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 19. Celebración de 9 Meses en La Salvaora (15 Nov 2025)
   {
     id: 'cev-la-salvaora-9meses',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -1233,7 +1233,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 20. Cumpleaños de Andrea (1 de Septiembre)
   {
     id: 'cev-birthday-andrea-2025',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user2.id,
     partnerId: DEV_USERS.user1.id,
     eventType: 'important_date',
@@ -1258,7 +1258,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   },
   {
     id: 'cev-birthday-andrea-2026',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user2.id,
     partnerId: DEV_USERS.user1.id,
     eventType: 'important_date',
@@ -1285,7 +1285,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   // 21. Cumpleaños de Tonet (19 de Octubre)
   {
     id: 'cev-birthday-tonet-2025',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -1310,7 +1310,7 @@ export const INITIAL_COUPLE_EVENTS: CoupleEvent[] = [
   },
   {
     id: 'cev-birthday-tonet-2026',
-    coupleId: 'demo-couple-id',
+    coupleId: 'andrea-tonet',
     ownerId: DEV_USERS.user1.id,
     partnerId: DEV_USERS.user2.id,
     eventType: 'important_date',
@@ -1708,11 +1708,21 @@ export function DevProvider({ children }: { children: ReactNode }) {
     const roleKey: 'user1' | 'user2' = isUser1 ? 'user1' : 'user2';
     const targetUserId = isUser1 ? DEV_USERS.user1.id : DEV_USERS.user2.id;
 
+    let finalPhoto = updates.avatarPhoto;
+    if (finalPhoto && (finalPhoto.startsWith('data:') || finalPhoto.startsWith('blob:'))) {
+      try {
+        finalPhoto = await CloudSyncEngine.uploadMediaImage(finalPhoto, `avatar_${roleKey}_${Date.now()}.jpg`);
+      } catch (e) {
+        console.warn('[DevContext] Upload avatar error:', e);
+      }
+    }
+
     setUsers((prev) => {
       const currentUser = isUser1 ? prev.user1 : prev.user2;
       const updatedUser: DevUser = {
         ...currentUser,
         ...updates,
+        avatarPhoto: finalPhoto !== undefined ? finalPhoto : currentUser.avatarPhoto,
         id: targetUserId,
         avatar: updates.name ? updates.name[0].toUpperCase() : currentUser.avatar,
       };
@@ -1843,7 +1853,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
     const newId = 'wish-' + Date.now();
     const item: WishlistItem = {
       id: newId,
-      coupleId: 'demo-couple-id',
+      coupleId: 'andrea-tonet',
       ownerUserId: currentDevUser.id,
       createdByUserId: currentDevUser.id,
       title: wish.title || 'Deseo sin título',
@@ -1886,7 +1896,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
     const surpriseId = 'surp-' + Date.now();
     const entry: DiaryEntryUI = {
       id: surpriseId,
-      coupleId: 'demo-couple-id',
+      coupleId: 'andrea-tonet',
       authorId: currentDevUser.id,
       type: 'surprise',
       visibility: 'private',
@@ -1918,7 +1928,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
     const memoryId = 'mem-' + Date.now();
     const entry: DiaryEntryUI = {
       id: memoryId,
-      coupleId: 'demo-couple-id',
+      coupleId: 'andrea-tonet',
       authorId: currentDevUser.id,
       type: 'diary_shared',
       visibility: 'shared',
@@ -1949,7 +1959,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
     const newId = 'place-' + Date.now();
     const newPlace: Place = {
       id: newId,
-      coupleId: 'demo-couple-id',
+      coupleId: 'andrea-tonet',
       createdByUserId: currentDevUser.id,
       name: place.name || 'Lugar sin nombre',
       category: place.category || 'restaurant',
@@ -1991,7 +2001,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
 
     const newEvent: CoupleEvent = {
       id: 'cev-' + Date.now(),
-      coupleId: 'demo-couple-id',
+      coupleId: 'andrea-tonet',
       ownerId: currentDevUser.id,
       partnerId: partnerDevUser.id,
       eventType: 'date',
@@ -2030,7 +2040,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
 
     const event: CoupleEvent = {
       id: newId,
-      coupleId: 'demo-couple-id',
+      coupleId: 'andrea-tonet',
       ownerId: currentDevUser.id,
       partnerId: partnerDevUser.id,
       eventType: payload.eventType,
@@ -2078,7 +2088,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const addRitualSeed = (seed: Partial<RitualSeed>) => {
     const newSeed: RitualSeed = {
       id: 'seed-' + Date.now(),
-      coupleId: 'demo-couple-id',
+      coupleId: 'andrea-tonet',
       authorId: currentDevUser.id,
       date: seed.date || new Date().toISOString().split('T')[0],
       type: seed.type || 'gratitude_note',
@@ -2123,7 +2133,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const addEntry = (entry: Partial<DiaryEntryUI>) => {
     const newEntry: DiaryEntryUI = {
       id: 'entry-' + Date.now(),
-      coupleId: 'demo-couple-id',
+      coupleId: 'andrea-tonet',
       authorId: currentDevUser.id,
       type: entry.type || 'diary_shared',
       visibility: entry.visibility || 'shared',
@@ -2143,7 +2153,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
     const content = surprise.content as any;
     const newSurprise: DiaryEntryUI = {
       id: 'surp-' + Date.now(),
-      coupleId: 'demo-couple-id',
+      coupleId: 'andrea-tonet',
       authorId: currentDevUser.id,
       type: 'surprise',
       visibility: 'private',
