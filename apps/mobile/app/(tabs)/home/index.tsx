@@ -329,152 +329,152 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
-    paddingTop: Spacing.sm
+    marginBottom: Spacing.xl,
+    paddingTop: Spacing.xs,
   },
   greetingEyebrow: {
-    fontSize: 10.5,
-    fontWeight: '700',
+    ...Typography.overline,
     color: Colors.light.primary,
-    letterSpacing: 1.2,
-    marginBottom: 2
+    marginBottom: 3,
   },
   greetingTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...Typography.h1,
     color: Colors.light.text,
-    letterSpacing: -0.4
   },
   greetingSubtitle: {
-    fontSize: 12.5,
+    ...Typography.caption,
     color: Colors.light.textSecondary,
-    marginTop: 2
+    marginTop: 2,
   },
   avatarPair: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   avatarBubble: {
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
     borderRadius: Radii.full,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: Colors.light.surface
+    borderColor: '#FFFFFF',
+    ...Shadows.subtle,
   },
   avatarBubblePartner: {
-    marginLeft: -10
+    marginLeft: -12,
   },
   avatarBubbleText: {
     color: Colors.light.textInverse,
     fontWeight: '700',
-    fontSize: 14
+    fontSize: 14,
   },
   avatarBubbleImg: {
     width: '100%',
     height: '100%',
-    borderRadius: 18,
+    borderRadius: 19,
   },
   ritualCard: {
     padding: Spacing.lg,
     borderRadius: Radii.xl,
-    backgroundColor: Colors.light.surface,
-    marginBottom: Spacing.lg
+    backgroundColor: '#FFFFFF',
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(20, 19, 18, 0.05)',
+    ...Shadows.subtle,
   },
   ritualCardHeader: {
-    marginBottom: Spacing.md
+    marginBottom: Spacing.md,
   },
   ritualTitleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    marginBottom: 4
+    marginBottom: 4,
   },
   ritualCardTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.light.text
+    ...Typography.h3,
+    color: Colors.light.text,
   },
   ritualCardSubtitle: {
-    fontSize: 12,
+    ...Typography.caption,
     color: Colors.light.textSecondary,
-    lineHeight: 16
+    lineHeight: 16,
   },
   ritualSelectorRow: {
     flexDirection: 'row',
-    gap: Spacing.xs,
-    marginBottom: Spacing.md
+    backgroundColor: 'rgba(20, 19, 18, 0.04)',
+    borderRadius: Radii.full,
+    padding: 3,
+    marginBottom: Spacing.md,
   },
   ritualTab: {
     flex: 1,
-    paddingVertical: 7,
+    paddingVertical: 6,
     borderRadius: Radii.full,
-    backgroundColor: Colors.light.surfaceSubtle,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.light.border
   },
   ritualTabActive: {
-    backgroundColor: Colors.light.text,
-    borderColor: Colors.light.text
+    backgroundColor: '#FFFFFF',
+    ...Shadows.subtle,
   },
   ritualTabText: {
+    ...Typography.caption,
     fontSize: 11.5,
-    fontWeight: '500',
-    color: Colors.light.textSecondary
+    color: Colors.light.textSecondary,
   },
   ritualTabTextActive: {
-    color: Colors.light.textInverse,
-    fontWeight: '600'
+    ...Typography.captionBold,
+    fontSize: 11.5,
+    color: Colors.light.text,
   },
   ritualPromptBox: {
-    backgroundColor: Colors.light.surfaceSubtle,
+    backgroundColor: '#FAF8F5',
     padding: Spacing.md,
     borderRadius: Radii.lg,
     borderWidth: 1,
-    borderColor: Colors.light.border
+    borderColor: 'rgba(20, 19, 18, 0.04)',
   },
   ritualQuestionBadge: {
+    ...Typography.captionBold,
     fontSize: 10,
-    fontWeight: '700',
     color: Colors.light.secondary,
-    letterSpacing: 0.8,
-    marginBottom: 2
+    letterSpacing: 0.6,
+    marginBottom: 3,
   },
   ritualPromptText: {
-    fontSize: 14,
+    ...Typography.body,
     fontWeight: '600',
     color: Colors.light.text,
     fontStyle: 'italic',
     marginBottom: Spacing.sm,
-    lineHeight: 19
+    lineHeight: 20,
   },
   ritualTextInput: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: 'rgba(20, 19, 18, 0.08)',
     borderRadius: Radii.md,
-    padding: Spacing.sm,
+    padding: Spacing.md,
     fontSize: 13.5,
     color: Colors.light.text,
-    minHeight: 65,
+    minHeight: 68,
     textAlignVertical: 'top',
-    marginBottom: Spacing.sm
+    marginBottom: Spacing.sm,
   },
   ritualSubmitRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   privacyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4
+    gap: 4,
   },
   ritualPrivacyHint: {
+    ...Typography.caption,
     fontSize: 10.5,
-    color: Colors.light.textMuted
+    color: Colors.light.textMuted,
   },
   weeklySummaryBox: {
     flexDirection: 'row',
@@ -482,45 +482,50 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     backgroundColor: Colors.light.sageLight,
     padding: Spacing.md,
-    borderRadius: Radii.lg,
+    borderRadius: Radii.xl,
     marginBottom: Spacing.xl,
     borderWidth: 1,
-    borderColor: 'rgba(109, 158, 121, 0.2)'
+    borderColor: 'rgba(109, 158, 123, 0.2)',
   },
   weeklySummaryIconWrap: {
     width: 38,
     height: 38,
     borderRadius: Radii.full,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...Shadows.subtle,
   },
   weeklySummaryIcon: {
-    fontSize: 18
+    fontSize: 18,
   },
   weeklySummaryTextGroup: {
-    flex: 1
+    flex: 1,
   },
   weeklySummaryTitle: {
+    ...Typography.captionBold,
     fontSize: 13,
-    fontWeight: '700',
-    color: Colors.light.sageDark
+    color: Colors.light.sageDark,
   },
   weeklySummaryDesc: {
+    ...Typography.caption,
     fontSize: 12,
     color: Colors.light.text,
     marginTop: 1,
-    lineHeight: 16
+    lineHeight: 16,
   },
   sectionBlock: {
-    marginBottom: Spacing.xl
+    marginBottom: Spacing.xl,
   },
   upcomingCard: {
     flexDirection: 'row',
     padding: Spacing.md,
     borderRadius: Radii.xl,
-    backgroundColor: Colors.light.surface,
-    gap: Spacing.md
+    backgroundColor: '#FFFFFF',
+    gap: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(20, 19, 18, 0.05)',
+    ...Shadows.subtle,
   },
   upcomingDateBadge: {
     width: 48,
@@ -530,94 +535,104 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: Colors.light.primary
+    borderColor: 'rgba(224, 86, 102, 0.3)',
   },
   upcomingDayNumber: {
     fontSize: 18,
     fontWeight: '800',
-    color: Colors.light.primaryDark
+    color: Colors.light.primaryDark,
   },
   upcomingMonthName: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: Colors.light.primaryDark
+    ...Typography.captionBold,
+    fontSize: 9.5,
+    color: Colors.light.primaryDark,
+    textTransform: 'uppercase',
   },
   upcomingDetails: {
-    flex: 1
+    flex: 1,
   },
   upcomingHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4
+    marginBottom: 4,
   },
   upcomingTime: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.light.textMuted
+    ...Typography.caption,
+    fontSize: 11.5,
+    color: Colors.light.textMuted,
   },
   upcomingTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.light.text
+    ...Typography.headline,
+    fontSize: 15,
+    color: Colors.light.text,
   },
   upcomingSubtitle: {
-    fontSize: 12.5,
+    ...Typography.caption,
+    fontSize: 12,
     color: Colors.light.textSecondary,
-    marginTop: 2
+    marginTop: 2,
   },
   secretClueBox: {
     marginTop: Spacing.sm,
-    padding: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     backgroundColor: Colors.light.secondaryLight,
-    borderRadius: Radii.sm
+    borderRadius: Radii.sm,
   },
   secretClueText: {
+    ...Typography.caption,
     fontSize: 11,
     color: Colors.light.secondaryDark,
-    fontWeight: '500'
+    fontWeight: '500',
   },
   wishesPeekScroll: {
     gap: Spacing.md,
-    paddingVertical: Spacing.xs
+    paddingVertical: Spacing.xs,
   },
   wishPeekCard: {
-    width: 200,
-    borderRadius: Radii.lg,
+    width: 195,
+    borderRadius: Radii.xl,
     overflow: 'hidden',
-    padding: 0
+    padding: 0,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 19, 18, 0.05)',
+    ...Shadows.subtle,
   },
   wishPeekImg: {
     width: '100%',
-    height: 110,
-    backgroundColor: Colors.light.surfaceSubtle
+    height: 115,
+    backgroundColor: '#FAF8F5',
   },
   wishPeekContent: {
-    padding: Spacing.md
+    padding: Spacing.md,
   },
   wishPeekTitle: {
+    ...Typography.bodyMedium,
     fontSize: 13.5,
-    fontWeight: '700',
     color: Colors.light.text,
     marginTop: 4,
-    lineHeight: 18
+    lineHeight: 18,
   },
   wishPeekPrice: {
+    ...Typography.captionBold,
     fontSize: 12,
-    fontWeight: '600',
     color: Colors.light.textMuted,
-    marginTop: 2
+    marginTop: 2,
   },
   btnPeekSurprise: {
     marginTop: Spacing.sm,
-    backgroundColor: Colors.light.secondaryLight,
-    paddingVertical: 6,
-    borderRadius: Radii.sm,
-    alignItems: 'center'
+    backgroundColor: 'rgba(138, 123, 181, 0.1)',
+    paddingVertical: 6.5,
+    borderRadius: Radii.full,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(138, 123, 181, 0.2)',
   },
   btnPeekSurpriseText: {
+    ...Typography.captionBold,
     fontSize: 11,
-    fontWeight: '600',
-    color: Colors.light.secondaryDark
-  }
+    color: Colors.light.secondaryDark,
+  },
 });
