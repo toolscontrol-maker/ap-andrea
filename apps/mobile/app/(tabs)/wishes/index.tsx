@@ -54,6 +54,7 @@ export default function WishesScreen() {
   const [selectedWishForFulfill, setSelectedWishForFulfill] = useState<WishlistItem | null>(null);
   const [fulfillStory, setFulfillStory] = useState('');
   const [fulfillPhotoUrl, setFulfillPhotoUrl] = useState('');
+  const [selectedRestaurantPlace, setSelectedRestaurantPlace] = useState<Place | null>(null);
 
   // Form State for Quick Add
   const [newTitle, setNewTitle] = useState('');
@@ -399,37 +400,53 @@ export default function WishesScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.restaurantsScroll}>
             {restaurantPlaces.map((place) => (
               <TiltedCard key={place.id} style={styles.restaurantMiniCard} variant="elevated">
-                <Image source={{ uri: place.coverImageUrl }} style={styles.restaurantMiniImg} />
-                <View style={styles.restaurantMiniInfo}>
-                  <View style={styles.restaurantTopRow}>
-                    <Text style={styles.restaurantName} numberOfLines={1}>{place.name}</Text>
-                    <Text style={styles.restaurantPrice}>{'€'.repeat(place.priceLevel || 2)}</Text>
-                  </View>
-                  <Text style={styles.restaurantMeta} numberOfLines={1}>
-                    {place.city} · {place.cuisine?.join(', ')}
-                  </Text>
-                  {place.note && (
-                    <Text style={styles.restaurantNote} numberOfLines={2}>
-                      "{place.note}"
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    triggerHaptic('selection');
+                    setSelectedRestaurantPlace(place);
+                  }}
+                >
+                  <Image source={{ uri: place.coverImageUrl }} style={styles.restaurantMiniImg} />
+                  <View style={styles.restaurantMiniInfo}>
+                    <View style={styles.restaurantTopRow}>
+                      <Text style={styles.restaurantName} numberOfLines={1}>{place.name}</Text>
+                      <Text style={styles.restaurantPrice}>{'€'.repeat(place.priceLevel || 2)}</Text>
+                    </View>
+                    <Text style={styles.restaurantMeta} numberOfLines={1}>
+                      {place.city} · {place.cuisine?.join(', ')}
                     </Text>
-                  )}
-                  <View style={styles.restaurantActions}>
-                    <TouchableOpacity
-                      style={styles.restaurantActionBtn}
-                      onPress={() => handleScheduleRestaurantDate(place)}
-                    >
-                      <Text style={styles.restaurantActionText}>📞 Agendar & Llamar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.restaurantActionBtn, styles.restaurantActionSecret]}
-                      onPress={() => {
-                        convertPlaceToEvent(place.id, '2026-09-12', '21:30');
-                        Alert.alert('Sorpresa Programada', `Cena secreta en ${place.name} agendada.`);
-                      }}
-                    >
-                      <Text style={styles.restaurantActionSecretText}>Sorpresa</Text>
-                    </TouchableOpacity>
+                    {place.visits && place.visits.length > 0 && (
+                      <View style={styles.visitsCountBadge}>
+                        <Text style={styles.visitsCountText}>
+                          ❤️ {place.visits.length} {place.visits.length === 1 ? 'visita memorable' : 'visitas memorables'}
+                        </Text>
+                      </View>
+                    )}
+                    {place.note && (
+                      <Text style={styles.restaurantNote} numberOfLines={2}>
+                        "{place.note}"
+                      </Text>
+                    )}
                   </View>
+                </TouchableOpacity>
+
+                <View style={styles.restaurantActions}>
+                  <TouchableOpacity
+                    style={styles.restaurantActionBtn}
+                    onPress={() => handleScheduleRestaurantDate(place)}
+                  >
+                    <Text style={styles.restaurantActionText}>📞 Agendar & Llamar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.restaurantActionBtn, styles.restaurantActionSecret]}
+                    onPress={() => {
+                      convertPlaceToEvent(place.id, '2026-09-12', '21:30');
+                      Alert.alert('Sorpresa Programada', `Cena secreta en ${place.name} agendada.`);
+                    }}
+                  >
+                    <Text style={styles.restaurantActionSecretText}>Sorpresa</Text>
+                  </TouchableOpacity>
                 </View>
               </TiltedCard>
             ))}
@@ -979,6 +996,182 @@ export default function WishesScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* RESTAURANT DETAIL & MEMORY HISTORY MODAL */}
+      <Modal
+        visible={!!selectedRestaurantPlace}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSelectedRestaurantPlace(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, styles.restaurantDetailCard]}>
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1, paddingRight: Spacing.sm }}>
+                <Text style={styles.modalTitle} numberOfLines={1}>
+                  {selectedRestaurantPlace?.name}
+                </Text>
+                <Text style={styles.modalSubtitle}>
+                  {selectedRestaurantPlace?.city} · {selectedRestaurantPlace?.cuisine?.join(', ')}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setSelectedRestaurantPlace(null)}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {/* Photo Carousel or Cover Image */}
+              {selectedRestaurantPlace?.photos && selectedRestaurantPlace.photos.length > 1 ? (
+                <View style={styles.restaurantDetailGalleryWrap}>
+                  <ScrollView
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.restaurantGalleryScroll}
+                  >
+                    {selectedRestaurantPlace.photos.map((photo, i) => (
+                      <Image
+                        key={i}
+                        source={{ uri: photo }}
+                        style={styles.restaurantGalleryPhoto}
+                      />
+                    ))}
+                  </ScrollView>
+                  <View style={styles.galleryBadgeOverlay}>
+                    <Text style={styles.galleryBadgeOverlayText}>
+                      ✦ {selectedRestaurantPlace.photos.length} fotos reales
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                selectedRestaurantPlace?.coverImageUrl && (
+                  <Image
+                    source={{ uri: selectedRestaurantPlace.coverImageUrl }}
+                    style={styles.restaurantDetailCoverPhoto}
+                  />
+                )
+              )}
+
+              {/* Status and Rating Badges */}
+              <View style={styles.restaurantBadgeRow}>
+                <View style={styles.ratingStarsBox}>
+                  <Text style={styles.ratingStarsText}>⭐⭐⭐⭐⭐ 5.0</Text>
+                </View>
+                <Badge variant={selectedRestaurantPlace?.status === 'favorite' ? 'butter' : 'neutral'}>
+                  {selectedRestaurantPlace?.status === 'favorite'
+                    ? '⭐ Favorito de siempre'
+                    : selectedRestaurantPlace?.status === 'want_to_go'
+                    ? '💫 Pendiente / Deseo'
+                    : '✓ Visitado'}
+                </Badge>
+                {selectedRestaurantPlace?.vibe && (
+                  <Badge variant="secondary">
+                    {selectedRestaurantPlace.vibe === 'romantico'
+                      ? '🌹 Romántico'
+                      : selectedRestaurantPlace.vibe === 'celebracion'
+                      ? '🍾 Celebración'
+                      : '🌿 Tranquilo'}
+                  </Badge>
+                )}
+                <Text style={styles.restaurantPriceTag}>
+                  {'€'.repeat(selectedRestaurantPlace?.priceLevel || 2)}
+                </Text>
+              </View>
+
+              {/* Google Maps & Action Buttons */}
+              <View style={styles.externalActionsRow}>
+                <TouchableOpacity
+                  style={styles.btnGoogleMaps}
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    const url =
+                      selectedRestaurantPlace?.googleMapsUrl ||
+                      `https://maps.google.com/?q=${encodeURIComponent(
+                        `${selectedRestaurantPlace?.name} ${selectedRestaurantPlace?.address || selectedRestaurantPlace?.city || 'Valencia'}`
+                      )}`;
+                    Linking.openURL(url);
+                  }}
+                >
+                  <Text style={styles.btnGoogleMapsText}>🗺️ Abrir en Google Maps</Text>
+                </TouchableOpacity>
+
+                {selectedRestaurantPlace?.phoneNumber && (
+                  <TouchableOpacity
+                    style={styles.btnCallPhone}
+                    onPress={() => {
+                      triggerHaptic('medium');
+                      Linking.openURL(`tel:${selectedRestaurantPlace.phoneNumber}`);
+                    }}
+                  >
+                    <Text style={styles.btnCallPhoneText}>📞 Llamar ({selectedRestaurantPlace.phoneNumber})</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Exact Address */}
+              {selectedRestaurantPlace?.address && (
+                <View style={styles.addressBox}>
+                  <Text style={styles.addressLabel}>📍 Dirección exacta</Text>
+                  <Text style={styles.addressText}>{selectedRestaurantPlace.address}</Text>
+                </View>
+              )}
+
+              {/* Personal Story & Note */}
+              {selectedRestaurantPlace?.note && (
+                <View style={styles.storyBox}>
+                  <Text style={styles.storyLabel}>✨ Nuestra Historia & Notas</Text>
+                  <Text style={styles.storyText}>"{selectedRestaurantPlace.note}"</Text>
+                </View>
+              )}
+
+              {/* VISITS AND SPECIAL MOMENTS HISTORY */}
+              {selectedRestaurantPlace?.visits && selectedRestaurantPlace.visits.length > 0 && (
+                <View style={styles.visitsSection}>
+                  <Text style={styles.visitsSectionTitle}>
+                    ❤️ Visitas & Momentos Compartidos ({selectedRestaurantPlace.visits.length})
+                  </Text>
+                  {selectedRestaurantPlace.visits.map((v) => (
+                    <View key={v.id} style={styles.visitItemCard}>
+                      <View style={styles.visitDateBadge}>
+                        <Text style={styles.visitDateBadgeText}>{v.date}</Text>
+                      </View>
+                      <View style={styles.visitDetailsCol}>
+                        <Text style={styles.visitItemTitle}>{v.title}</Text>
+                        {v.note && <Text style={styles.visitItemNote}>{v.note}</Text>}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Footer Actions */}
+            <View style={styles.modalFooter}>
+              <Button
+                variant="ghost"
+                onPress={() => setSelectedRestaurantPlace(null)}
+              >
+                Cerrar
+              </Button>
+              <Button
+                variant="primary"
+                onPress={() => {
+                  if (selectedRestaurantPlace) {
+                    handleScheduleRestaurantDate(selectedRestaurantPlace);
+                  }
+                  setSelectedRestaurantPlace(null);
+                }}
+              >
+                🗓️ Agendar en Calendario
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenWrapper>
   );
 }
@@ -1513,5 +1706,217 @@ const styles = StyleSheet.create({
   categoryChoiceChipTextActive: {
     color: Colors.light.primaryDark,
     fontWeight: '700',
+  },
+  visitsCountBadge: {
+    backgroundColor: 'rgba(224, 86, 102, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radii.full,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  visitsCountText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.light.primary,
+  },
+  restaurantDetailCard: {
+    maxHeight: '90%',
+    width: '92%',
+    maxWidth: 540,
+    alignSelf: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radii.xl,
+    ...Shadows.lg,
+  },
+  restaurantDetailGalleryWrap: {
+    position: 'relative',
+    width: '100%',
+    height: 220,
+    borderRadius: Radii.lg,
+    overflow: 'hidden',
+    marginBottom: Spacing.md,
+    backgroundColor: '#1E2430',
+  },
+  restaurantGalleryScroll: {
+    width: '100%',
+    height: '100%',
+  },
+  restaurantGalleryPhoto: {
+    width: 340,
+    height: 220,
+    resizeMode: 'cover',
+  },
+  galleryBadgeOverlay: {
+    position: 'absolute',
+    bottom: Spacing.sm,
+    right: Spacing.sm,
+    backgroundColor: 'rgba(20, 18, 16, 0.75)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radii.full,
+  },
+  galleryBadgeOverlayText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  restaurantDetailCoverPhoto: {
+    width: '100%',
+    height: 200,
+    borderRadius: Radii.lg,
+    resizeMode: 'cover',
+    marginBottom: Spacing.md,
+  },
+  restaurantBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  ratingStarsBox: {
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+  },
+  ratingStarsText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#8A6D1A',
+  },
+  restaurantPriceTag: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.light.textSecondary,
+    marginLeft: 'auto',
+  },
+  externalActionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  btnGoogleMaps: {
+    flex: 1,
+    backgroundColor: '#1A73E8',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.subtle,
+  },
+  btnGoogleMapsText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  btnCallPhone: {
+    flex: 1,
+    backgroundColor: '#2E7D32',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.subtle,
+  },
+  btnCallPhoneText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  addressBox: {
+    backgroundColor: Colors.light.surfaceSubtle,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  addressLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.light.textMuted,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+  },
+  addressText: {
+    fontSize: 13,
+    color: Colors.light.text,
+    lineHeight: 18,
+  },
+  storyBox: {
+    backgroundColor: 'rgba(224, 86, 102, 0.05)',
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(224, 86, 102, 0.15)',
+  },
+  storyLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.light.primary,
+    marginBottom: 3,
+    textTransform: 'uppercase',
+  },
+  storyText: {
+    fontSize: 13,
+    color: Colors.light.text,
+    fontStyle: 'italic',
+    lineHeight: 18,
+  },
+  visitsSection: {
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  visitsSectionTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: Colors.light.text,
+    marginBottom: Spacing.xs,
+  },
+  visitItemCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FAF8F5',
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.xs,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.light.primary,
+  },
+  visitDateBadge: {
+    backgroundColor: Colors.light.surface,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: Radii.sm,
+    marginRight: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  visitDateBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.light.primary,
+  },
+  visitDetailsCol: {
+    flex: 1,
+  },
+  visitItemTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.light.text,
+  },
+  visitItemNote: {
+    fontSize: 12,
+    color: Colors.light.textSecondary,
+    marginTop: 2,
+    lineHeight: 16,
   },
 });

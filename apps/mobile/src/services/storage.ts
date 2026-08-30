@@ -66,7 +66,7 @@ export const StorageEngine = {
 export const STORAGE_KEYS = {
   ACTIVE_USER: 'andrea_active_user_v1',
   WISHES: 'andrea_wishes_v1',
-  PLACES: 'andrea_places_v3',
+  PLACES: 'andrea_places_v4',
   EVENTS: 'andrea_events_v2',
   SEEDS: 'andrea_ritual_seeds_v1',
   AYA_MESSAGES: 'andrea_aya_messages_v1',

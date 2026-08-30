@@ -18,6 +18,14 @@ export type PlaceStatus =
   | 'hidden_gem'   // Joya secreta
   | 'archived';
 
+export interface PlaceVisitRecord {
+  id: string;
+  date: string;
+  title: string;
+  note?: string;
+  photoUrl?: string;
+}
+
 export interface Place {
   id: string;
   coupleId: string;
@@ -39,6 +47,7 @@ export interface Place {
   websiteUrl?: string;
   bookingUrl?: string;
   instagramUrl?: string;
+  googleMapsUrl?: string;
   phoneNumber?: string;
 
   cuisine?: string[];
@@ -50,6 +59,8 @@ export interface Place {
   note?: string;
   coverImageUrl?: string;
   photos?: string[];
+
+  visits?: PlaceVisitRecord[];
 
   linkedWishlistItemId?: string;
   linkedEventId?: string;

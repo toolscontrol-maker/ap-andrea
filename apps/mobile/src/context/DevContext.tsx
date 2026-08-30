@@ -153,12 +153,13 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     createdByUserId: DEV_USERS.user1.id,
     name: 'Restaurante Alqueria del Pou',
     category: 'restaurant',
-    status: 'favorite', // Nuestra primera cita
+    status: 'favorite',
     address: "Entrada del Pou d'Aparisi, 2, Quatre Carreres, 46013 València",
     city: 'Valencia',
     country: 'España',
     countryCode: 'ES',
-    phoneNumber: '+34 963 73 77 06',
+    phoneNumber: '+34 962 11 04 46',
+    googleMapsUrl: 'https://maps.google.com/?q=Alqueria+del+Pou+Valencia',
     latitude: 39.4491,
     longitude: -0.3664,
     cuisine: ['Mediterránea', 'Arroces tradicionales', 'Cocina de la Huerta'],
@@ -166,8 +167,21 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     vibe: 'romantico',
     tags: ['primera_cita', 'favorito', 'arroces', 'recuerdo_eterno'],
     ratingPersonal: 5,
-    note: 'Nuestra primera cita oficial el 5 de diciembre de 2024. Risas, confidencias y donde supimos que queríamos estar juntos.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop',
+    note: 'Nuestra primera cita oficial el 5 de diciembre de 2024 en plena huerta valenciana. Risas, confidencias y donde supimos que queríamos estar juntos.',
+    coverImageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&auto=format&fit=crop'
+    ],
+    visits: [
+      {
+        id: 'v-pou-1',
+        date: '2024-12-05',
+        title: 'Nuestra Primera Cita Oficial',
+        note: 'La noche que lo cambió todo. Confidencias y miradas que nunca olvidaremos.'
+      }
+    ],
     createdAt: '2024-12-05T21:00:00Z',
     updatedAt: '2024-12-05T23:30:00Z'
   },
@@ -183,6 +197,7 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     country: 'España',
     countryCode: 'ES',
     phoneNumber: '+34 960 04 88 64',
+    googleMapsUrl: 'https://maps.google.com/?q=Pasta+e+Passione+Valencia',
     latitude: 39.4756,
     longitude: -0.3765,
     cuisine: ['Italiana auténtica', 'Pasta fresca', 'Tiramisú'],
@@ -190,8 +205,21 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     vibe: 'romantico',
     tags: ['primer_italiano', 'pasta_fresca', 'el_carmen', 'favorito'],
     ratingPersonal: 5,
-    note: '13 de diciembre de 2024: La primera vez que fuimos juntos a un restaurante italiano en Valencia. Pasta deliciosa y risas.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop',
+    note: '13 de diciembre de 2024: La primera vez que fuimos juntos a un restaurante italiano en Valencia. Pasta fresca deliciosa y postres caseros.',
+    coverImageUrl: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800&auto=format&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1579684947550-22e945225d9a?w=800&auto=format&fit=crop'
+    ],
+    visits: [
+      {
+        id: 'v-pasta-1',
+        date: '2024-12-13',
+        title: 'Primera vez en un italiano juntos',
+        note: 'Cena deliciosa de pasta fresca y risas compartidas en El Carmen.'
+      }
+    ],
     createdAt: '2024-12-13T21:00:00Z',
     updatedAt: '2024-12-13T23:00:00Z'
   },
@@ -206,6 +234,7 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     city: 'Valencia',
     country: 'España',
     countryCode: 'ES',
+    googleMapsUrl: 'https://maps.google.com/?q=Honest+Greens+Calle+Caballeros+Valencia',
     latitude: 39.4766,
     longitude: -0.3786,
     cuisine: ['Healthy Food', 'Plant-based', 'Bowls de autor', 'Café'],
@@ -214,7 +243,20 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     tags: ['saludable', 'caballeros', 'favorito', 'diario'],
     ratingPersonal: 5,
     note: 'Descubierto el 30 de diciembre de 2024: nuestro sitio imprescindible de comida sana, rica y fresca en la calle Caballeros.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600&auto=format&fit=crop',
+    coverImageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&auto=format&fit=crop'
+    ],
+    visits: [
+      {
+        id: 'v-honest-1',
+        date: '2024-12-30',
+        title: 'Descubrimos Honest Greens',
+        note: 'El comienzo de una de nuestras costumbres favoritas en el centro.'
+      }
+    ],
     createdAt: '2024-12-30T14:00:00Z',
     updatedAt: '2024-12-30T14:00:00Z'
   },
@@ -229,6 +271,8 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     city: 'Valencia',
     country: 'España',
     countryCode: 'ES',
+    phoneNumber: '+34 963 74 38 67',
+    googleMapsUrl: 'https://maps.google.com/?q=Don+Salvatore+Conde+Altea+Valencia',
     latitude: 39.4671,
     longitude: -0.3652,
     cuisine: ['Italiana tradicional', 'Pizzas al horno de leña', 'Pasta'],
@@ -237,7 +281,19 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     tags: ['italiano', 'conde_altea', 'segundo_airbnb', 'cena_romantica'],
     ratingPersonal: 5,
     note: '22 de enero de 2025: Cena romántica en Conde de Altea durante nuestros días del segundo Airbnb.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop',
+    coverImageUrl: 'https://images.unsplash.com/photo-1537047902294-62a40c20a6ae?w=800&auto=format&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1537047902294-62a40c20a6ae?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop'
+    ],
+    visits: [
+      {
+        id: 'v-don-1',
+        date: '2025-01-22',
+        title: 'Cena en Don Salvatore',
+        note: 'Durante nuestro segundo Airbnb romántico donde supimos que estábamos enamorados.'
+      }
+    ],
     createdAt: '2025-01-22T21:30:00Z',
     updatedAt: '2025-01-22T21:30:00Z'
   },
@@ -252,6 +308,7 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     city: 'Valencia',
     country: 'España',
     countryCode: 'ES',
+    googleMapsUrl: 'https://maps.google.com/?q=Mercado+de+Colon+Valencia',
     latitude: 39.4691,
     longitude: -0.3691,
     cuisine: ['Café de Especialidad', 'Pastelería artesanal', 'Meriendas'],
@@ -260,7 +317,19 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     tags: ['merienda', 'cafe', 'mercado_colon', 'tardes_juntos'],
     ratingPersonal: 5,
     note: '11 de febrero de 2025: Nuestro sitio que nos encantó para merendar y desconectar juntos cerca del Mercado de Colón.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop',
+    coverImageUrl: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&auto=format&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&auto=format&fit=crop'
+    ],
+    visits: [
+      {
+        id: 'v-colon-1',
+        date: '2025-02-11',
+        title: 'Tarde de merienda favorita',
+        note: 'Tarde dulce y tranquila en vísperas de San Valentín.'
+      }
+    ],
     createdAt: '2025-02-11T17:30:00Z',
     updatedAt: '2025-02-11T17:30:00Z'
   },
@@ -271,20 +340,46 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     name: "Ristorante Casa d'Aragona",
     category: 'restaurant',
     status: 'favorite',
-    address: "Carrer de Císcar, 12, L'Eixample, 46005 València",
+    address: 'Carrer dels Cavallers, 21, Ciutat Vella, 46001 València',
     city: 'Valencia',
     country: 'España',
     countryCode: 'ES',
     phoneNumber: '+34 963 81 22 45',
-    latitude: 39.4669,
-    longitude: -0.3664,
-    cuisine: ['Italiana de autor', 'Pasta fresca al dente', 'Vinos'],
+    googleMapsUrl: 'https://maps.google.com/?q=Casa+dAragona+Calle+Caballeros+Valencia',
+    latitude: 39.4766,
+    longitude: -0.3780,
+    cuisine: ['Italiana de autor', 'Pizza Napolitana', 'Pasta fresca al dente', 'Vinos'],
     priceLevel: 2,
     vibe: 'celebracion',
-    tags: ['san_valentin', 'favorito_eterno', 'celebraciones', 'romantico'],
+    tags: ['san_valentin', 'favorito_eterno', 'celebraciones', 'romantico', 'muros_historicos'],
     ratingPersonal: 5,
-    note: "Nuestro gran clásico: San Valentín (14-02-2025), cena de mayo (11-05-2025) y verano (15-08-2025). Un rincón donde siempre celebramos nuestro amor.",
-    coverImageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop',
+    note: "Nuestro gran templo romántico entre muros árabes y techos altos. El escenario de San Valentín (14-02-2025), nuestra cena de mayo (11-05-2025) y verano (15-08-2025).",
+    coverImageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop'
+    ],
+    visits: [
+      {
+        id: 'v-aragona-1',
+        date: '2025-02-14',
+        title: 'Cena de San Valentín',
+        note: 'Cena a la luz de las velas durante nuestro fin de semana más especial.'
+      },
+      {
+        id: 'v-aragona-2',
+        date: '2025-05-11',
+        title: 'Cena romántica de Mayo',
+        note: 'Celebrando nuestro amor compartiendo pasta y vino.'
+      },
+      {
+        id: 'v-aragona-3',
+        date: '2025-08-15',
+        title: 'Noche de Verano en Casa d\'Aragona',
+        note: 'Cena mágica de verano en nuestro rincón favorito.'
+      }
+    ],
     createdAt: '2025-02-14T21:30:00Z',
     updatedAt: '2025-08-15T22:00:00Z'
   },
@@ -299,6 +394,8 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     city: 'Valencia',
     country: 'España',
     countryCode: 'ES',
+    phoneNumber: '+34 963 91 80 50',
+    googleMapsUrl: 'https://maps.google.com/?q=Latte+Farina+Valencia',
     latitude: 39.4743,
     longitude: -0.3764,
     cuisine: ['Italiana', 'Pizzas artesanas', 'Postres caseros'],
@@ -307,7 +404,19 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     tags: ['italiano', 'plaza_bonita', 'mayo_2025', 'comida_juntos'],
     ratingPersonal: 5,
     note: '10 de mayo de 2025: comida italiana deliciosa y paseo en una de las plazas más bonitas del centro histórico.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop',
+    coverImageUrl: 'https://images.unsplash.com/photo-1579684947550-22e945225d9a?w=800&auto=format&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1579684947550-22e945225d9a?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop'
+    ],
+    visits: [
+      {
+        id: 'v-latte-1',
+        date: '2025-05-10',
+        title: 'Comida en Latte & Farina',
+        note: 'Pasta deliciosa y sobremesa en la plaza.'
+      }
+    ],
     createdAt: '2025-05-10T14:30:00Z',
     updatedAt: '2025-05-10T14:30:00Z'
   },
@@ -322,6 +431,8 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     city: 'Valencia',
     country: 'España',
     countryCode: 'ES',
+    phoneNumber: '+34 963 91 00 37',
+    googleMapsUrl: 'https://maps.google.com/?q=Le+Favole+Calle+Hedra+Valencia',
     latitude: 39.4727,
     longitude: -0.3784,
     cuisine: ['Italiana gourmet', 'Pasta fresca', 'Terraza de verano'],
@@ -330,7 +441,19 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     tags: ['verano_2025', 'italiano', 'terraza_con_encanto'],
     ratingPersonal: 5,
     note: 'Verano de 2025 (15 de julio): noche cálida de risas y cena en la terraza de Le Favole.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1578474846511-04ba529f0b88?w=600&auto=format&fit=crop',
+    coverImageUrl: 'https://images.unsplash.com/photo-1578474846511-04ba529f0b88?w=800&auto=format&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1578474846511-04ba529f0b88?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop'
+    ],
+    visits: [
+      {
+        id: 'v-favole-1',
+        date: '2025-07-15',
+        title: 'Cena de verano en Le Favole',
+        note: 'Terraza de cuento bajo el cielo de verano de Valencia.'
+      }
+    ],
     createdAt: '2025-07-15T22:00:00Z',
     updatedAt: '2025-07-15T22:00:00Z'
   },
@@ -346,6 +469,7 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     country: 'España',
     countryCode: 'ES',
     phoneNumber: '+34 963 92 48 55',
+    googleMapsUrl: 'https://maps.google.com/?q=La+Salvaora+Calle+Calatrava+Valencia',
     latitude: 39.4763,
     longitude: -0.3774,
     cuisine: ['Cocina mediterránea creativa', 'Tapas de autor', 'Tarta de queso'],
@@ -354,7 +478,19 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     tags: ['9_meses', 'celebracion', 'aniversario_meses', 'calatrava'],
     ratingPersonal: 5,
     note: '15 de noviembre de 2025: Celebrando nuestros 9 meses juntos con una cena romántica e íntima.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=600&auto=format&fit=crop',
+    coverImageUrl: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=800&auto=format&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&auto=format&fit=crop'
+    ],
+    visits: [
+      {
+        id: 'v-salvaora-1',
+        date: '2025-11-15',
+        title: 'Celebración de 9 Meses Juntos',
+        note: 'Celebrando 9 meses de amor incondicional en una cena íntima.'
+      }
+    ],
     createdAt: '2025-11-15T21:30:00Z',
     updatedAt: '2025-11-15T21:30:00Z'
   },
@@ -364,21 +500,26 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     createdByUserId: DEV_USERS.user2.id,
     name: 'Kibo Omakase',
     category: 'restaurant',
-    status: 'want_to_go', // Pendiente
-    address: 'Calle de Claudio Coello 45',
+    status: 'want_to_go',
+    address: 'Calle de Claudio Coello 45, Barrio de Salamanca, 28001 Madrid',
     city: 'Madrid',
     country: 'España',
     countryCode: 'ES',
     phoneNumber: '+34 914 35 12 89',
+    googleMapsUrl: 'https://maps.google.com/?q=Kibo+Omakase+Claudio+Coello+Madrid',
     latitude: 40.4285,
     longitude: -3.6872,
-    cuisine: ['Japonesa', 'Sushi', 'Omakase'],
+    cuisine: ['Japonesa', 'Sushi de autor', 'Omakase'],
     priceLevel: 3,
     vibe: 'romantico',
-    tags: ['para_cita_especial', 'alta_cocina', 'intimo'],
+    tags: ['para_cita_especial', 'alta_cocina', 'intimo', 'proximo_aniversario'],
     ratingPersonal: 5,
-    note: 'El sitio que Andrea guardó para nuestro próximo aniversario del 15 de Febrero. Barra de 8 comensales.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&auto=format&fit=crop',
+    note: 'El sitio que Andrea guardó para nuestro próximo aniversario del 15 de Febrero. Barra japonesa íntima de 8 comensales con menú degustación del chef.',
+    coverImageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&auto=format&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=800&auto=format&fit=crop'
+    ],
     linkedWishlistItemId: 'wish-2',
     createdAt: '2026-08-10T19:00:00Z',
     updatedAt: '2026-08-10T19:00:00Z'
@@ -389,12 +530,13 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     createdByUserId: DEV_USERS.user1.id,
     name: 'Trattoria Popolare',
     category: 'restaurant',
-    status: 'visited', // Fuimos
-    address: 'Piazza Navona 12',
+    status: 'visited',
+    address: 'Piazza Navona 12, Roma',
     city: 'Roma',
     country: 'Italia',
     countryCode: 'IT',
     phoneNumber: '+39 06 6880 1234',
+    googleMapsUrl: 'https://maps.google.com/?q=Piazza+Navona+Roma',
     latitude: 41.8992,
     longitude: 12.4731,
     cuisine: ['Italiana', 'Pasta Fresca', 'Tiramisú'],
@@ -403,7 +545,18 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     tags: ['favorito', 'queremos_repetir', 'viaje_italia'],
     ratingPersonal: 5,
     note: 'La mejor pasta cacio e pepe que hemos probado nunca. Pedimos dos raciones de tiramisú.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop',
+    coverImageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop'
+    ],
+    visits: [
+      {
+        id: 'v-roma-1',
+        date: '2025-05-14',
+        title: 'Viaje a Roma',
+        note: 'Cena inolvidable en Trastevere / Piazza Navona.'
+      }
+    ],
     createdAt: '2025-05-14T21:00:00Z',
     updatedAt: '2025-05-14T21:00:00Z'
   },
@@ -413,12 +566,13 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     createdByUserId: DEV_USERS.user2.id,
     name: 'Café de Flore',
     category: 'cafe',
-    status: 'favorite', // Favorito
-    address: '172 Boulevard Saint-Germain',
+    status: 'favorite',
+    address: '172 Boulevard Saint-Germain, París',
     city: 'París',
     country: 'Francia',
     countryCode: 'FR',
     phoneNumber: '+33 1 45 48 55 26',
+    googleMapsUrl: 'https://maps.google.com/?q=Cafe+de+Flore+Paris',
     latitude: 48.8543,
     longitude: 2.3328,
     cuisine: ['Café de Especialidad', 'Croissants', 'Bistró'],
@@ -427,7 +581,18 @@ export const INITIAL_SAVED_PLACES: Place[] = [
     tags: ['desayuno', 'con_encanto', 'paris'],
     ratingPersonal: 5,
     note: 'Desayuno bajo la lona verde viendo llover sobre París.',
-    coverImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600&auto=format&fit=crop',
+    coverImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop'
+    ],
+    visits: [
+      {
+        id: 'v-paris-1',
+        date: '2025-09-22',
+        title: 'Desayuno en París',
+        note: 'Croissants y café caliente viendo llover en Saint-Germain.'
+      }
+    ],
     createdAt: '2025-09-22T10:00:00Z',
     updatedAt: '2025-09-22T10:00:00Z'
   },
