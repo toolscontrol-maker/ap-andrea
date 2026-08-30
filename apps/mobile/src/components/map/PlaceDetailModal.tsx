@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { AndreaMapPlace } from '../../types/map';
 import { triggerHaptic } from '../../utils/haptics';
-import { IconMapPin } from '../ui/Icons';
+import { IconMapPin, IconTrash } from '../ui/Icons';
+import { Alert } from 'react-native';
 
 interface PlaceDetailModalProps {
   visible: boolean;
@@ -19,6 +20,7 @@ interface PlaceDetailModalProps {
   onClose: () => void;
   onOpenGallery: (place: AndreaMapPlace) => void;
   onEditPlace: (place: AndreaMapPlace) => void;
+  onDeletePlace?: (placeId: string) => void;
 }
 
 export function PlaceDetailModal({
@@ -27,8 +29,38 @@ export function PlaceDetailModal({
   onClose,
   onOpenGallery,
   onEditPlace,
+  onDeletePlace,
 }: PlaceDetailModalProps) {
   if (!place) return null;
+
+  const handleDeleteConfirm = () => {
+    triggerHaptic('warning');
+    if (Platform.OS === 'web') {
+      const ok = window.confirm(`¿Estás seguro de que deseas eliminar "${place.title}" del mapa?`);
+      if (ok) {
+        triggerHaptic('error');
+        if (onDeletePlace) onDeletePlace(place.id);
+        onClose();
+      }
+    } else {
+      Alert.alert(
+        '🗑️ Eliminar Rincón',
+        `¿Estás seguro de que deseas eliminar "${place.title}" del mapa?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Eliminar',
+            style: 'destructive',
+            onPress: () => {
+              triggerHaptic('error');
+              if (onDeletePlace) onDeletePlace(place.id);
+              onClose();
+            },
+          },
+        ]
+      );
+    }
+  };
 
   const photoCount = Array.from(
     new Set([
@@ -252,7 +284,19 @@ export function PlaceDetailModal({
               </TouchableOpacity>
             </View>
 
-            <View style={{ height: 40 }} />
+            {onDeletePlace && (
+              <TouchableOpacity
+                style={styles.discreteDeleteBtn}
+                activeOpacity={0.7}
+                onPress={handleDeleteConfirm}
+                accessibilityLabel="Eliminar este rincón"
+              >
+                <IconTrash size={13} color="#A88B92" />
+                <Text style={styles.discreteDeleteText}>Eliminar este rincón del mapa</Text>
+              </TouchableOpacity>
+            )}
+
+            <View style={{ height: 36 }} />
           </ScrollView>
         </View>
       </View>
@@ -504,5 +548,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#3A2F38',
+  },
+  discreteDeleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(217, 67, 84, 0.06)',
+    alignSelf: 'center',
+  },
+  discreteDeleteText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#C04D5C',
+    fontFamily: 'Inter, sans-serif',
   },
 });

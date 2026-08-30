@@ -544,6 +544,17 @@ class CloudSyncEngineService {
     }
   }
 
+  public async deleteMapPlace(placeId: string) {
+    this.broadcastLocal('map_places', 'DELETE', { id: placeId });
+    try {
+      if (this.isSupabaseConfigured()) {
+        await supabase.from('map_places').delete().eq('id', placeId);
+      }
+    } catch (e) {
+      console.warn('[CloudSync] Map place delete error:', e);
+    }
+  }
+
   // ── 4. COUPLE EVENTS ──
   public async syncCoupleEvent(event: CoupleEvent) {
     this.broadcastLocal('couple_events', 'UPDATE', event);

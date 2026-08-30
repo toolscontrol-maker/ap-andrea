@@ -318,6 +318,21 @@ export default function MapScreen() {
     });
   }, [activeDetailPlace]);
 
+  const handleDeletePlace = useCallback(async (placeId: string) => {
+    triggerHaptic('success');
+    setAllPlaces((prev) => {
+      const next = prev.filter((p) => p.id !== placeId);
+      StorageEngine.setItem('andrea_map_places_v7', next);
+      return next;
+    });
+    setSelectedPlaceId(null);
+    setSelectedGroupId(null);
+    setActiveDetailPlace(null);
+    setIsDetailModalOpen(false);
+    setIsGalleryModalOpen(false);
+    await CloudSyncEngine.deleteMapPlace(placeId);
+  }, []);
+
   const handleOpenAddModal = () => {
     triggerHaptic('light');
     setEditingPlace(null);
@@ -435,6 +450,7 @@ export default function MapScreen() {
         onClose={() => setIsDetailModalOpen(false)}
         onOpenGallery={handleOpenGallery}
         onEditPlace={handleEditLocation}
+        onDeletePlace={handleDeletePlace}
       />
 
       <PlaceGalleryModal
