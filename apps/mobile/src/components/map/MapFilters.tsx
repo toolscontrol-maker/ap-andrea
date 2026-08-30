@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { Radii, Shadows, Spacing } from '../../theme/tokens';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform } from 'react-native';
+import { Radii, Spacing } from '../../theme/tokens';
 import { MapPlaceType } from '../../types/map';
+import { IconSearch } from '../ui/Icons';
+import { triggerHaptic } from '../../utils/haptics';
 
 export type MapFilterKey = 'all' | 'memories' | 'restaurants' | 'trips' | 'dreams';
 
@@ -17,13 +19,19 @@ interface MapFiltersProps {
   activeFilter: MapFilterKey;
   onFilterChange: (filter: MapFilterKey) => void;
   counts?: Record<MapFilterKey, number>;
+  onSearchPress?: () => void;
 }
 
-export function MapFilters({ activeFilter, onFilterChange, counts }: MapFiltersProps) {
+export function MapFilters({
+  activeFilter,
+  onFilterChange,
+  counts,
+  onSearchPress,
+}: MapFiltersProps) {
   const filters: { key: MapFilterKey; label: string }[] = [
     { key: 'all', label: 'Todo' },
     { key: 'memories', label: 'Recuerdos' },
-    { key: 'restaurants', label: 'Restaurantes' },
+    { key: 'restaurants', label: 'Lugares' },
     { key: 'trips', label: 'Viajes' },
     { key: 'dreams', label: 'Sueños' },
   ];
@@ -42,17 +50,40 @@ export function MapFilters({ activeFilter, onFilterChange, counts }: MapFiltersP
           return (
             <TouchableOpacity
               key={f.key}
-              activeOpacity={0.8}
-              onPress={() => onFilterChange(f.key)}
+              activeOpacity={0.75}
+              onPress={() => {
+                triggerHaptic('selection');
+                onFilterChange(f.key);
+              }}
               style={[styles.chip, isActive && styles.chipActive]}
             >
               <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
                 {f.label}
-                {count !== undefined && count > 0 ? ` (${count})` : ''}
               </Text>
+              {count !== undefined && count > 0 && (
+                <View style={[styles.countBadge, isActive && styles.countBadgeActive]}>
+                  <Text style={[styles.countText, isActive && styles.countTextActive]}>
+                    {count}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           );
         })}
+
+        {onSearchPress && (
+          <TouchableOpacity
+            style={styles.searchIconButton}
+            activeOpacity={0.75}
+            onPress={() => {
+              triggerHaptic('light');
+              onSearchPress();
+            }}
+            accessibilityLabel="Buscar en el atlas"
+          >
+            <IconSearch size={16} color="rgba(255, 248, 242, 0.85)" strokeWidth={2} />
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </View>
   );
@@ -60,36 +91,82 @@ export function MapFilters({ activeFilter, onFilterChange, counts }: MapFiltersP
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   scrollContent: {
     paddingHorizontal: Spacing.md,
-    gap: Spacing.xs,
+    gap: 8,
+    alignItems: 'center',
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 13,
-    paddingVertical: 6.5,
-    borderRadius: Radii.full,
-    backgroundColor: 'rgba(12, 24, 48, 0.72)',
+    paddingVertical: 7,
+    borderRadius: 18,
+    backgroundColor: 'rgba(10, 20, 38, 0.78)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        } as any)
+      : {}),
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    ...Shadows.sm,
+    borderColor: 'rgba(255, 248, 242, 0.10)',
+    gap: 5,
   },
   chipActive: {
-    backgroundColor: '#38B6FF',
-    borderColor: '#FFFFFF',
-    shadowColor: '#38B6FF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.6,
-    shadowRadius: 6,
+    backgroundColor: '#E05666',
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    shadowColor: '#E05666',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.45,
+    shadowRadius: 8,
+    elevation: 4,
   },
   chipText: {
+    fontFamily: 'Inter_500Medium',
     fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: 'rgba(255, 248, 242, 0.78)',
   },
   chipTextActive: {
-    color: '#030C1E',
-    fontWeight: '800',
+    fontFamily: 'Inter_600SemiBold',
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  countBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 9,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  countBadgeActive: {
+    backgroundColor: 'rgba(0, 0, 0, 0.22)',
+  },
+  countText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 10,
+    color: 'rgba(255, 248, 242, 0.65)',
+  },
+  countTextActive: {
+    fontFamily: 'Inter_700Bold',
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  searchIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(10, 20, 38, 0.78)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        } as any)
+      : {}),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 248, 242, 0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

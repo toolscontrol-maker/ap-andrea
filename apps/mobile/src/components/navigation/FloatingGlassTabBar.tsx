@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,26 +8,52 @@ import {
   Animated,
 } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { IconHome, IconGift, IconCalendar, IconCompass } from '../ui/Icons';
 import { triggerHaptic } from '../../utils/haptics';
 
-const TAB_EMOJIS: Record<string, string> = {
-  home: '🏠',
-  wishes: '🎁',
-  calendar: '📅',
-  map: '📍',
+interface TabItemConfig {
+  label: string;
+  renderIcon: (color: string, isFocused: boolean) => React.ReactNode;
+}
+
+const TAB_CONFIG: Record<string, TabItemConfig> = {
+  home: {
+    label: 'Nido',
+    renderIcon: (color, isFocused) => (
+      <IconHome size={19} color={color} strokeWidth={isFocused ? 2.2 : 1.8} />
+    ),
+  },
+  wishes: {
+    label: 'Deseos',
+    renderIcon: (color, isFocused) => (
+      <IconGift size={19} color={color} strokeWidth={isFocused ? 2.2 : 1.8} />
+    ),
+  },
+  calendar: {
+    label: 'Citas',
+    renderIcon: (color, isFocused) => (
+      <IconCalendar size={19} color={color} strokeWidth={isFocused ? 2.2 : 1.8} />
+    ),
+  },
+  map: {
+    label: 'Atlas',
+    renderIcon: (color, isFocused) => (
+      <IconCompass size={19} color={color} strokeWidth={isFocused ? 2.2 : 1.8} />
+    ),
+  },
 };
 
-const PILL_WIDTH = 275;
+const PILL_WIDTH = 296;
 const PADDING_H = 6;
-const INNER_WIDTH = PILL_WIDTH - PADDING_H * 2; // 263
+const INNER_WIDTH = PILL_WIDTH - PADDING_H * 2; // 284
 const NUM_TABS = 4;
-const TAB_ITEM_WIDTH = INNER_WIDTH / NUM_TABS; // ~65.75
+const TAB_ITEM_WIDTH = INNER_WIDTH / NUM_TABS; // 71
 
 export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   // Filter only the 4 visible main routes
   const visibleRoutes = state.routes.filter((route) => {
     const { options } = descriptors[route.key];
-    return (options as any).href !== null && TAB_EMOJIS[route.name] !== undefined;
+    return (options as any).href !== null && TAB_CONFIG[route.name] !== undefined;
   });
 
   const activeIndex = Math.max(
@@ -56,7 +82,7 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
   return (
     <View style={styles.outerWrapper} pointerEvents="box-none">
       <View style={styles.glassPill}>
-        {/* Animated Sliding Frosted Glass Indicator Pill */}
+        {/* Animated Sliding Coral Glass Indicator Pill */}
         <Animated.View
           style={[
             styles.slidingIndicatorPill,
@@ -69,7 +95,13 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
 
         {visibleRoutes.map((route, idx) => {
           const isFocused = activeIndex === idx;
-          const emoji = TAB_EMOJIS[route.name] || '✦';
+          const config = TAB_CONFIG[route.name] || {
+            label: 'Tab',
+            renderIcon: () => null,
+          };
+
+          const iconColor = isFocused ? '#FFFFFF' : 'rgba(255, 248, 242, 0.52)';
+          const textColor = isFocused ? '#FFFFFF' : 'rgba(255, 248, 242, 0.44)';
 
           const onPress = () => {
             triggerHaptic('selection');
@@ -88,18 +120,24 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
             <TouchableOpacity
               key={route.key}
               onPress={onPress}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
               style={styles.tabButton}
               accessibilityRole="button"
+              accessibilityLabel={config.label}
               accessibilityState={isFocused ? { selected: true } : {}}
             >
+              <View style={styles.iconBox}>
+                {config.renderIcon(iconColor, isFocused)}
+              </View>
               <Text
                 style={[
-                  styles.tabEmoji,
-                  isFocused ? styles.tabEmojiActive : styles.tabEmojiInactive,
+                  styles.tabLabel,
+                  { color: textColor },
+                  isFocused && styles.tabLabelActive,
                 ]}
+                numberOfLines={1}
               >
-                {emoji}
+                {config.label}
               </Text>
             </TouchableOpacity>
           );
@@ -112,7 +150,7 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
 const styles = StyleSheet.create({
   outerWrapper: {
     position: 'absolute',
-    bottom: Platform.OS === 'web' ? 22 : 28,
+    bottom: Platform.OS === 'web' ? 20 : 26,
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -125,25 +163,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: PILL_WIDTH,
-    height: 56,
-    borderRadius: 28,
+    height: 58,
+    borderRadius: 29,
     paddingHorizontal: PADDING_H,
     paddingVertical: 5,
-    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.40)' : 'rgba(255, 255, 255, 0.72)',
+    backgroundColor: 'rgba(10, 20, 38, 0.88)',
     ...(Platform.OS === 'web'
       ? ({
-          backdropFilter: 'blur(36px) saturate(220%)',
-          WebkitBackdropFilter: 'blur(36px) saturate(220%)',
+          backdropFilter: 'blur(32px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(32px) saturate(200%)',
           boxShadow:
-            '0 14px 38px 0 rgba(0, 0, 0, 0.22), inset 0 1px 2px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.06)',
+            '0 16px 40px 0 rgba(0, 0, 0, 0.45), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.20), inset 0 -1px 1.5px 0 rgba(0, 0, 0, 0.40)',
         } as any)
       : {}),
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.85)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 248, 242, 0.12)',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 28,
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
     elevation: 16,
   },
   slidingIndicatorPill: {
@@ -151,20 +189,21 @@ const styles = StyleSheet.create({
     top: 5,
     bottom: 5,
     left: PADDING_H,
-    borderRadius: 23,
-    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.72)' : 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 24,
+    backgroundColor: 'rgba(224, 86, 102, 0.32)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.95)',
+    borderColor: 'rgba(224, 86, 102, 0.65)',
     ...(Platform.OS === 'web'
       ? ({
           boxShadow:
-            '0 3px 10px 0 rgba(0, 0, 0, 0.10), inset 0 1px 1px 0 rgba(255, 255, 255, 0.95)',
+            '0 4px 14px 0 rgba(224, 86, 102, 0.35), inset 0 1px 1px 0 rgba(255, 255, 255, 0.30)',
         } as any)
       : {}),
-    shadowColor: 'rgba(0, 0, 0, 0.10)',
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: '#E05666',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 6,
     zIndex: 1,
   },
   tabButton: {
@@ -172,20 +211,23 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 22,
+    borderRadius: 24,
     zIndex: 2,
+    paddingTop: 2,
   },
-  tabEmoji: {
-    textAlign: 'center',
+  iconBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
   },
-  tabEmojiActive: {
-    fontSize: 22,
-    opacity: 1,
-    transform: [{ scale: 1.08 }],
+  tabLabel: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 10,
+    letterSpacing: -0.1,
+    lineHeight: 12,
   },
-  tabEmojiInactive: {
-    fontSize: 18,
-    opacity: 0.52,
-    transform: [{ scale: 0.95 }],
+  tabLabelActive: {
+    fontFamily: 'Inter_600SemiBold',
+    fontWeight: '600',
   },
 });

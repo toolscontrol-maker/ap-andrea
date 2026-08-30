@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { AndreaMapPlace } from '../../types/map';
 import { Radii } from '../../theme/tokens';
@@ -45,7 +45,7 @@ export function MapMarker({
 
   const renderIcon = () => {
     const iconColor = '#FFFFFF';
-    const iconSize = isSelected ? 16 : 14;
+    const iconSize = isSelected ? 17 : 14;
 
     switch (place.type) {
       case 'memory':
@@ -81,6 +81,7 @@ export function MapMarker({
         style={[
           styles.markerOrb,
           { backgroundColor: markerColor },
+          isMulti && styles.markerOrbMulti,
           isSelected && styles.markerOrbSelected,
         ]}
       >
@@ -116,54 +117,59 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   markerOrb: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     borderRadius: Radii.full,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.95)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 248, 242, 0.95)',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.5,
     shadowRadius: 10,
     elevation: 8,
     position: 'relative',
   },
+  markerOrbMulti: {
+    width: 42,
+    height: 42,
+  },
   markerOrbSelected: {
-    width: 38,
-    height: 38,
-    borderWidth: 3,
+    width: 42,
+    height: 42,
+    borderWidth: 2.5,
     borderColor: '#FFFFFF',
     shadowColor: '#E05666',
-    shadowOpacity: 0.9,
+    shadowOpacity: 0.8,
     shadowRadius: 16,
   },
   badgePill: {
     position: 'absolute',
     top: -5,
-    right: -7,
-    backgroundColor: '#141210',
-    borderRadius: 8,
-    paddingHorizontal: 4,
+    right: -6,
+    backgroundColor: '#0A1426',
+    borderRadius: 9,
+    paddingHorizontal: 5,
     paddingVertical: 1,
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
+    borderColor: 'rgba(255, 248, 242, 0.95)',
   },
   badgeText: {
+    fontFamily: 'Inter_700Bold',
     color: '#FFFFFF',
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   labelContainer: {
-    marginTop: 5,
-    backgroundColor: 'rgba(18, 16, 15, 0.88)',
-    borderRadius: 6,
-    paddingHorizontal: 8,
+    marginTop: 6,
+    backgroundColor: 'rgba(8, 16, 32, 0.92)',
+    borderRadius: 8,
+    paddingHorizontal: 9,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    maxWidth: 130,
+    borderColor: 'rgba(255, 248, 242, 0.2)',
+    maxWidth: 140,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
@@ -171,8 +177,8 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   labelText: {
+    fontFamily: 'Inter_600SemiBold',
     fontSize: 11,
-    fontWeight: '600',
     color: '#FFFFFF',
     textAlign: 'center',
     lineHeight: 14,

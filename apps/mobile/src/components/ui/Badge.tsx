@@ -5,7 +5,7 @@ import { Radii, Spacing, Typography } from '../../theme/tokens';
 
 interface BadgeProps {
   children: ReactNode;
-  variant?: 'primary' | 'secondary' | 'sage' | 'butter' | 'mistBlue' | 'neutral' | 'vintage';
+  variant?: 'primary' | 'secondary' | 'sage' | 'butter' | 'mistBlue' | 'neutral';
   size?: 'sm' | 'md';
   icon?: ReactNode;
   style?: ViewStyle;
@@ -35,65 +35,53 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    borderRadius: Radii.xs,
+    borderRadius: Radii.sm,
     gap: Spacing.xs,
-    borderWidth: 1,
-    borderColor: 'transparent',
   },
   size_sm: {
     paddingHorizontal: Spacing.xs + 2,
     paddingVertical: 2,
-    borderRadius: Radii.xs,
+    borderRadius: Radii.xs + 2,
   },
   size_md: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
-    borderRadius: Radii.xs + 2,
+    borderRadius: Radii.sm,
   },
   primary: {
-    backgroundColor: '#111111',
-    borderColor: '#111111',
+    backgroundColor: Colors.light.primaryLight,
   },
   secondary: {
-    backgroundColor: Colors.light.backgroundWarm,
-    borderColor: Colors.light.border,
+    backgroundColor: Colors.light.secondaryLight,
   },
   sage: {
     backgroundColor: Colors.light.sageLight,
-    borderColor: 'rgba(94, 112, 99, 0.2)',
   },
   butter: {
     backgroundColor: Colors.light.butterLight,
-    borderColor: 'rgba(140, 115, 75, 0.2)',
   },
   mistBlue: {
     backgroundColor: Colors.light.mistBlueLight,
-    borderColor: 'rgba(74, 91, 104, 0.2)',
   },
   neutral: {
-    backgroundColor: '#FFFFFF',
-    borderColor: Colors.light.border,
-  },
-  vintage: {
-    backgroundColor: 'transparent',
-    borderColor: Colors.light.borderStrong,
+    backgroundColor: Colors.light.surfaceSubtle,
   },
   baseText: {
-    ...Typography.vintageTag,
+    ...Typography.captionBold,
   },
   textSize_sm: {
-    fontSize: 9.5,
-    lineHeight: 12,
+    fontSize: 10,
+    lineHeight: 13,
   },
   textSize_md: {
-    fontSize: 10.5,
-    lineHeight: 14,
+    fontSize: 11,
+    lineHeight: 15,
   },
   text_primary: {
-    color: '#FFFFFF',
+    color: Colors.light.primaryDark,
   },
   text_secondary: {
-    color: Colors.light.text,
+    color: Colors.light.secondaryDark,
   },
   text_sage: {
     color: Colors.light.sageDark,
@@ -102,12 +90,9 @@ const styles = StyleSheet.create({
     color: Colors.light.butterDark,
   },
   text_mistBlue: {
-    color: Colors.light.mistBlueDark,
+    color: '#2A5570',
   },
   text_neutral: {
     color: Colors.light.textSecondary,
-  },
-  text_vintage: {
-    color: Colors.light.text,
   },
 });

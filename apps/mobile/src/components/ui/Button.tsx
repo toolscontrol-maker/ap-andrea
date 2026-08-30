@@ -7,7 +7,7 @@ import { PressableScale } from './PressableScale';
 interface ButtonProps {
   children: ReactNode;
   onPress?: () => void;
-  variant?: 'primary' | 'secondary' | 'sage' | 'butter' | 'mistBlue' | 'outline' | 'ghost' | 'glass';
+  variant?: 'primary' | 'secondary' | 'sage' | 'butter' | 'mistBlue' | 'outline' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   disabled?: boolean;
@@ -31,7 +31,6 @@ export function Button({
 }: ButtonProps) {
   const isOutline = variant === 'outline';
   const isGhost = variant === 'ghost';
-  const isGlass = variant === 'glass';
 
   return (
     <PressableScale
@@ -50,7 +49,7 @@ export function Button({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={isOutline || isGhost || isGlass ? Colors.light.text : '#FFFFFF'}
+          color={isOutline || isGhost ? Colors.light.primary : '#FFFFFF'}
         />
       ) : (
         <>
@@ -77,77 +76,75 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radii.full,
-    gap: Spacing.xs + 2,
+    borderRadius: Radii.md,
+    gap: Spacing.xs,
   },
   primary: {
-    backgroundColor: '#111111',
+    backgroundColor: Colors.light.primary,
     borderWidth: 1,
-    borderColor: '#111111',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
     ...Shadows.sm,
   },
   secondary: {
-    backgroundColor: Colors.light.backgroundWarm,
+    backgroundColor: Colors.light.secondary,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    ...Shadows.sm,
   },
   sage: {
     backgroundColor: Colors.light.sage,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    ...Shadows.sm,
   },
   butter: {
     backgroundColor: Colors.light.butterDark,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    ...Shadows.sm,
   },
   mistBlue: {
     backgroundColor: Colors.light.mistBlue,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  glass: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderWidth: 1,
-    borderColor: Colors.light.borderStrong,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
     ...Shadows.sm,
   },
   outline: {
     backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.light.borderDark,
+    borderWidth: 1.5,
+    borderColor: Colors.light.primary,
   },
   ghost: {
     backgroundColor: 'transparent',
   },
   size_sm: {
-    paddingVertical: Spacing.xs + 3,
-    paddingHorizontal: Spacing.md + 2,
-    borderRadius: Radii.full,
+    paddingVertical: Spacing.xs + 2,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.sm,
   },
   size_md: {
-    paddingVertical: Spacing.sm + 3,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: Radii.full,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radii.md,
   },
   size_lg: {
-    paddingVertical: Spacing.md + 2,
-    paddingHorizontal: Spacing['2xl'],
-    borderRadius: Radii.full,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: Radii.lg,
   },
   disabled: {
-    opacity: 0.4,
+    opacity: 0.45,
   },
   baseText: {
     fontWeight: '600',
     textAlign: 'center',
-    letterSpacing: 0.4,
+    letterSpacing: -0.2,
   },
   text_primary: {
     color: '#FFFFFF',
   },
   text_secondary: {
-    color: Colors.light.text,
+    color: '#FFFFFF',
   },
   text_sage: {
     color: '#FFFFFF',
@@ -158,22 +155,22 @@ const styles = StyleSheet.create({
   text_mistBlue: {
     color: '#FFFFFF',
   },
-  text_glass: {
-    color: Colors.light.text,
-  },
   text_outline: {
-    color: Colors.light.text,
+    color: Colors.light.primary,
   },
   text_ghost: {
     color: Colors.light.textSecondary,
   },
   textSize_sm: {
-    ...Typography.captionBold,
+    ...Typography.footnote,
+    fontWeight: '600',
   },
   textSize_md: {
-    ...Typography.bodyMedium,
+    ...Typography.body,
+    fontWeight: '600',
   },
   textSize_lg: {
     ...Typography.headline,
+    fontWeight: '600',
   },
 });
