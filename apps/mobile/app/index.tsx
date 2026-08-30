@@ -1,17 +1,14 @@
 import React from 'react';
 import { Redirect } from 'expo-router';
 import { useDev } from '../src/context/DevContext';
+import LoginScreen from './(auth)/login';
 
 export default function IndexScreen() {
   const { isAuthenticated, isLoaded } = useDev();
 
-  if (!isLoaded) {
-    return null;
+  if (isLoaded && isAuthenticated) {
+    return <Redirect href="/(tabs)/home" />;
   }
 
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
-  }
-
-  return <Redirect href="/(tabs)/home" />;
+  return <LoginScreen />;
 }
