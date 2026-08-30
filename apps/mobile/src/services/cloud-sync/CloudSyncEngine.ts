@@ -392,7 +392,7 @@ class CloudSyncEngineService {
           phone_number: wish.phoneNumber,
           restaurant_id: wish.restaurantId,
           updated_at: new Date().toISOString(),
-        });
+        }, { onConflict: 'id' });
       }
     } catch (e) {
       console.warn('[CloudSync] Wish sync error:', e);
@@ -440,7 +440,7 @@ class CloudSyncEngineService {
           photos: place.photos,
           visits: place.visits,
           updated_at: new Date().toISOString(),
-        });
+        }, { onConflict: 'id' });
       }
     } catch (e) {
       console.warn('[CloudSync] Place sync error:', e);
@@ -484,7 +484,7 @@ class CloudSyncEngineService {
           visibility: mapPlace.visibility || 'couple',
           is_milestone: mapPlace.isMilestone ?? false,
           updated_at: new Date().toISOString(),
-        });
+        }, { onConflict: 'id' });
       }
     } catch (e) {
       console.warn('[CloudSync] Map place sync error:', e);
@@ -511,7 +511,7 @@ class CloudSyncEngineService {
           visibility: event.visibility,
           status: event.status,
           updated_at: new Date().toISOString(),
-        });
+        }, { onConflict: 'id' });
       }
     } catch (e) {
       console.warn('[CloudSync] Event sync error:', e);
