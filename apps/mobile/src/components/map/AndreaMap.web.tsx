@@ -120,9 +120,13 @@ export function AndreaMap({
     placeGroups.forEach((group) => {
       if (!group) return;
 
-      const placesList = Array.isArray(group.places) ? group.places : [];
-      const primaryPlace = placesList[0] || (group as any);
-      const isMulti = (group.count || placesList.length) > 1;
+      const placesList = Array.isArray(group.items)
+        ? group.items
+        : Array.isArray((group as any).places)
+        ? (group as any).places
+        : [];
+      const primaryPlace = placesList[0];
+      const isMulti = group.kind === 'same_place_group' || (group.itemCount || placesList.length) > 1;
 
       const isSelected =
         selectedGroupId === group.id ||
@@ -134,7 +138,7 @@ export function AndreaMap({
       if (isNaN(lat) || isNaN(lng)) return;
 
       // Custom marker icon HTML/SVG
-      const markerType = group.primaryType || primaryPlace?.type || 'memory';
+      const markerType = group.dominantType || (group as any).primaryType || primaryPlace?.type || 'memory';
       let badgeColor = '#EF826A'; // Coral
       let badgeIcon = '❤️';
 
@@ -149,7 +153,7 @@ export function AndreaMap({
         badgeIcon = '🎁';
       }
 
-      const displayCount = group.count || placesList.length || 1;
+      const displayCount = group.itemCount || (group as any).count || placesList.length || 1;
       const pinSvg = isMulti
         ? '<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="22" cy="22" r="18" fill="' + badgeColor + '" stroke="#FFFFFF" stroke-width="3" filter="drop-shadow(0 4px 10px rgba(58,47,56,0.18))"/><text x="22" y="27" text-anchor="middle" fill="#3A2F38" font-family="Inter, sans-serif" font-weight="bold" font-size="14">' + displayCount + '</text></svg>'
         : '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="16" fill="' + badgeColor + '" stroke="#FFFFFF" stroke-width="2.5" filter="drop-shadow(0 3px 8px rgba(58,47,56,0.16))"/><text x="20" y="24" text-anchor="middle" font-size="14">' + badgeIcon + '</text></svg>';
@@ -171,7 +175,7 @@ export function AndreaMap({
         triggerHaptic('selection');
         if (isMulti && onGroupPress) {
           onGroupPress(group);
-        } else if (onPlacePress && primaryPlace) {
+        } else if (primaryPlace && onPlacePress) {
           onPlacePress(primaryPlace);
         }
       });
