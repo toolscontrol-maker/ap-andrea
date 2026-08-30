@@ -111,7 +111,7 @@ export function AddPlaceLocationModal({
         setTripDurationDays(String(initialPlace.tripDurationDays || 3));
         setVisitedPlacesText((initialPlace.visitedPlaces || []).join(', '));
 
-        setStep('search');
+        setStep('confirm_pin');
       } else {
         setStep('search');
         setSearchQuery('');
@@ -301,11 +301,13 @@ export function AddPlaceLocationModal({
 
   const handleManualPin = () => {
     triggerHaptic('medium');
-    setSelectedCoordinates([-0.3763, 39.4699]);
-    setVerifiedName('Punto en el mapa');
-    setVerifiedAddress('Valencia, España');
-    setVerifiedCity('Valencia');
-    setTitle(searchQuery || 'Nuestro Rincón');
+    if (!initialPlace) {
+      setSelectedCoordinates([-0.3763, 39.4699]);
+      setVerifiedName('Punto en el mapa');
+      setVerifiedAddress('Valencia, España');
+      setVerifiedCity('Valencia');
+      setTitle(searchQuery || 'Nuestro Rincón');
+    }
     setLocationSource('manual_pin');
     setStep('confirm_pin');
   };
