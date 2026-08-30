@@ -19,6 +19,7 @@ import { PrivacyBetaNotice } from '../../../src/components/privacy/PrivacyBetaNo
 import { ScreenWrapper } from '../../../src/components/ui/ScreenWrapper';
 import { SectionHeader } from '../../../src/components/ui/SectionHeader';
 import { Badge } from '../../../src/components/ui/Badge';
+import { Button } from '../../../src/components/ui/Button';
 import { TiltedCard } from '../../../src/components/ui/TiltedCard';
 import { PhotoUploadField } from '../../../src/components/ui/PhotoUploadField';
 import {
