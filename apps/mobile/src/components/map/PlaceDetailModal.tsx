@@ -31,6 +31,8 @@ export function PlaceDetailModal({
   onEditPlace,
   onDeletePlace,
 }: PlaceDetailModalProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState<boolean>(false);
+
   if (!place) return null;
 
   const isVideoMedia = (url?: string | null): boolean => {
@@ -47,31 +49,7 @@ export function PlaceDetailModal({
 
   const handleDeleteConfirm = () => {
     triggerHaptic('warning');
-    if (Platform.OS === 'web') {
-      const ok = window.confirm(`¿Estás seguro de que deseas eliminar "${place.title}" del mapa?`);
-      if (ok) {
-        triggerHaptic('error');
-        if (onDeletePlace) onDeletePlace(place.id);
-        onClose();
-      }
-    } else {
-      Alert.alert(
-        '🗑️ Eliminar Rincón',
-        `¿Estás seguro de que deseas eliminar "${place.title}" del mapa?`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Eliminar',
-            style: 'destructive',
-            onPress: () => {
-              triggerHaptic('error');
-              if (onDeletePlace) onDeletePlace(place.id);
-              onClose();
-            },
-          },
-        ]
-      );
-    }
+    setShowDeleteConfirm(true);
   };
 
   const photoCount = Array.from(
@@ -322,6 +300,50 @@ export function PlaceDetailModal({
             <View style={{ height: 36 }} />
           </ScrollView>
         </View>
+
+        {showDeleteConfirm && (
+          <Modal
+            visible={showDeleteConfirm}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowDeleteConfirm(false)}
+          >
+            <View style={styles.confirmModalOverlay}>
+              <View style={styles.confirmModalCard}>
+                <View style={styles.confirmTrashCircle}>
+                  <IconTrash size={26} color="#D94354" strokeWidth={2.2} />
+                </View>
+                <Text style={styles.confirmModalTitle}>¿Eliminar "{place.title}"?</Text>
+                <Text style={styles.confirmModalSubtitle}>
+                  Este rincón se eliminará por completo del mapa y de la base de datos de Supabase para ambos.
+                </Text>
+
+                <View style={styles.confirmModalButtons}>
+                  <TouchableOpacity
+                    style={styles.confirmDeleteBtn}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setShowDeleteConfirm(false);
+                      triggerHaptic('error');
+                      if (onDeletePlace) onDeletePlace(place.id);
+                      onClose();
+                    }}
+                  >
+                    <Text style={styles.confirmDeleteBtnText}>🗑️ Sí, eliminar rincón</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.confirmCancelBtn}
+                    activeOpacity={0.85}
+                    onPress={() => setShowDeleteConfirm(false)}
+                  >
+                    <Text style={styles.confirmCancelBtnText}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        )}
       </View>
     </Modal>
   );
@@ -589,5 +611,79 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#C04D5C',
     fontFamily: 'Inter, sans-serif',
+  },
+  confirmModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    zIndex: 9999,
+  },
+  confirmModalCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 24,
+  },
+  confirmTrashCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FDF0F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  confirmModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#3A2F38',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  confirmModalSubtitle: {
+    fontSize: 13,
+    color: '#766B72',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 20,
+  },
+  confirmModalButtons: {
+    width: '100%',
+    gap: 10,
+  },
+  confirmDeleteBtn: {
+    backgroundColor: '#D94354',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    shadowColor: '#D94354',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  confirmDeleteBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  confirmCancelBtn: {
+    backgroundColor: '#F5EFE8',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  confirmCancelBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#3A2F38',
   },
 });

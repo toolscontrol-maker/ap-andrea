@@ -41,6 +41,7 @@ export function PlaceGalleryModal({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadStatus, setUploadStatus] = useState<string>('');
+  const [photoToDelete, setPhotoToDelete] = useState<string | null>(null);
 
   if (!place) return null;
 
@@ -142,31 +143,7 @@ export function PlaceGalleryModal({
 
   const confirmDeletePhoto = (photoUrl: string) => {
     triggerHaptic('warning');
-    if (Platform.OS === 'web') {
-      const ok = window.confirm('¿Quieres eliminar esta fotografía de la galería compartida?');
-      if (ok) {
-        triggerHaptic('error');
-        if (onRemovePhoto) onRemovePhoto(place.id, photoUrl);
-        if (selectedImage === photoUrl) setSelectedImage(null);
-      }
-    } else {
-      Alert.alert(
-        '🗑️ Eliminar Fotografía',
-        '¿Quieres eliminar esta fotografía de la galería compartida?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Eliminar',
-            style: 'destructive',
-            onPress: () => {
-              triggerHaptic('error');
-              if (onRemovePhoto) onRemovePhoto(place.id, photoUrl);
-              if (selectedImage === photoUrl) setSelectedImage(null);
-            },
-          },
-        ]
-      );
-    }
+    setPhotoToDelete(photoUrl);
   };
 
   // Drag and drop handlers for web
@@ -430,6 +407,52 @@ export function PlaceGalleryModal({
                   <IconTrash size={15} color="#FFFFFF" />
                   <Text style={styles.lightboxDeleteActionText}>Eliminar foto</Text>
                 </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        {/* In-App Confirmation Modal (100% reliable on iOS, Android, and Desktop) */}
+        {photoToDelete && (
+          <Modal
+            visible={Boolean(photoToDelete)}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setPhotoToDelete(null)}
+          >
+            <View style={styles.confirmModalOverlay}>
+              <View style={styles.confirmModalCard}>
+                <View style={styles.confirmTrashCircle}>
+                  <IconTrash size={26} color="#D94354" strokeWidth={2.2} />
+                </View>
+                <Text style={styles.confirmModalTitle}>¿Eliminar este recuerdo?</Text>
+                <Text style={styles.confirmModalSubtitle}>
+                  Esta foto o vídeo se eliminará de la galería compartida de este rincón para ambos.
+                </Text>
+
+                <View style={styles.confirmModalButtons}>
+                  <TouchableOpacity
+                    style={styles.confirmDeleteBtn}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      const target = photoToDelete;
+                      setPhotoToDelete(null);
+                      if (selectedImage === target) setSelectedImage(null);
+                      triggerHaptic('error');
+                      if (onRemovePhoto) onRemovePhoto(place.id, target);
+                    }}
+                  >
+                    <Text style={styles.confirmDeleteBtnText}>🗑️ Sí, eliminar</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.confirmCancelBtn}
+                    activeOpacity={0.85}
+                    onPress={() => setPhotoToDelete(null)}
+                  >
+                    <Text style={styles.confirmCancelBtnText}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </Modal>
@@ -815,5 +838,79 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.5,
+  },
+  confirmModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    zIndex: 9999,
+  },
+  confirmModalCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 24,
+  },
+  confirmTrashCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FDF0F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  confirmModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#3A2F38',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  confirmModalSubtitle: {
+    fontSize: 13,
+    color: '#766B72',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 20,
+  },
+  confirmModalButtons: {
+    width: '100%',
+    gap: 10,
+  },
+  confirmDeleteBtn: {
+    backgroundColor: '#D94354',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    shadowColor: '#D94354',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  confirmDeleteBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  confirmCancelBtn: {
+    backgroundColor: '#F5EFE8',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  confirmCancelBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#3A2F38',
   },
 });
