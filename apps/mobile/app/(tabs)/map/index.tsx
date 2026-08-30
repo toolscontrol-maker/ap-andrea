@@ -240,7 +240,7 @@ export default function MapScreen() {
 
   const handleAddPhotoToPlace = useCallback(async (placeId: string, newPhotoUrl: string) => {
     let finalPhotoUrl = newPhotoUrl;
-    if (newPhotoUrl && newPhotoUrl.startsWith('data:')) {
+    if (newPhotoUrl && (newPhotoUrl.startsWith('data:') || newPhotoUrl.startsWith('blob:'))) {
       try {
         finalPhotoUrl = await CloudSyncEngine.uploadMediaImage(newPhotoUrl, `map_photo_${placeId}_${Date.now()}.jpg`);
       } catch (e) {
@@ -288,11 +288,11 @@ export default function MapScreen() {
 
   const handleSaveVerifiedPlace = async (place: AndreaMapPlace) => {
     let updatedPlace = { ...place };
-    if (place.imageUrl && place.imageUrl.startsWith('data:')) {
+    if (place.imageUrl && (place.imageUrl.startsWith('data:') || place.imageUrl.startsWith('blob:'))) {
       try {
         const uploaded = await CloudSyncEngine.uploadMediaImage(place.imageUrl, `map_cover_${place.id}_${Date.now()}.jpg`);
         updatedPlace.imageUrl = uploaded;
-        updatedPlace.photos = updatedPlace.photos ? updatedPlace.photos.map(p => p.startsWith('data:') ? uploaded : p) : [uploaded];
+        updatedPlace.photos = Array.from(new Set([uploaded, ...(place.photos?.filter(p => !p.startsWith('data:') && !p.startsWith('blob:')) || [])]));
       } catch (e) {
         console.warn('[Map] Error uploading cover photo:', e);
       }

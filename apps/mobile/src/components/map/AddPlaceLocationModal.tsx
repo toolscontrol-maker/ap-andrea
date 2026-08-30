@@ -347,7 +347,9 @@ export function AddPlaceLocationModal({
       formattedAddress: verifiedAddress,
       city: verifiedCity,
       imageUrl: photoUrl || initialPlace?.imageUrl || undefined,
-      photos: initialPlace?.photos || (photoUrl ? [photoUrl] : []),
+      photos: photoUrl
+        ? Array.from(new Set([photoUrl, ...(initialPlace?.photos || [])]))
+        : (initialPlace?.photos || []),
       date: date || new Date().toISOString().split('T')[0],
       isRevealed: true,
 

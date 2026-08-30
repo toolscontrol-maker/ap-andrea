@@ -412,6 +412,31 @@ class CloudSyncEngineService {
 
   // ── 2. PLACES / RESTAURANTS ──
   public async syncSavedPlace(place: Place) {
+    let coverUrl = place.coverImageUrl;
+    if (coverUrl && (coverUrl.startsWith('data:') || coverUrl.startsWith('blob:'))) {
+      try {
+        coverUrl = await this.uploadMediaImage(coverUrl, `place_cover_${place.id}_${Date.now()}.jpg`);
+        place.coverImageUrl = coverUrl;
+      } catch (err) {
+        console.warn('[CloudSync] Error uploading place cover:', err);
+      }
+    }
+
+    let uploadedPhotos: string[] = [];
+    const rawPhotos = place.photos && place.photos.length > 0 ? place.photos : (coverUrl ? [coverUrl] : []);
+    for (let i = 0; i < rawPhotos.length; i++) {
+      let p = rawPhotos[i];
+      if (p && (p.startsWith('data:') || p.startsWith('blob:'))) {
+        try {
+          p = await this.uploadMediaImage(p, `place_photo_${place.id}_${i}_${Date.now()}.jpg`);
+        } catch (err) {
+          console.warn('[CloudSync] Error uploading place photo:', err);
+        }
+      }
+      if (p) uploadedPhotos.push(p);
+    }
+    place.photos = uploadedPhotos;
+
     this.broadcastLocal('saved_places', 'UPDATE', place);
     try {
       if (this.isSupabaseConfigured()) {
@@ -436,8 +461,8 @@ class CloudSyncEngineService {
           tags: place.tags,
           rating_personal: place.ratingPersonal,
           note: place.note,
-          cover_image_url: place.coverImageUrl,
-          photos: place.photos,
+          cover_image_url: coverUrl || '',
+          photos: uploadedPhotos,
           visits: place.visits,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'id' });
@@ -460,6 +485,34 @@ class CloudSyncEngineService {
 
   // ── 3. MAP PLACES / ATLAS ──
   public async syncMapPlace(mapPlace: any) {
+    let coverUrl = mapPlace.imageUrl || (mapPlace.photos && mapPlace.photos[0]) || null;
+    if (coverUrl && (coverUrl.startsWith('data:') || coverUrl.startsWith('blob:'))) {
+      try {
+        coverUrl = await this.uploadMediaImage(coverUrl, `map_cover_${mapPlace.id}_${Date.now()}.jpg`);
+        mapPlace.imageUrl = coverUrl;
+      } catch (err) {
+        console.warn('[CloudSync] Error uploading map cover:', err);
+      }
+    }
+
+    let uploadedPhotos: string[] = [];
+    const rawPhotos = mapPlace.photos && mapPlace.photos.length > 0 ? mapPlace.photos : (coverUrl ? [coverUrl] : []);
+    for (let i = 0; i < rawPhotos.length; i++) {
+      let p = rawPhotos[i];
+      if (p && (p.startsWith('data:') || p.startsWith('blob:'))) {
+        try {
+          p = await this.uploadMediaImage(p, `map_photo_${mapPlace.id}_${i}_${Date.now()}.jpg`);
+        } catch (err) {
+          console.warn('[CloudSync] Error uploading map photo:', err);
+        }
+      }
+      if (p) uploadedPhotos.push(p);
+    }
+    mapPlace.photos = uploadedPhotos;
+    if (!mapPlace.imageUrl && uploadedPhotos.length > 0) {
+      mapPlace.imageUrl = uploadedPhotos[0];
+    }
+
     this.broadcastLocal('map_places', 'UPDATE', mapPlace);
     try {
       if (this.isSupabaseConfigured()) {
@@ -479,7 +532,7 @@ class CloudSyncEngineService {
           story: mapPlace.description || mapPlace.story,
           category: mapPlace.type || mapPlace.category,
           mood_tag: metaStr,
-          photos: mapPlace.photos || (mapPlace.imageUrl ? [mapPlace.imageUrl] : []),
+          photos: uploadedPhotos,
           location_precision: mapPlace.precision || mapPlace.locationPrecision || 'exact',
           visibility: mapPlace.visibility || 'couple',
           is_milestone: mapPlace.isMilestone ?? false,
