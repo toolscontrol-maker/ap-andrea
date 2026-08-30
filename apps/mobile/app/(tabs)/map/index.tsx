@@ -37,7 +37,7 @@ export default function MapScreen() {
 
   useEffect(() => {
     async function loadPlaces() {
-      const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v3', DEMO_MAP_PLACES);
+      const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v4', DEMO_MAP_PLACES);
       if (saved && saved.length > 0) {
         // Guarantee latest authentic milestones are always synced while keeping user-added pins
         const milestoneIds = DEMO_MAP_PLACES.map((p) => p.id);
@@ -53,7 +53,7 @@ export default function MapScreen() {
 
   useEffect(() => {
     if (!isLoaded) return;
-    StorageEngine.setItem('andrea_map_places_v3', allPlaces);
+    StorageEngine.setItem('andrea_map_places_v4', allPlaces);
   }, [allPlaces, isLoaded]);
 
   // Filtered places based on active chip
