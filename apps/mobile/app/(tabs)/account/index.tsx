@@ -89,9 +89,11 @@ export default function AccountScreen() {
   // Anniversary & milestones calculation
   const ANNIVERSARY_DATE = new Date('2025-02-15');
   const FIRST_MET_DATE = new Date('2024-11-23');
+  const FIRST_KISS_DATE = new Date('2024-12-08');
   const now = new Date();
   const diffDays = Math.max(1, Math.floor((now.getTime() - ANNIVERSARY_DATE.getTime()) / (1000 * 60 * 60 * 24)));
   const daysSinceMet = Math.max(1, Math.floor((now.getTime() - FIRST_MET_DATE.getTime()) / (1000 * 60 * 60 * 24)));
+  const daysSinceKiss = Math.max(1, Math.floor((now.getTime() - FIRST_KISS_DATE.getTime()) / (1000 * 60 * 60 * 24)));
 
   const handleOpenEditProfile = (userId: string) => {
     triggerHaptic('selection');
