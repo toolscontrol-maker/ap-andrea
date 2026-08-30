@@ -4,23 +4,19 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Modal,
-  TextInput,
-  ScrollView,
   Alert,
-  Platform
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AndreaMap } from '../../../src/components/map/AndreaMap';
 import { MapFilters, MapFilterKey, FILTER_TYPE_MAP } from '../../../src/components/map/MapFilters';
 import { MapBottomSheet } from '../../../src/components/map/MapBottomSheet';
-import { DEMO_MAP_PLACES, DEFAULT_MAP_CAMERA } from '../../../src/components/map/map.constants';
-import { AndreaMapPlace, MapPlaceType } from '../../../src/types/map';
-import { Radii, Spacing, Typography } from '../../../src/theme/tokens';
+import { AddPlaceLocationModal } from '../../../src/components/map/AddPlaceLocationModal';
+import { DEMO_MAP_PLACES } from '../../../src/components/map/map.constants';
+import { AndreaMapPlace } from '../../../src/types/map';
 import { Colors } from '../../../src/theme/colors';
+import { Radii, Spacing, Typography } from '../../../src/theme/tokens';
 import { IconPlus, IconMapPin } from '../../../src/components/ui/Icons';
-import { Button } from '../../../src/components/ui/Button';
-import { PhotoUploadField } from '../../../src/components/ui/PhotoUploadField';
 import { StorageEngine } from '../../../src/services/storage';
 import { triggerHaptic } from '../../../src/utils/haptics';
 
@@ -34,6 +30,10 @@ export default function MapScreen() {
   // Dynamic places state with local persistence
   const [allPlaces, setAllPlaces] = useState<AndreaMapPlace[]>(DEMO_MAP_PLACES);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Add / Edit Place Modal State
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingPlace, setEditingPlace] = useState<AndreaMapPlace | null>(null);
 
   useEffect(() => {
     async function loadPlaces() {
@@ -55,14 +55,6 @@ export default function MapScreen() {
     if (!isLoaded) return;
     StorageEngine.setItem('andrea_map_places_v3', allPlaces);
   }, [allPlaces, isLoaded]);
-
-  // Add Place Modal State
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [newSubtitle, setNewSubtitle] = useState('');
-  const [newType, setNewType] = useState<MapPlaceType>('memory');
-  const [newPhotoUrl, setNewPhotoUrl] = useState<string | null>(null);
-  const [newDescription, setNewDescription] = useState('');
 
   // Filtered places based on active chip
   const filteredPlaces = useMemo(() => {
@@ -101,48 +93,35 @@ export default function MapScreen() {
   const handleViewDetail = useCallback((place: AndreaMapPlace) => {
     Alert.alert(
       place.title,
-      `${place.subtitle || ''}\n\n${place.description || 'Sin descripción adicional.'}`
+      `${place.subtitle || place.formattedAddress || ''}\n\n${place.description || 'Sin descripción adicional.'}`
     );
   }, []);
 
   const handleOpenAddModal = () => {
     triggerHaptic('light');
+    setEditingPlace(null);
     setIsAddModalOpen(true);
   };
 
-  const handleSavePlace = () => {
-    if (!newTitle.trim()) {
-      Alert.alert('Nombre requerido', 'Por favor introduce un nombre para este rincón.');
-      return;
-    }
+  const handleEditLocation = (place: AndreaMapPlace) => {
+    triggerHaptic('light');
+    setSelectedPlaceId(null);
+    setEditingPlace(place);
+    setIsAddModalOpen(true);
+  };
 
-    triggerHaptic('heavy');
-
-    const newPlace: AndreaMapPlace = {
-      id: `place-custom-${Date.now()}`,
-      title: newTitle.trim(),
-      subtitle: newSubtitle.trim() || 'Valencia',
-      type: newType,
-      latitude: DEFAULT_MAP_CAMERA.latitude + (Math.random() - 0.5) * 0.04,
-      longitude: DEFAULT_MAP_CAMERA.longitude + (Math.random() - 0.5) * 0.04,
-      precision: 'exact',
-      description: newDescription.trim() || undefined,
-      imageUrl: newPhotoUrl || undefined,
-      date: new Date().toISOString().split('T')[0],
-      isRevealed: true,
-    };
-
-    setAllPlaces((prev) => [newPlace, ...prev]);
-    setSelectedPlaceId(newPlace.id);
-
-    // Reset Form
-    setNewTitle('');
-    setNewSubtitle('');
-    setNewPhotoUrl(null);
-    setNewDescription('');
-    setIsAddModalOpen(false);
-
-    Alert.alert('Rincón Guardado', 'Se ha anclado en vuestro mapa de recuerdos.');
+  const handleSaveVerifiedPlace = (place: AndreaMapPlace) => {
+    setAllPlaces((prev) => {
+      const existingIdx = prev.findIndex((p) => p.id === place.id);
+      if (existingIdx >= 0) {
+        const next = [...prev];
+        next[existingIdx] = place;
+        return next;
+      }
+      return [place, ...prev];
+    });
+    setSelectedPlaceId(place.id);
+    setEditingPlace(null);
   };
 
   const handleRecenter = () => {
@@ -231,108 +210,24 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* 5. Place Detail Bottom Sheet */}
+      {/* 5. Place Detail Bottom Sheet with Edit/Move Pin support */}
       <MapBottomSheet
         place={selectedPlace}
         onClose={handleCloseSheet}
         onViewDetail={handleViewDetail}
+        onEditLocation={handleEditLocation}
       />
 
-      {/* 6. Add Place & Photo Modal */}
-      <Modal
+      {/* 6. Real Mapbox Geocoding & Visual Pin Confirmation Modal */}
+      <AddPlaceLocationModal
         visible={isAddModalOpen}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsAddModalOpen(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Añadir Rincón a la Historia</Text>
-              <TouchableOpacity
-                style={styles.modalCloseBtn}
-                onPress={() => setIsAddModalOpen(false)}
-              >
-                <Text style={styles.modalCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>Tipo de Rincón</Text>
-              <View style={styles.typeSelectorRow}>
-                {(['memory', 'restaurant', 'trip', 'dream'] as MapPlaceType[]).map((t) => (
-                  <TouchableOpacity
-                    key={t}
-                    style={[styles.typePill, newType === t && styles.typePillActive]}
-                    onPress={() => {
-                      triggerHaptic('selection');
-                      setNewType(t);
-                    }}
-                  >
-                    <Text
-                      style={[styles.typePillText, newType === t && styles.typePillTextActive]}
-                    >
-                      {t === 'memory'
-                        ? 'Recuerdo'
-                        : t === 'restaurant'
-                        ? 'Restaurante'
-                        : t === 'trip'
-                        ? 'Viaje'
-                        : 'Sueño'}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.inputLabel}>Nombre del lugar o momento *</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="ej. Mirador de la Albufera, Café Central..."
-                placeholderTextColor={Colors.light.textMuted}
-                value={newTitle}
-                onChangeText={setNewTitle}
-              />
-
-              <Text style={styles.inputLabel}>Subtítulo o ciudad</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="ej. Valencia · Atardecer mágico"
-                placeholderTextColor={Colors.light.textMuted}
-                value={newSubtitle}
-                onChangeText={setNewSubtitle}
-              />
-
-              {/* Photo Upload with Camera / Library */}
-              <PhotoUploadField
-                imageUri={newPhotoUrl}
-                onImageChange={setNewPhotoUrl}
-                label="Fotografía del lugar o recuerdo"
-                placeholderText="Toca para abrir cámara o elegir de tu fototeca"
-              />
-
-              <Text style={styles.inputLabel}>Dedicatoria o memoria (opcional)</Text>
-              <TextInput
-                style={[styles.textInput, styles.textArea]}
-                placeholder="Lo que sentimos al estar aquí..."
-                placeholderTextColor={Colors.light.textMuted}
-                value={newDescription}
-                onChangeText={setNewDescription}
-                multiline
-                numberOfLines={3}
-              />
-            </ScrollView>
-
-            <View style={styles.modalFooter}>
-              <Button variant="ghost" onPress={() => setIsAddModalOpen(false)}>
-                Cancelar
-              </Button>
-              <Button variant="primary" onPress={handleSavePlace}>
-                Guardar en el Mapa
-              </Button>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingPlace(null);
+        }}
+        onSavePlace={handleSaveVerifiedPlace}
+        initialPlace={editingPlace}
+      />
     </View>
   );
 }

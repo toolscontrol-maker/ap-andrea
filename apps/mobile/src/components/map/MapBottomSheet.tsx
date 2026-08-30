@@ -17,9 +17,15 @@ interface MapBottomSheetProps {
   place: AndreaMapPlace | null;
   onClose: () => void;
   onViewDetail?: (place: AndreaMapPlace) => void;
+  onEditLocation?: (place: AndreaMapPlace) => void;
 }
 
-export function MapBottomSheet({ place, onClose, onViewDetail }: MapBottomSheetProps) {
+export function MapBottomSheet({
+  place,
+  onClose,
+  onViewDetail,
+  onEditLocation,
+}: MapBottomSheetProps) {
   if (!place) return null;
 
   const isSecretSurprise = place.type === 'surprise' && place.isRevealed === false;
@@ -97,14 +103,24 @@ export function MapBottomSheet({ place, onClose, onViewDetail }: MapBottomSheetP
           </Text>
         )}
 
-        {/* Action Button */}
+        {/* Action Button Row */}
         <View style={styles.footerRow}>
+          {onEditLocation && (
+            <TouchableOpacity
+              style={styles.editLocationButton}
+              activeOpacity={0.8}
+              onPress={() => onEditLocation(place)}
+            >
+              <Text style={styles.editLocationButtonText}>📍 Mover pin / Editar</Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             style={styles.actionButton}
             activeOpacity={0.85}
             onPress={() => onViewDetail && onViewDetail(place)}
           >
-            <Text style={styles.actionButtonText}>Ver detalle del momento</Text>
+            <Text style={styles.actionButtonText}>Ver detalle</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -224,17 +240,35 @@ const styles = StyleSheet.create({
   },
   footerRow: {
     marginTop: Spacing.xs,
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  editLocationButton: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    paddingVertical: 8,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editLocationButtonText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   actionButton: {
+    flex: 1,
     backgroundColor: '#38B6FF',
-    paddingVertical: 9,
+    paddingVertical: 8,
     borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   actionButtonText: {
-    color: '#030C1E',
-    fontSize: 13,
+    fontSize: 12,
+    color: '#FFFFFF',
     fontWeight: '700',
   },
 });
