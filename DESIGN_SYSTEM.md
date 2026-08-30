@@ -56,6 +56,26 @@ Colors.light.text            // #3A2F38 (Ciruela profunda)
 Colors.light.textSecondary   // #766B72 (Gris malva)
 ```
 
+### Tipografía Global Unificada (Inter)
+```typescript
+import { Typography, FontFamily } from '../theme/Typography';
+
+FontFamily.regular   // 'Inter_400Regular'
+FontFamily.medium    // 'Inter_500Medium'
+FontFamily.semiBold  // 'Inter_600SemiBold'
+FontFamily.bold      // 'Inter_700Bold'
+
+Typography.display    // 28px / 34px / Bold (-0.7px tracking)
+Typography.h1         // 24px / 30px / Bold (-0.45px tracking)
+Typography.h2         // 18px / 23px / Bold (-0.25px tracking)
+Typography.title      // 16px / 21px / SemiBold (-0.15px tracking)
+Typography.body       // 15px / 21px / Regular (0px tracking)
+Typography.bodySmall  // 13px / 18px / Regular (0px tracking)
+Typography.label      // 12px / 16px / SemiBold (+0.15px tracking)
+Typography.caption    // 11px / 14px / Medium (+0.2px tracking)
+Typography.calendarDay// 14px / 18px / Medium (-0.1px tracking)
+```
+
 ---
 
 ## 3. Biblioteca de Componentes UI Reutilizables (`src/components/ui/`)

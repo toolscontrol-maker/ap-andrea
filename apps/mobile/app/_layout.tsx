@@ -1,11 +1,28 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
 import { DevProvider } from '../src/context/DevContext';
-import { DevSwitcherBar } from '../src/components/DevSwitcherBar';
 import { Colors } from '../src/theme/colors';
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
     <SafeAreaProvider>
       <DevProvider>
@@ -14,7 +31,7 @@ export default function RootLayout() {
           screenOptions={{
             headerStyle: { backgroundColor: Colors.light.background },
             headerTintColor: Colors.light.text,
-            headerTitleStyle: { fontWeight: '600' },
+            headerTitleStyle: { fontFamily: 'Inter_600SemiBold' },
             contentStyle: { backgroundColor: Colors.light.background }
           }}
         >

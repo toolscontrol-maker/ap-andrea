@@ -32,93 +32,7 @@ export const Radii = {
   full: 9999, // Circular buttons, action pills
 } as const;
 
-export const Typography = {
-  display: {
-    fontSize: 32,
-    lineHeight: 38,
-    fontWeight: '800' as const,
-    letterSpacing: -0.8,
-  },
-  h1: {
-    fontSize: 26,
-    lineHeight: 32,
-    fontWeight: '700' as const,
-    letterSpacing: -0.6,
-  },
-  h2: {
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: '700' as const,
-    letterSpacing: -0.4,
-  },
-  h3: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '600' as const,
-    letterSpacing: -0.3,
-  },
-  headline: {
-    fontSize: 16.5,
-    lineHeight: 22,
-    fontWeight: '600' as const,
-    letterSpacing: -0.3,
-  },
-  bodyLarge: {
-    fontSize: 16.5,
-    lineHeight: 23,
-    fontWeight: '400' as const,
-    letterSpacing: -0.3,
-  },
-  body: {
-    fontSize: 14.5,
-    lineHeight: 21,
-    fontWeight: '400' as const,
-    letterSpacing: -0.15,
-  },
-  bodyMedium: {
-    fontSize: 14.5,
-    lineHeight: 20,
-    fontWeight: '600' as const,
-    letterSpacing: -0.2,
-  },
-  callout: {
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: '500' as const,
-    letterSpacing: -0.2,
-  },
-  subheadline: {
-    fontSize: 13.5,
-    lineHeight: 18,
-    fontWeight: '500' as const,
-    letterSpacing: -0.1,
-  },
-  footnote: {
-    fontSize: 12.5,
-    lineHeight: 17,
-    fontWeight: '400' as const,
-    letterSpacing: 0,
-  },
-  caption: {
-    fontSize: 11.5,
-    lineHeight: 15,
-    fontWeight: '500' as const,
-    letterSpacing: 0.15,
-  },
-  captionBold: {
-    fontSize: 11.5,
-    lineHeight: 15,
-    fontWeight: '700' as const,
-    letterSpacing: 0.2,
-  },
-  overline: {
-    fontSize: 10.5,
-    lineHeight: 14,
-    fontWeight: '700' as const,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase' as const,
-  },
-} as const;
+export { FontFamily, Typography } from './Typography';
 
 export const Materials = {
   ultraThin: {
@@ -205,7 +119,7 @@ export const SpringPresets = {
 } as const;
 
 export const Layout = {
-  maxContentWidth: 680,
+  maxContentWidth: 540,
   screenPaddingHorizontal: Spacing.lg,
   screenPaddingVertical: Spacing.lg,
   tabBarHeight: 68,
