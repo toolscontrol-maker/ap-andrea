@@ -37,9 +37,14 @@ export default function MapScreen() {
 
   useEffect(() => {
     async function loadPlaces() {
-      const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v1', DEMO_MAP_PLACES);
+      const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v2', DEMO_MAP_PLACES);
       if (saved && saved.length > 0) {
-        setAllPlaces(saved);
+        // Guarantee latest authentic milestones are always synced while keeping user-added pins
+        const milestoneIds = DEMO_MAP_PLACES.map((p) => p.id);
+        const userAddedPlaces = saved.filter((p) => !milestoneIds.includes(p.id));
+        setAllPlaces([...DEMO_MAP_PLACES, ...userAddedPlaces]);
+      } else {
+        setAllPlaces(DEMO_MAP_PLACES);
       }
       setIsLoaded(true);
     }
@@ -48,7 +53,7 @@ export default function MapScreen() {
 
   useEffect(() => {
     if (!isLoaded) return;
-    StorageEngine.setItem('andrea_map_places_v1', allPlaces);
+    StorageEngine.setItem('andrea_map_places_v2', allPlaces);
   }, [allPlaces, isLoaded]);
 
   // Add Place Modal State
