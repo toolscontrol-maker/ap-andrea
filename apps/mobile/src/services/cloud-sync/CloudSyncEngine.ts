@@ -12,6 +12,36 @@ export interface CloudSyncListener {
 
 const COUPLE_ID = 'andrea-tonet';
 
+function encodePlaceMetadata(place: any): string {
+  const meta = {
+    startDate: place.startDate,
+    endDate: place.endDate,
+    isOngoing: place.isOngoing,
+    stageSummary: place.stageSummary,
+    hasDateRange: place.hasDateRange,
+    dateRangeEnd: place.dateRangeEnd,
+    emotionTag: place.emotionTag,
+    invitedBy: place.invitedBy,
+    destination1: place.destination1,
+    destination2: place.destination2,
+    accommodation: place.accommodation,
+    tripDurationDays: place.tripDurationDays,
+    visitedPlaces: place.visitedPlaces,
+  };
+  return JSON.stringify(meta);
+}
+
+function decodePlaceMetadata(moodTag: any): any {
+  if (!moodTag) return {};
+  if (typeof moodTag === 'object') return moodTag;
+  try {
+    if (typeof moodTag === 'string' && moodTag.startsWith('{')) {
+      return JSON.parse(moodTag);
+    }
+  } catch {}
+  return { emotionTag: moodTag };
+}
+
 class CloudSyncEngineService {
   private channel: any = null;
   private listeners: Set<CloudSyncListener> = new Set();
@@ -141,6 +171,7 @@ class CloudSyncEngineService {
   }
 
   public mapMapPlaceFromDb(row: any): any {
+    const meta = decodePlaceMetadata(row.mood_tag || row.moodTag);
     return {
       id: row.id,
       title: row.title,
@@ -152,13 +183,26 @@ class CloudSyncEngineService {
       lng: Number(row.lng) || -0.3763,
       date: row.date,
       story: row.story,
-      category: row.category || 'cita',
+      category: row.category || 'memory',
       moodTag: row.mood_tag || row.moodTag || 'love',
       photos: Array.isArray(row.photos) ? row.photos : [],
       authorId: row.author_id || row.authorId,
       locationPrecision: row.location_precision || row.locationPrecision || 'exact',
       visibility: row.visibility || 'couple',
       isMilestone: row.is_milestone !== undefined ? row.is_milestone : false,
+      startDate: meta.startDate,
+      endDate: meta.endDate,
+      isOngoing: meta.isOngoing,
+      stageSummary: meta.stageSummary,
+      hasDateRange: meta.hasDateRange,
+      dateRangeEnd: meta.dateRangeEnd,
+      emotionTag: meta.emotionTag,
+      invitedBy: meta.invitedBy,
+      destination1: meta.destination1,
+      destination2: meta.destination2,
+      accommodation: meta.accommodation,
+      tripDurationDays: meta.tripDurationDays,
+      visitedPlaces: meta.visitedPlaces,
       createdAt: row.created_at || new Date().toISOString(),
       updatedAt: row.updated_at || new Date().toISOString(),
     };
@@ -397,23 +441,24 @@ class CloudSyncEngineService {
     this.broadcastLocal('map_places', 'UPDATE', mapPlace);
     try {
       if (this.isSupabaseConfigured()) {
+        const metaStr = encodePlaceMetadata(mapPlace);
         await supabase.from('map_places').upsert({
           id: mapPlace.id,
           couple_id: COUPLE_ID,
           author_id: mapPlace.authorId,
           title: mapPlace.title,
-          subtitle: mapPlace.subtitle,
-          city_name: mapPlace.cityName,
-          country: mapPlace.country,
-          country_code: mapPlace.countryCode,
-          lat: mapPlace.lat || mapPlace.latitude,
-          lng: mapPlace.lng || mapPlace.longitude,
+          subtitle: mapPlace.subtitle || mapPlace.formattedAddress,
+          city_name: mapPlace.city || mapPlace.cityName || 'Valencia',
+          country: 'España',
+          country_code: 'ES',
+          lat: mapPlace.latitude || mapPlace.lat,
+          lng: mapPlace.longitude || mapPlace.lng,
           date: mapPlace.date,
-          story: mapPlace.story || mapPlace.description,
-          category: mapPlace.category || mapPlace.type,
-          mood_tag: mapPlace.moodTag,
+          story: mapPlace.description || mapPlace.story,
+          category: mapPlace.type || mapPlace.category,
+          mood_tag: metaStr,
           photos: mapPlace.photos || (mapPlace.imageUrl ? [mapPlace.imageUrl] : []),
-          location_precision: mapPlace.locationPrecision || mapPlace.precision,
+          location_precision: mapPlace.precision || mapPlace.locationPrecision || 'exact',
           visibility: mapPlace.visibility || 'couple',
           is_milestone: mapPlace.isMilestone ?? false,
           updated_at: new Date().toISOString(),

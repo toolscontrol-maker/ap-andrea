@@ -39,16 +39,18 @@ export default function MapScreen() {
 
   useEffect(() => {
     async function loadPlaces() {
-      const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v6', DEMO_MAP_PLACES);
+      // 1. Load locally saved places (user edits override base constants)
+      const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v7', null);
       let currentBase = DEMO_MAP_PLACES;
       if (saved && saved.length > 0) {
-        const milestoneIds = DEMO_MAP_PLACES.map((p) => p.id);
-        const userAddedPlaces = saved.filter((p) => !milestoneIds.includes(p.id));
-        currentBase = [...DEMO_MAP_PLACES, ...userAddedPlaces];
+        const placeMap = new Map(DEMO_MAP_PLACES.map((p) => [p.id, p]));
+        saved.forEach((sp) => placeMap.set(sp.id, sp));
+        currentBase = Array.from(placeMap.values());
       }
       setAllPlaces(currentBase);
       setIsLoaded(true);
 
+      // 2. Fetch full Supabase Cloud State with rich fields decoded
       if (CloudSyncEngine.isSupabaseConfigured()) {
         try {
           const cloudState = await CloudSyncEngine.fetchFullCloudState();
@@ -65,16 +67,31 @@ export default function MapScreen() {
               date: mp.date,
               imageUrl: mp.photos?.[0] || mp.imageUrl,
               photos: mp.photos || (mp.imageUrl ? [mp.imageUrl] : []),
-              city: mp.cityName || mp.city,
+              city: mp.cityName || mp.city || 'Valencia',
               formattedAddress: mp.subtitle,
               source: 'google_places',
               verifiedByUser: true,
+              startDate: mp.startDate,
+              endDate: mp.endDate,
+              isOngoing: mp.isOngoing,
+              stageSummary: mp.stageSummary,
+              hasDateRange: mp.hasDateRange,
+              dateRangeEnd: mp.dateRangeEnd,
+              emotionTag: mp.emotionTag,
+              invitedBy: mp.invitedBy,
+              destination1: mp.destination1,
+              destination2: mp.destination2,
+              accommodation: mp.accommodation,
+              tripDurationDays: mp.tripDurationDays,
+              visitedPlaces: mp.visitedPlaces,
             }));
 
             setAllPlaces((prev) => {
               const map = new Map(prev.map((p) => [p.id, p]));
               cloudPlaces.forEach((cp) => map.set(cp.id, cp));
-              return Array.from(map.values());
+              const merged = Array.from(map.values());
+              StorageEngine.setItem('andrea_map_places_v7', merged);
+              return merged;
             });
           }
         } catch (e) {
@@ -85,11 +102,16 @@ export default function MapScreen() {
 
     loadPlaces();
 
+    // 3. Realtime Supabase & Broadcast Subscription
     const unsubscribe = CloudSyncEngine.subscribe({
       onEntityChange: (entity, eventType, payload) => {
         if (entity === 'map_places') {
           if (eventType === 'DELETE') {
-            setAllPlaces((prev) => prev.filter((p) => p.id !== payload.id));
+            setAllPlaces((prev) => {
+              const next = prev.filter((p) => p.id !== payload.id);
+              StorageEngine.setItem('andrea_map_places_v7', next);
+              return next;
+            });
           } else if (payload) {
             const updatedPlace: AndreaMapPlace = {
               id: payload.id,
@@ -103,20 +125,36 @@ export default function MapScreen() {
               date: payload.date,
               imageUrl: payload.photos?.[0] || payload.imageUrl,
               photos: payload.photos || (payload.imageUrl ? [payload.imageUrl] : []),
-              city: payload.cityName || payload.city,
+              city: payload.cityName || payload.city || 'Valencia',
               formattedAddress: payload.subtitle,
               source: 'google_places',
               verifiedByUser: true,
+              startDate: payload.startDate,
+              endDate: payload.endDate,
+              isOngoing: payload.isOngoing,
+              stageSummary: payload.stageSummary,
+              hasDateRange: payload.hasDateRange,
+              dateRangeEnd: payload.dateRangeEnd,
+              emotionTag: payload.emotionTag,
+              invitedBy: payload.invitedBy,
+              destination1: payload.destination1,
+              destination2: payload.destination2,
+              accommodation: payload.accommodation,
+              tripDurationDays: payload.tripDurationDays,
+              visitedPlaces: payload.visitedPlaces,
             };
 
             setAllPlaces((prev) => {
               const idx = prev.findIndex((p) => p.id === updatedPlace.id);
+              let next: AndreaMapPlace[];
               if (idx >= 0) {
-                const next = [...prev];
+                next = [...prev];
                 next[idx] = updatedPlace;
-                return next;
+              } else {
+                next = [updatedPlace, ...prev];
               }
-              return [updatedPlace, ...prev];
+              StorageEngine.setItem('andrea_map_places_v7', next);
+              return next;
             });
           }
         }
@@ -129,7 +167,7 @@ export default function MapScreen() {
 
   useEffect(() => {
     if (!isLoaded) return;
-    StorageEngine.setItem('andrea_map_places_v6', allPlaces);
+    StorageEngine.setItem('andrea_map_places_v7', allPlaces);
   }, [allPlaces, isLoaded]);
 
   const filteredPlaces = useMemo(() => {
@@ -216,6 +254,7 @@ export default function MapScreen() {
         if (activeDetailPlace && activeDetailPlace.id === placeId) {
           setActiveDetailPlace(updatedPlace);
         }
+        StorageEngine.setItem('andrea_map_places_v7', next);
         CloudSyncEngine.syncMapPlace(updatedPlace);
         return next;
       }
@@ -241,12 +280,15 @@ export default function MapScreen() {
   const handleSaveVerifiedPlace = (place: AndreaMapPlace) => {
     setAllPlaces((prev) => {
       const existingIdx = prev.findIndex((p) => p.id === place.id);
+      let next: AndreaMapPlace[];
       if (existingIdx >= 0) {
-        const next = [...prev];
+        next = [...prev];
         next[existingIdx] = place;
-        return next;
+      } else {
+        next = [place, ...prev];
       }
-      return [place, ...prev];
+      StorageEngine.setItem('andrea_map_places_v7', next);
+      return next;
     });
     setSelectedGroupId(null);
     setSelectedPlaceId(place.id);
