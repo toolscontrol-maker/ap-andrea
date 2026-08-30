@@ -1,4 +1,114 @@
-import { AndreaMapPlace, MapCameraState } from '../../types/map';
+import fs from 'fs';
+import path from 'path';
+
+const projectRoot = 'c:\\\\Users\\\\angel chisvert\\\\Desktop\\\\ANDREA APP';
+const mobileRoot = path.join(projectRoot, 'apps', 'mobile');
+
+// 1. types/map.ts
+const typesMapContent = `export type MapPlaceType =
+  | 'memory'        // Recuerdo especial
+  | 'restaurant'    // Restaurante / Cafetería
+  | 'stage'         // Etapa (Canet, Comte del Real)
+  | 'date'          // Cita con 1 o 2 destinos
+  | 'trip'          // Viaje fuera de España / Escapada
+  | 'future_place'  // Sueño futuro
+  | 'surprise'      // Sorpresa
+  | 'important_date';
+
+export type LocationSource =
+  | 'google_places'
+  | 'mapbox_search'
+  | 'manual_pin'
+  | 'device_location'
+  | 'city_centroid'
+  | 'imported'
+  | 'legacy_mock';
+
+export type LocationPrecision =
+  | 'exact'
+  | 'approximate'
+  | 'city'
+  | 'hidden'
+  | 'none';
+
+export interface VerifiedLocation {
+  latitude: number;
+  longitude: number;
+  source: LocationSource;
+  precision: LocationPrecision;
+  verifiedByUser: boolean;
+  verifiedAt?: string;
+  name?: string;
+  formattedAddress?: string;
+  city?: string;
+  countryCode?: string;
+  originalQuery?: string;
+  provider: 'google' | 'mapbox';
+}
+
+export interface AndreaMapPlace {
+  id: string;
+  type: MapPlaceType;
+
+  title: string;
+  subtitle?: string;
+  description?: string;
+
+  latitude: number;
+  longitude: number;
+  precision: LocationPrecision;
+  source?: LocationSource;
+  verifiedByUser?: boolean;
+  formattedAddress?: string;
+  city?: string;
+
+  imageUrl?: string;
+  photos?: string[];
+  date?: string;
+  isPrivate?: boolean;
+  isRevealed?: boolean;
+
+  color?: string;
+  encryptedPayload?: string;
+
+  // ── Etapa ──
+  startDate?: string;
+  endDate?: string;
+  isOngoing?: boolean;
+  stageSummary?: string;
+
+  // ── Recuerdo ──
+  hasDateRange?: boolean;
+  dateRangeEnd?: string;
+  emotionTag?: string;
+
+  // ── Cita ──
+  invitedBy?: 'tonet' | 'andrea' | 'both';
+  destination1?: string;
+  destination2?: string;
+  restaurantId?: string;
+
+  // ── Viaje ──
+  accommodation?: string;
+  tripDurationDays?: number;
+  visitedPlaces?: string[];
+}
+
+export interface MapBounds {
+  ne: [number, number];
+  sw: [number, number];
+}
+
+export interface MapCameraState {
+  latitude: number;
+  longitude: number;
+  zoom: number;
+}
+`;
+fs.writeFileSync(path.join(mobileRoot, 'src', 'types', 'map.ts'), typesMapContent, 'utf8');
+
+// 2. map.constants.ts
+const mapConstantsContent = `import { AndreaMapPlace, MapCameraState } from '../../types/map';
 
 export const DEFAULT_MAP_CAMERA: MapCameraState = {
   latitude: 39.4699,
@@ -247,7 +357,7 @@ export const DEMO_MAP_PLACES: AndreaMapPlace[] = [
     id: 'memory-tercer-mejor-airbnb',
     type: 'memory',
     title: 'Nuestro Tercer y Mejor Airbnb Romántico',
-    subtitle: 'Pg. de l\'Albereda, València, Valencia, Spain',
+    subtitle: 'Pg. de l\\'Albereda, València, Valencia, Spain',
     description: 'Del 13 al 16 de febrero de 2025. El mejor fin de semana de nuestras vidas: San Valentín, complicidad absoluta y nuestro compromiso oficial de empezar a salir juntos.',
     latitude: 39.464377,
     longitude: -0.358492,
@@ -257,7 +367,7 @@ export const DEMO_MAP_PLACES: AndreaMapPlace[] = [
     dateRangeEnd: '2025-02-16',
     source: 'google_places',
     verifiedByUser: true,
-    formattedAddress: 'Pg. de l\'Albereda, València, Valencia, Spain',
+    formattedAddress: 'Pg. de l\\'Albereda, València, Valencia, Spain',
     city: 'València',
     imageUrl: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&auto=format&fit=crop',
     photos: [
@@ -384,3 +494,156 @@ export const DEMO_MAP_PLACES: AndreaMapPlace[] = [
     ],
   }
 ];
+`;
+fs.writeFileSync(path.join(mobileRoot, 'src', 'components', 'map', 'map.constants.ts'), mapConstantsContent, 'utf8');
+
+// 3. MapFilters.tsx
+const mapFiltersContent = `import React from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { MapPlaceType } from '../../types/map';
+import { triggerHaptic } from '../../utils/haptics';
+
+export type MapFilterKey = 'all' | 'stages' | 'memories' | 'dates' | 'restaurants' | 'trips' | 'dreams';
+
+export const FILTER_TYPE_MAP: Record<MapFilterKey, MapPlaceType[] | 'all'> = {
+  all: 'all',
+  stages: ['stage'],
+  memories: ['memory', 'important_date'],
+  dates: ['date'],
+  restaurants: ['restaurant'],
+  trips: ['trip'],
+  dreams: ['future_place', 'surprise'],
+};
+
+interface MapFiltersProps {
+  activeFilter: MapFilterKey;
+  onFilterChange: (filter: MapFilterKey) => void;
+  counts?: Record<MapFilterKey, number>;
+  onSearchPress?: () => void;
+  topOffset?: number;
+}
+
+export function MapFilters({
+  activeFilter,
+  onFilterChange,
+  counts,
+  topOffset = 12,
+}: MapFiltersProps) {
+  const filters: { key: MapFilterKey; label: string; icon: string }[] = [
+    { key: 'all', label: 'Todo', icon: '✦' },
+    { key: 'stages', label: 'Etapas', icon: '🏡' },
+    { key: 'memories', label: 'Recuerdos', icon: '❤️' },
+    { key: 'dates', label: 'Citas', icon: '🥂' },
+    { key: 'restaurants', label: 'Restaurantes', icon: '🍽️' },
+    { key: 'trips', label: 'Viajes', icon: '✈️' },
+    { key: 'dreams', label: 'Sueños', icon: '✨' },
+  ];
+
+  return (
+    <View style={[styles.container, { top: topOffset }]}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {filters.map((f) => {
+          const isActive = activeFilter === f.key;
+          const count = counts ? counts[f.key] : undefined;
+
+          return (
+            <TouchableOpacity
+              key={f.key}
+              activeOpacity={0.75}
+              onPress={() => {
+                triggerHaptic('selection');
+                onFilterChange(f.key);
+              }}
+              style={[styles.chip, isActive && styles.chipActive]}
+            >
+              <Text style={styles.chipIcon}>{f.icon}</Text>
+              <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+                {f.label}
+              </Text>
+              {count !== undefined && count > 0 && (
+                <View style={[styles.countBadge, isActive && styles.countBadgeActive]}>
+                  <Text style={[styles.countText, isActive && styles.countTextActive]}>
+                    {count}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 15,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(58, 47, 56, 0.08)',
+    shadowColor: '#3A2F38',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  chipActive: {
+    backgroundColor: '#3A2F38',
+    borderColor: '#3A2F38',
+  },
+  chipIcon: {
+    fontSize: 13,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#3A2F38',
+    fontFamily: 'Inter, sans-serif',
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  countBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: '#F5EFE8',
+  },
+  countBadgeActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  countText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#766B72',
+  },
+  countTextActive: {
+    color: '#FFFFFF',
+  },
+});
+`;
+fs.writeFileSync(path.join(mobileRoot, 'src', 'components', 'map', 'MapFilters.tsx'), mapFiltersContent, 'utf8');
+
+console.log('✅ Applied types, map.constants, and MapFilters');

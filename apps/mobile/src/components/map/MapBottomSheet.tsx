@@ -10,10 +10,8 @@ import {
 } from 'react-native';
 import { AndreaMapPlace } from '../../types/map';
 import { MapPlaceGroup } from '../../features/places/groupMapPlaces';
-import { Colors } from '../../theme/colors';
-import { Radii, Shadows, Spacing } from '../../theme/tokens';
 import { Badge } from '../ui';
-import { IconLock, IconCalendar, IconX, IconHeart, IconUtensils, IconSparkles } from '../ui/Icons';
+import { IconCalendar, IconX, IconHeart, IconUtensils, IconSparkles } from '../ui/Icons';
 import { triggerHaptic } from '../../utils/haptics';
 
 interface MapBottomSheetProps {
@@ -22,6 +20,7 @@ interface MapBottomSheetProps {
   onClose: () => void;
   onViewDetail?: (place: AndreaMapPlace) => void;
   onEditLocation?: (place: AndreaMapPlace) => void;
+  onOpenGallery?: (place: AndreaMapPlace) => void;
   onSelectPlaceFromGroup?: (place: AndreaMapPlace) => void;
 }
 
@@ -31,19 +30,17 @@ export function MapBottomSheet({
   onClose,
   onViewDetail,
   onEditLocation,
+  onOpenGallery,
   onSelectPlaceFromGroup,
 }: MapBottomSheetProps) {
-  // ── CASE A: SAME-PLACE COLLECTION SHEET ──
-  if (group && group.items.length > 1 && !place) {
+  const groupItems = (group && (group.items || (group as any).places)) || [];
+  if (group && groupItems.length > 1 && !place) {
     return (
       <View style={styles.sheetContainer} pointerEvents="box-none">
         <View style={styles.card}>
-          {/* Centered drag handle */}
           <View style={styles.handleBar} />
-
-          {/* Header Row */}
           <View style={styles.headerRow}>
-            <Badge variant="butter">✦ {group.itemCount} momentos juntos aquí</Badge>
+            <Badge variant="butter">✦ {group.itemCount || groupItems.length} momentos juntos aquí</Badge>
             <TouchableOpacity
               onPress={() => {
                 triggerHaptic('light');
@@ -57,7 +54,6 @@ export function MapBottomSheet({
             </TouchableOpacity>
           </View>
 
-          {/* Group Title & Subtitle */}
           <Text style={styles.groupLocationTitle} numberOfLines={1}>
             {group.title || 'Mismo rincón'}
           </Text>
@@ -65,18 +61,25 @@ export function MapBottomSheet({
             Historias y recuerdos inolvidables compartidos en este lugar
           </Text>
 
-          {/* Timeline of Moments */}
           <ScrollView
             style={styles.groupItemsList}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: Spacing.xs }}
           >
-            {group.items.map((item, idx) => {
+            {groupItems.map((item) => {
               const isMemory = item.type === 'memory';
               const isRest = item.type === 'restaurant';
-              const isTrip = item.type === 'trip' || item.type === 'future_place';
+              const isStage = item.type === 'stage';
+              const isDate = item.type === 'date';
 
-              const accentColor = isMemory ? '#E05666' : isRest ? '#D4AF37' : isTrip ? '#5C9F9A' : '#766B72';
+              const accentColor = isStage
+                ? '#5B7A62'
+                : isMemory
+                ? '#E05666'
+                : isRest
+                ? '#D4AF37'
+                : isDate
+                ? '#E28743'
+                : '#766B72';
 
               return (
                 <TouchableOpacity
@@ -93,8 +96,10 @@ export function MapBottomSheet({
                   }}
                 >
                   <View style={[styles.timelineAccentLine, { backgroundColor: accentColor }]} />
-                  <View style={[styles.groupItemIconBox, { backgroundColor: `${accentColor}18` }]}>
-                    {isMemory ? (
+                  <View style={[styles.groupItemIconBox, { backgroundColor: accentColor + '18' }]}>
+                    {isStage ? (
+                      <Text style={{ fontSize: 13 }}>🏡</Text>
+                    ) : isMemory ? (
                       <IconHeart size={14} color={accentColor} strokeWidth={2.2} />
                     ) : isRest ? (
                       <IconUtensils size={14} color={accentColor} strokeWidth={2.2} />
@@ -108,7 +113,7 @@ export function MapBottomSheet({
                     </Text>
                     {item.date && (
                       <Text style={styles.groupItemDate}>
-                        {item.date} {item.subtitle ? `· ${item.subtitle}` : ''}
+                        {item.date} {item.subtitle ? '· ' + item.subtitle : ''}
                       </Text>
                     )}
                   </View>
@@ -124,12 +129,21 @@ export function MapBottomSheet({
 
   if (!place) return null;
 
-  const isSecretSurprise = place.type === 'surprise' && place.isRevealed === false;
+  const photoCount = Array.from(
+    new Set([
+      ...(place.photos || []),
+      ...(place.imageUrl ? [place.imageUrl] : []),
+    ])
+  ).filter(Boolean).length;
 
   const getTypeBadge = () => {
     switch (place.type) {
+      case 'stage':
+        return <Badge variant="neutral">🏡 Etapa</Badge>;
       case 'memory':
         return <Badge variant="primary">♥ Recuerdo</Badge>;
+      case 'date':
+        return <Badge variant="butter">🥂 Cita</Badge>;
       case 'restaurant':
         return <Badge variant="butter">🍽️ Restaurante</Badge>;
       case 'trip':
@@ -138,8 +152,6 @@ export function MapBottomSheet({
         return <Badge variant="mistBlue">✨ Sueño futuro</Badge>;
       case 'surprise':
         return <Badge variant="secondary">🎁 Sorpresa</Badge>;
-      case 'important_date':
-        return <Badge variant="butter">🗓️ Fecha especial</Badge>;
       default:
         return <Badge variant="neutral">📍 Rincón</Badge>;
     }
@@ -148,10 +160,7 @@ export function MapBottomSheet({
   return (
     <View style={styles.sheetContainer} pointerEvents="box-none">
       <View style={styles.card}>
-        {/* Centered drag handle */}
         <View style={styles.handleBar} />
-
-        {/* Header Row */}
         <View style={styles.headerRow}>
           {getTypeBadge()}
           <TouchableOpacity
@@ -167,15 +176,14 @@ export function MapBottomSheet({
           </TouchableOpacity>
         </View>
 
-        {/* Content Body */}
         <View style={styles.bodyRow}>
-          {place.imageUrl && !isSecretSurprise && (
+          {place.imageUrl && (
             <Image source={{ uri: place.imageUrl }} style={styles.placeImage} />
           )}
 
           <View style={styles.detailsBlock}>
             <Text style={styles.title} numberOfLines={2}>
-              {isSecretSurprise ? 'Plan Secreto en Preparación' : place.title}
+              {place.title}
             </Text>
 
             {place.subtitle && (
@@ -184,41 +192,47 @@ export function MapBottomSheet({
               </Text>
             )}
 
-            {place.date && !isSecretSurprise && (
+            {place.type === 'stage' && place.startDate ? (
+              <View style={styles.dateRow}>
+                <Text style={styles.stageDateBadgeText}>
+                  🏡 {place.startDate} ➔ {place.isOngoing ? 'Actualidad' : place.endDate || 'Nov 2025'}
+                </Text>
+              </View>
+            ) : place.date ? (
               <View style={styles.dateRow}>
                 <IconCalendar size={12} color="#766B72" />
                 <Text style={styles.dateText}>{place.date}</Text>
               </View>
-            )}
-
-            {isSecretSurprise && (
-              <View style={styles.secretHintRow}>
-                <IconLock size={12} color="#E05666" />
-                <Text style={styles.secretHintText}>
-                  Ubicación aproximada. Los detalles se revelarán cuando llegue el momento.
-                </Text>
-              </View>
-            )}
+            ) : null}
           </View>
         </View>
 
-        {place.description && !isSecretSurprise && (
+        {place.description && (
           <View style={styles.quoteCard}>
-            <Text style={styles.quoteText} numberOfLines={3}>
+            <Text style={styles.quoteText} numberOfLines={2}>
               "{place.description}"
             </Text>
           </View>
         )}
 
-        {/* Action Button Row */}
         <View style={styles.footerRow}>
+          {onOpenGallery && (
+            <TouchableOpacity
+              style={styles.btnGallery}
+              activeOpacity={0.8}
+              onPress={() => onOpenGallery(place)}
+            >
+              <Text style={styles.btnGalleryText}>📸 Galería ({photoCount})</Text>
+            </TouchableOpacity>
+          )}
+
           {onEditLocation && (
             <TouchableOpacity
-              style={styles.btnSecondary}
+              style={styles.btnEdit}
               activeOpacity={0.8}
               onPress={() => onEditLocation(place)}
             >
-              <Text style={styles.btnSecondaryText}>📍 Mover pin</Text>
+              <Text style={styles.btnEditText}>✏️</Text>
             </TouchableOpacity>
           )}
 
@@ -227,7 +241,7 @@ export function MapBottomSheet({
             activeOpacity={0.85}
             onPress={() => onViewDetail && onViewDetail(place)}
           >
-            <Text style={styles.btnPrimaryText}>Ver detalle completo →</Text>
+            <Text style={styles.btnPrimaryText}>Ver detalle →</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -239,60 +253,160 @@ const styles = StyleSheet.create({
   sheetContainer: {
     position: 'absolute',
     bottom: Platform.OS === 'web' ? 88 : 98,
-    left: Spacing.md,
-    right: Spacing.md,
+    left: 16,
+    right: 16,
     alignItems: 'center',
     zIndex: 1000,
   },
   card: {
     width: '100%',
-    maxWidth: 480,
-    backgroundColor: '#FFFCFA',
+    maxWidth: 520,
+    backgroundColor: '#FFF8F2',
     borderRadius: 24,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.md,
+    padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(58, 47, 56, 0.08)',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.28,
-    shadowRadius: 28,
+    shadowColor: '#3A2F38',
+    shadowOpacity: 0.22,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -4 },
     elevation: 16,
   },
   handleBar: {
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(58, 47, 56, 0.15)',
+    backgroundColor: '#E6DDD5',
     alignSelf: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: 8,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: 10,
   },
   closeBtnCircle: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(58, 47, 56, 0.06)',
-    alignItems: 'center',
+    backgroundColor: '#F0ECE8',
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bodyRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  placeImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 14,
+    backgroundColor: '#F0ECE8',
+  },
+  detailsBlock: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#3A2F38',
+    fontFamily: 'Inter, sans-serif',
+    marginBottom: 2,
+  },
+  subtitle: {
+    fontSize: 12,
+    color: '#766B72',
+    fontFamily: 'Inter, sans-serif',
+    marginBottom: 4,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  dateText: {
+    fontSize: 11,
+    color: '#766B72',
+    fontWeight: '600',
+  },
+  stageDateBadgeText: {
+    fontSize: 11,
+    color: '#5B7A62',
+    fontWeight: '700',
+  },
+  quoteCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 10,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#EF826A',
+  },
+  quoteText: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: '#554A53',
+    lineHeight: 16,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  btnGallery: {
+    flex: 1.4,
+    backgroundColor: '#F0ECE8',
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  btnGalleryText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#3A2F38',
+  },
+  btnEdit: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(58, 47, 56, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  btnEditText: {
+    fontSize: 14,
+  },
+  btnPrimary: {
+    flex: 1.8,
+    backgroundColor: '#EF826A',
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#EF826A',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  btnPrimaryText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   groupLocationTitle: {
     fontSize: 17,
-    fontWeight: '700',
-    color: '#2B2129',
-    letterSpacing: -0.3,
+    fontWeight: '800',
+    color: '#3A2F38',
     marginBottom: 2,
   },
   groupSubtitle: {
     fontSize: 12,
     color: '#766B72',
-    marginBottom: Spacing.md,
+    marginBottom: 10,
   },
   groupItemsList: {
     maxHeight: 220,
@@ -300,148 +414,41 @@ const styles = StyleSheet.create({
   groupItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: '#FAF7F2',
-    borderRadius: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(58, 47, 56, 0.05)',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 6,
   },
   timelineAccentLine: {
     width: 3,
     height: 24,
-    borderRadius: 1.5,
-    marginRight: 10,
+    borderRadius: 2,
+    marginRight: 8,
   },
   groupItemIconBox: {
     width: 28,
     height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
+    borderRadius: 8,
     justifyContent: 'center',
-    marginRight: 10,
+    alignItems: 'center',
+    marginRight: 8,
   },
   groupItemInfo: {
     flex: 1,
   },
   groupItemTitle: {
-    fontWeight: '600',
-    fontSize: 13.5,
-    color: '#2B2129',
-    letterSpacing: -0.15,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#3A2F38',
   },
   groupItemDate: {
     fontSize: 11,
     color: '#766B72',
-    marginTop: 1,
   },
   groupItemChevron: {
     fontSize: 18,
-    color: '#A89CA4',
-    marginLeft: 6,
-  },
-  bodyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginVertical: 4,
-  },
-  placeImage: {
-    width: 68,
-    height: 68,
-    borderRadius: 16,
-    backgroundColor: '#FAF7F2',
-    borderWidth: 1,
-    borderColor: 'rgba(58, 47, 56, 0.08)',
-  },
-  detailsBlock: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#2B2129',
-    letterSpacing: -0.3,
-    lineHeight: 21,
-  },
-  subtitle: {
-    fontSize: 12.5,
-    color: '#766B72',
-    marginTop: 2,
-  },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-  },
-  dateText: {
-    fontSize: 11.5,
-    color: '#766B72',
-  },
-  secretHintRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-  },
-  secretHintText: {
-    fontSize: 11,
-    color: '#E05666',
-    flex: 1,
-    lineHeight: 14,
-  },
-  quoteCard: {
-    backgroundColor: '#FAF7F2',
-    borderRadius: 12,
-    padding: Spacing.sm,
-    marginVertical: Spacing.xs,
-    borderWidth: 1,
-    borderColor: 'rgba(58, 47, 56, 0.05)',
-  },
-  quoteText: {
-    fontStyle: 'italic',
-    fontSize: 12,
-    color: '#554A51',
-    lineHeight: 16,
-  },
-  footerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-    paddingTop: Spacing.xs,
-  },
-  btnSecondary: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: Radii.full,
-    backgroundColor: '#FAF7F2',
-    borderWidth: 1,
-    borderColor: 'rgba(58, 47, 56, 0.10)',
-  },
-  btnSecondaryText: {
-    fontWeight: '600',
-    fontSize: 12,
-    color: '#554A51',
-  },
-  btnPrimary: {
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    borderRadius: Radii.full,
-    backgroundColor: '#E05666',
-    shadowColor: '#E05666',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  btnPrimaryText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 12.5,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: '#9E8ACD',
+    fontWeight: 'bold',
   },
 });

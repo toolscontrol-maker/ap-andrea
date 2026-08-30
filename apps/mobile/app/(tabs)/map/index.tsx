@@ -4,34 +4,19 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   Platform,
-  Modal,
-  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AndreaMap } from '../../../src/components/map/AndreaMap';
 import { MapFilters, MapFilterKey, FILTER_TYPE_MAP } from '../../../src/components/map/MapFilters';
 import { MapBottomSheet } from '../../../src/components/map/MapBottomSheet';
 import { AddPlaceLocationModal } from '../../../src/components/map/AddPlaceLocationModal';
+import { PlaceDetailModal } from '../../../src/components/map/PlaceDetailModal';
+import { PlaceGalleryModal } from '../../../src/components/map/PlaceGalleryModal';
 import { DEMO_MAP_PLACES } from '../../../src/components/map/map.constants';
 import { groupMapPlaces, MapPlaceGroup } from '../../../src/features/places/groupMapPlaces';
 import { AndreaMapPlace } from '../../../src/types/map';
-import { Colors } from '../../../src/theme/colors';
-import { Radii, Spacing } from '../../../src/theme/tokens';
-import {
-  IconPlus,
-  IconLocateFixed,
-  IconChevronDown,
-  IconSearch,
-  IconX,
-  IconCompass,
-  IconHeart,
-  IconUtensils,
-  IconSparkles,
-  IconMoon,
-  IconEye,
-} from '../../../src/components/ui/Icons';
+import { IconPlus, IconLocateFixed } from '../../../src/components/ui/Icons';
 import { StorageEngine } from '../../../src/services/storage';
 import { CloudSyncEngine } from '../../../src/services/cloud-sync/CloudSyncEngine';
 import { triggerHaptic } from '../../../src/utils/haptics';
@@ -42,21 +27,19 @@ export default function MapScreen() {
   const [activeFilter, setActiveFilter] = useState<MapFilterKey>('all');
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-  const [isAtlasMenuOpen, setIsAtlasMenuOpen] = useState(false);
-  const [showOverviewCard, setShowOverviewCard] = useState(true);
 
-  // Dynamic places state with local persistence
   const [allPlaces, setAllPlaces] = useState<AndreaMapPlace[]>(DEMO_MAP_PLACES);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Add / Edit Place Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingPlace, setEditingPlace] = useState<AndreaMapPlace | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
+  const [activeDetailPlace, setActiveDetailPlace] = useState<AndreaMapPlace | null>(null);
 
   useEffect(() => {
     async function loadPlaces() {
-      // 1. Load local places
-      const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v5', DEMO_MAP_PLACES);
+      const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v6', DEMO_MAP_PLACES);
       let currentBase = DEMO_MAP_PLACES;
       if (saved && saved.length > 0) {
         const milestoneIds = DEMO_MAP_PLACES.map((p) => p.id);
@@ -66,7 +49,6 @@ export default function MapScreen() {
       setAllPlaces(currentBase);
       setIsLoaded(true);
 
-      // 2. Fetch remote Supabase Cloud State
       if (CloudSyncEngine.isSupabaseConfigured()) {
         try {
           const cloudState = await CloudSyncEngine.fetchFullCloudState();
@@ -82,6 +64,7 @@ export default function MapScreen() {
               precision: mp.locationPrecision || mp.precision || 'exact',
               date: mp.date,
               imageUrl: mp.photos?.[0] || mp.imageUrl,
+              photos: mp.photos || (mp.imageUrl ? [mp.imageUrl] : []),
               city: mp.cityName || mp.city,
               formattedAddress: mp.subtitle,
               source: 'google_places',
@@ -102,7 +85,6 @@ export default function MapScreen() {
 
     loadPlaces();
 
-    // 3. Realtime Cross-Device Subscription
     const unsubscribe = CloudSyncEngine.subscribe({
       onEntityChange: (entity, eventType, payload) => {
         if (entity === 'map_places') {
@@ -120,6 +102,7 @@ export default function MapScreen() {
               precision: payload.locationPrecision || payload.precision || 'exact',
               date: payload.date,
               imageUrl: payload.photos?.[0] || payload.imageUrl,
+              photos: payload.photos || (payload.imageUrl ? [payload.imageUrl] : []),
               city: payload.cityName || payload.city,
               formattedAddress: payload.subtitle,
               source: 'google_places',
@@ -146,7 +129,7 @@ export default function MapScreen() {
 
   useEffect(() => {
     if (!isLoaded) return;
-    StorageEngine.setItem('andrea_map_places_v5', allPlaces);
+    StorageEngine.setItem('andrea_map_places_v6', allPlaces);
   }, [allPlaces, isLoaded]);
 
   const filteredPlaces = useMemo(() => {
@@ -172,7 +155,9 @@ export default function MapScreen() {
   const filterCounts = useMemo(() => {
     return {
       all: allPlaces.length,
+      stages: allPlaces.filter((p) => FILTER_TYPE_MAP.stages.includes(p.type)).length,
       memories: allPlaces.filter((p) => FILTER_TYPE_MAP.memories.includes(p.type)).length,
+      dates: allPlaces.filter((p) => FILTER_TYPE_MAP.dates.includes(p.type)).length,
       restaurants: allPlaces.filter((p) => FILTER_TYPE_MAP.restaurants.includes(p.type)).length,
       trips: allPlaces.filter((p) => FILTER_TYPE_MAP.trips.includes(p.type)).length,
       dreams: allPlaces.filter((p) => FILTER_TYPE_MAP.dreams.includes(p.type)).length,
@@ -204,11 +189,39 @@ export default function MapScreen() {
   }, []);
 
   const handleViewDetail = useCallback((place: AndreaMapPlace) => {
-    Alert.alert(
-      place.title,
-      `${place.subtitle || place.formattedAddress || ''}\n\n${place.description || 'Sin descripción adicional.'}`
-    );
+    triggerHaptic('selection');
+    setActiveDetailPlace(place);
+    setIsDetailModalOpen(true);
   }, []);
+
+  const handleOpenGallery = useCallback((place: AndreaMapPlace) => {
+    triggerHaptic('selection');
+    setActiveDetailPlace(place);
+    setIsGalleryModalOpen(true);
+  }, []);
+
+  const handleAddPhotoToPlace = useCallback((placeId: string, newPhotoUrl: string) => {
+    setAllPlaces((prev) => {
+      const idx = prev.findIndex((p) => p.id === placeId);
+      if (idx >= 0) {
+        const place = prev[idx];
+        const updatedPhotos = Array.from(new Set([...(place.photos || []), newPhotoUrl]));
+        const updatedPlace: AndreaMapPlace = {
+          ...place,
+          imageUrl: place.imageUrl || newPhotoUrl,
+          photos: updatedPhotos,
+        };
+        const next = [...prev];
+        next[idx] = updatedPlace;
+        if (activeDetailPlace && activeDetailPlace.id === placeId) {
+          setActiveDetailPlace(updatedPlace);
+        }
+        CloudSyncEngine.syncMapPlace(updatedPlace);
+        return next;
+      }
+      return prev;
+    });
+  }, [activeDetailPlace]);
 
   const handleOpenAddModal = () => {
     triggerHaptic('light');
@@ -220,6 +233,7 @@ export default function MapScreen() {
     triggerHaptic('light');
     setSelectedPlaceId(null);
     setSelectedGroupId(null);
+    setIsDetailModalOpen(false);
     setEditingPlace(place);
     setIsAddModalOpen(true);
   };
@@ -237,8 +251,6 @@ export default function MapScreen() {
     setSelectedGroupId(null);
     setSelectedPlaceId(place.id);
     setEditingPlace(null);
-
-    // Sync to Supabase Cloud & Broadcast in real-time
     CloudSyncEngine.syncMapPlace(place);
   };
 
@@ -253,141 +265,37 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 1. Nocturnal Mapbox Canvas */}
       <AndreaMap
         places={filteredPlaces}
         selectedPlaceId={selectedPlaceId}
         selectedGroupId={selectedGroupId}
         onPlacePress={handlePlacePress}
         onGroupPress={handleGroupPress}
-        onAddPlacePress={handleOpenAddModal}
       />
 
-      {/* 2. Soft Nocturnal Vignette Gradient Overlay */}
-      <View style={styles.vignetteOverlay} pointerEvents="none" />
+      <MapFilters
+        activeFilter={activeFilter}
+        onFilterChange={(filter) => {
+          triggerHaptic('selection');
+          setActiveFilter(filter);
+          setSelectedPlaceId(null);
+          setSelectedGroupId(null);
+        }}
+        counts={filterCounts}
+        topOffset={topOffset}
+      />
 
-      {/* 3. Floating 2-Row Header */}
-      <View style={[styles.floatingHeader, { top: topOffset }]} pointerEvents="box-none">
-        {/* Row 1: Central Atlas Pill Title */}
-        <View style={styles.headerRow1} pointerEvents="box-none">
-          <TouchableOpacity
-            style={styles.atlasTitlePill}
-            activeOpacity={0.8}
-            onPress={() => {
-              triggerHaptic('light');
-              setIsAtlasMenuOpen(true);
-            }}
-            accessibilityLabel="Menú de atlas"
-          >
-            <View style={styles.atlasTitleTextCol}>
-              <View style={styles.atlasTitleMainRow}>
-                <Text style={styles.atlasTitleText}>Nuestra historia</Text>
-                <IconChevronDown size={13} color="rgba(255, 248, 242, 0.75)" strokeWidth={2.4} />
-              </View>
-              <Text style={styles.atlasSubtitleText}>
-                {allPlaces.length} momentos en vuestro mapa
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Row 2: Horizontal Filter Chips Strip */}
-        <View style={styles.headerRow2} pointerEvents="box-none">
-          <MapFilters
-            activeFilter={activeFilter}
-            onFilterChange={(f) => {
-              setActiveFilter(f);
-            }}
-            counts={filterCounts}
-            onSearchPress={handleOpenAddModal}
-          />
-        </View>
+      <View style={styles.floatingControls}>
+        <TouchableOpacity
+          style={styles.controlCircleBtn}
+          activeOpacity={0.85}
+          onPress={handleRecenter}
+          accessibilityLabel="Centrar mapa en Valencia"
+        >
+          <IconLocateFixed size={18} color="#3A2F38" strokeWidth={2.2} />
+        </TouchableOpacity>
       </View>
 
-      {/* 4. Single Right-Hand Side Vertical Capsule */}
-      <View style={[styles.sideCapsuleContainer, { top: topOffset + 96 }]} pointerEvents="box-none">
-        <View style={styles.sideCapsule}>
-          {selectedPlaceId || selectedGroupId ? (
-            <TouchableOpacity
-              style={styles.sideCapsuleBtn}
-              activeOpacity={0.75}
-              onPress={() => {
-                triggerHaptic('light');
-                setSelectedPlaceId(null);
-                setSelectedGroupId(null);
-              }}
-              accessibilityLabel="Deseleccionar rincón"
-            >
-              <IconX size={18} color="rgba(255, 248, 242, 0.9)" strokeWidth={2.2} />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={styles.sideCapsuleBtn}
-              activeOpacity={0.75}
-              onPress={() => {
-                triggerHaptic('light');
-                handleRecenter();
-              }}
-              accessibilityLabel="Mi ubicación y centrar"
-            >
-              <IconLocateFixed size={18} color="rgba(255, 248, 242, 0.9)" strokeWidth={2} />
-            </TouchableOpacity>
-          )}
-
-          <View style={styles.sideCapsuleDivider} />
-
-          <TouchableOpacity
-            style={styles.sideCapsuleBtn}
-            activeOpacity={0.75}
-            onPress={() => {
-              triggerHaptic('light');
-              setIsAtlasMenuOpen(true);
-            }}
-            accessibilityLabel="Capas y vistas del atlas"
-          >
-            <IconCompass size={18} color="rgba(255, 248, 242, 0.9)" strokeWidth={2} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* 5. Map Overview Card (Visible when NO place is selected) */}
-      {!isSheetOpen && showOverviewCard && (
-        <View style={styles.overviewCardWrapper} pointerEvents="box-none">
-          <View style={styles.overviewCard}>
-            <View style={styles.overviewCardLeft}>
-              <Text style={styles.overviewCardBadge}>✦ Vuestro atlas</Text>
-              <Text style={styles.overviewCardSubtitle}>
-                {allPlaces.length} momentos · {currentGroups.length} lugares · 1 historia
-              </Text>
-            </View>
-            <View style={styles.overviewCardActions}>
-              <TouchableOpacity
-                style={styles.overviewExploreBtn}
-                activeOpacity={0.8}
-                onPress={() => {
-                  triggerHaptic('selection');
-                  setActiveFilter('all');
-                }}
-              >
-                <Text style={styles.overviewExploreBtnText}>Explorar →</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.overviewDismissBtn}
-                activeOpacity={0.7}
-                onPress={() => {
-                  triggerHaptic('light');
-                  setShowOverviewCard(false);
-                }}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <IconX size={12} color="rgba(255, 248, 242, 0.4)" strokeWidth={2} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
-
-      {/* 6. Floating Creation CTA Pill (Above Tab Bar) */}
       {!isSheetOpen && (
         <View style={styles.creationCtaWrapper} pointerEvents="box-none">
           <TouchableOpacity
@@ -402,113 +310,31 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* 7. Warm Light Bottom Sheet */}
       <MapBottomSheet
         place={selectedPlace}
         group={selectedGroup}
         onClose={handleCloseSheet}
         onViewDetail={handleViewDetail}
         onEditLocation={handleEditLocation}
+        onOpenGallery={handleOpenGallery}
         onSelectPlaceFromGroup={handleSelectPlaceFromGroup}
       />
 
-      {/* 8. Atlas Quick Menu Modal */}
-      <Modal
-        visible={isAtlasMenuOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsAtlasMenuOpen(false)}
-      >
-        <TouchableOpacity
-          style={styles.menuModalBackdrop}
-          activeOpacity={1}
-          onPress={() => setIsAtlasMenuOpen(false)}
-        >
-          <View style={[styles.menuModalCard, { marginTop: topOffset + 50 }]}>
-            <View style={styles.menuHeaderRow}>
-              <Text style={styles.menuTitle}>Vistas del Atlas</Text>
-              <TouchableOpacity
-                onPress={() => setIsAtlasMenuOpen(false)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <IconX size={14} color="#766B72" strokeWidth={2.2} />
-              </TouchableOpacity>
-            </View>
+      <PlaceDetailModal
+        visible={isDetailModalOpen}
+        place={activeDetailPlace}
+        onClose={() => setIsDetailModalOpen(false)}
+        onOpenGallery={handleOpenGallery}
+        onEditPlace={handleEditLocation}
+      />
 
-            <TouchableOpacity
-              style={styles.menuItem}
-              activeOpacity={0.7}
-              onPress={() => {
-                setActiveFilter('all');
-                setIsAtlasMenuOpen(false);
-              }}
-            >
-              <IconCompass size={17} color="#2B2129" strokeWidth={2} />
-              <Text style={styles.menuItemText}>Nuestra historia completa</Text>
-              <Text style={styles.menuItemBadge}>{allPlaces.length}</Text>
-            </TouchableOpacity>
+      <PlaceGalleryModal
+        visible={isGalleryModalOpen}
+        place={activeDetailPlace}
+        onClose={() => setIsGalleryModalOpen(false)}
+        onAddPhoto={handleAddPhotoToPlace}
+      />
 
-            <TouchableOpacity
-              style={styles.menuItem}
-              activeOpacity={0.7}
-              onPress={() => {
-                setActiveFilter('memories');
-                setIsAtlasMenuOpen(false);
-              }}
-            >
-              <IconHeart size={17} color="#E05666" strokeWidth={2} />
-              <Text style={styles.menuItemText}>Recuerdos y citas</Text>
-              <Text style={styles.menuItemBadge}>{filterCounts.memories}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              activeOpacity={0.7}
-              onPress={() => {
-                setActiveFilter('restaurants');
-                setIsAtlasMenuOpen(false);
-              }}
-            >
-              <IconUtensils size={17} color="#D4AF37" strokeWidth={2} />
-              <Text style={styles.menuItemText}>Restaurantes y rincones</Text>
-              <Text style={styles.menuItemBadge}>{filterCounts.restaurants}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              activeOpacity={0.7}
-              onPress={() => {
-                setActiveFilter('trips');
-                setIsAtlasMenuOpen(false);
-              }}
-            >
-              <IconSparkles size={17} color="#5C9F9A" strokeWidth={2} />
-              <Text style={styles.menuItemText}>Viajes e ilusiones</Text>
-              <Text style={styles.menuItemBadge}>{filterCounts.trips}</Text>
-            </TouchableOpacity>
-
-            <View style={styles.menuDivider} />
-
-            <View style={styles.menuSettingRow}>
-              <View style={styles.menuSettingLeft}>
-                <IconMoon size={16} color="#766B72" strokeWidth={2} />
-                <Text style={styles.menuSettingLabel}>Mapa nocturno</Text>
-              </View>
-              <Text style={styles.menuSettingStatus}>Activo</Text>
-            </View>
-
-            <View style={styles.menuSettingRow}>
-              <View style={styles.menuSettingLeft}>
-                <IconEye size={16} color="#766B72" strokeWidth={2} />
-                <Text style={styles.menuSettingLabel}>Etiquetas al seleccionar</Text>
-              </View>
-              <Text style={styles.menuSettingStatus}>Activado</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* 9. Real Mapbox Geocoding & Visual Pin Confirmation Modal */}
       <AddPlaceLocationModal
         visible={isAddModalOpen}
         onClose={() => {
@@ -525,291 +351,58 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFF8F2',
     width: '100%',
     height: '100%',
-    backgroundColor: '#071124',
-    position: 'relative',
   },
-  vignetteOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-    ...(Platform.OS === 'web'
-      ? ({
-          backgroundImage:
-            'radial-gradient(ellipse at center, rgba(7, 17, 36, 0) 45%, rgba(7, 17, 36, 0.45) 100%)',
-          pointerEvents: 'none',
-        } as any)
-      : {}),
-    zIndex: 10,
-  },
-  floatingHeader: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 90,
-  },
-  headerRow1: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-    paddingHorizontal: 60,
-  },
-  atlasTitlePill: {
-    paddingHorizontal: 16,
-    paddingVertical: 5,
-    borderRadius: 20,
-    backgroundColor: 'rgba(10, 20, 38, 0.85)',
-    ...(Platform.OS === 'web'
-      ? ({
-          backdropFilter: 'blur(25px) saturate(190%)',
-          WebkitBackdropFilter: 'blur(25px) saturate(190%)',
-        } as any)
-      : {}),
-    borderWidth: 1.2,
-    borderColor: 'rgba(255, 248, 242, 0.12)',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
-    elevation: 8,
-  },
-  atlasTitleTextCol: {
-    alignItems: 'center',
-  },
-  atlasTitleMainRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  atlasTitleText: {
-    fontSize: 14.5,
-    color: '#FFFFFF',
-    letterSpacing: -0.2,
-    fontWeight: '600',
-  },
-  atlasSubtitleText: {
-    fontSize: 10.5,
-    color: 'rgba(255, 248, 242, 0.55)',
-    marginTop: 1,
-  },
-  headerRow2: {
-    width: '100%',
-  },
-  sideCapsuleContainer: {
+  floatingControls: {
     position: 'absolute',
     right: 16,
-    zIndex: 95,
+    top: 76,
+    gap: 8,
+    zIndex: 20,
   },
-  sideCapsule: {
-    width: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(10, 20, 38, 0.88)',
-    ...(Platform.OS === 'web'
-      ? ({
-          backdropFilter: 'blur(25px) saturate(190%)',
-          WebkitBackdropFilter: 'blur(25px) saturate(190%)',
-        } as any)
-      : {}),
-    borderWidth: 1.2,
-    borderColor: 'rgba(255, 248, 242, 0.12)',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 18,
-    elevation: 8,
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  sideCapsuleBtn: {
+  controlCircleBtn: {
     width: 44,
     height: 44,
-    alignItems: 'center',
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
-  },
-  sideCapsuleDivider: {
-    width: 22,
-    height: 1,
-    backgroundColor: 'rgba(255, 248, 242, 0.10)',
-  },
-  overviewCardWrapper: {
-    position: 'absolute',
-    bottom: Platform.OS === 'web' ? 144 : 156,
-    left: 16,
-    right: 16,
     alignItems: 'center',
-    zIndex: 85,
-  },
-  overviewCard: {
-    width: '100%',
-    maxWidth: 440,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: 'rgba(10, 20, 38, 0.88)',
-    ...(Platform.OS === 'web'
-      ? ({
-          backdropFilter: 'blur(28px) saturate(190%)',
-          WebkitBackdropFilter: 'blur(28px) saturate(190%)',
-        } as any)
-      : {}),
-    borderWidth: 1.2,
-    borderColor: 'rgba(255, 248, 242, 0.10)',
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  overviewCardLeft: {
-    flex: 1,
-  },
-  overviewCardBadge: {
-    fontSize: 12.5,
-    color: '#FFFFFF',
-    letterSpacing: -0.15,
-  },
-  overviewCardSubtitle: {
-    fontSize: 11,
-    color: 'rgba(255, 248, 242, 0.55)',
-    marginTop: 1,
-  },
-  overviewCardActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  overviewExploreBtn: {
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-    borderRadius: Radii.full,
-    backgroundColor: 'rgba(255, 248, 242, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 248, 242, 0.15)',
-  },
-  overviewExploreBtnText: {
-    fontSize: 11,
-    color: '#FFFFFF',
-  },
-  overviewDismissBtn: {
-    padding: 4,
+    borderColor: 'rgba(58, 47, 56, 0.08)',
+    shadowColor: '#3A2F38',
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   creationCtaWrapper: {
     position: 'absolute',
-    bottom: Platform.OS === 'web' ? 88 : 98,
+    bottom: 96,
     left: 0,
     right: 0,
     alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 90,
+    zIndex: 20,
   },
   creationCtaPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    height: 48,
+    backgroundColor: '#EF826A',
+    paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 24,
-    backgroundColor: '#E05666',
-    shadowColor: '#E05666',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 18,
-    elevation: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 999,
+    shadowColor: '#EF826A',
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
   },
   creationCtaText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#FFFFFF',
-    letterSpacing: -0.2,
-  },
-  menuModalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingHorizontal: 20,
-  },
-  menuModalCard: {
-    width: '100%',
-    maxWidth: 340,
-    backgroundColor: '#FFFCFA',
-    borderRadius: 24,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(58, 47, 56, 0.08)',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.35,
-    shadowRadius: 28,
-    elevation: 18,
-  },
-  menuHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-    paddingBottom: Spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(58, 47, 56, 0.06)',
-  },
-  menuTitle: {
-    fontSize: 15,
-    color: '#2B2129',
-    letterSpacing: -0.2,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    gap: 10,
-  },
-  menuItemText: {
-    fontSize: 13.5,
-    color: '#2B2129',
-    flex: 1,
-  },
-  menuItemBadge: {
-    fontSize: 11,
-    color: '#766B72',
-    backgroundColor: '#FAF7F2',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  menuDivider: {
-    height: 1,
-    backgroundColor: 'rgba(58, 47, 56, 0.08)',
-    marginVertical: 6,
-  },
-  menuSettingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-  menuSettingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  menuSettingLabel: {
-    fontSize: 12.5,
-    color: '#554A51',
-  },
-  menuSettingStatus: {
-    fontSize: 11,
-    color: '#E05666',
+    fontFamily: 'Inter, sans-serif',
   },
 });

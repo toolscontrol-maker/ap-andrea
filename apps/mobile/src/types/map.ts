@@ -1,12 +1,15 @@
-﻿export type MapPlaceType =
-  | 'memory'
-  | 'restaurant'
-  | 'future_place'
-  | 'trip'
-  | 'surprise'
+export type MapPlaceType =
+  | 'memory'        // Recuerdo especial
+  | 'restaurant'    // Restaurante / Cafetería
+  | 'stage'         // Etapa (Canet, Comte del Real)
+  | 'date'          // Cita con 1 o 2 destinos
+  | 'trip'          // Viaje fuera de España / Escapada
+  | 'future_place'  // Sueño futuro
+  | 'surprise'      // Sorpresa
   | 'important_date';
 
 export type LocationSource =
+  | 'google_places'
   | 'mapbox_search'
   | 'manual_pin'
   | 'device_location'
@@ -28,16 +31,12 @@ export interface VerifiedLocation {
   precision: LocationPrecision;
   verifiedByUser: boolean;
   verifiedAt?: string;
-  mapboxId?: string;
-  mapboxFeatureType?: string;
-  mapboxRelevance?: number;
   name?: string;
   formattedAddress?: string;
   city?: string;
   countryCode?: string;
   originalQuery?: string;
-  provider: 'mapbox';
-  providerVersion?: 'search-box-v1' | 'geocoding-v5';
+  provider: 'google' | 'mapbox';
 }
 
 export interface AndreaMapPlace {
@@ -55,7 +54,6 @@ export interface AndreaMapPlace {
   verifiedByUser?: boolean;
   formattedAddress?: string;
   city?: string;
-  mapboxId?: string;
 
   imageUrl?: string;
   photos?: string[];
@@ -65,11 +63,33 @@ export interface AndreaMapPlace {
 
   color?: string;
   encryptedPayload?: string;
+
+  // ── Etapa ──
+  startDate?: string;
+  endDate?: string;
+  isOngoing?: boolean;
+  stageSummary?: string;
+
+  // ── Recuerdo ──
+  hasDateRange?: boolean;
+  dateRangeEnd?: string;
+  emotionTag?: string;
+
+  // ── Cita ──
+  invitedBy?: 'tonet' | 'andrea' | 'both';
+  destination1?: string;
+  destination2?: string;
+  restaurantId?: string;
+
+  // ── Viaje ──
+  accommodation?: string;
+  tripDurationDays?: number;
+  visitedPlaces?: string[];
 }
 
 export interface MapBounds {
-  ne: [number, number]; // [lng, lat]
-  sw: [number, number]; // [lng, lat]
+  ne: [number, number];
+  sw: [number, number];
 }
 
 export interface MapCameraState {
