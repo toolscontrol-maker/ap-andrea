@@ -118,15 +118,23 @@ export function AndreaMap({
     markersRef.current = [];
 
     placeGroups.forEach((group) => {
+      if (!group) return;
+
+      const placesList = Array.isArray(group.places) ? group.places : [];
+      const primaryPlace = placesList[0] || (group as any);
+      const isMulti = (group.count || placesList.length) > 1;
+
       const isSelected =
         selectedGroupId === group.id ||
-        (selectedPlaceId && group.places.some((p) => p.id === selectedPlaceId));
+        (selectedPlaceId && placesList.some((p) => p.id === selectedPlaceId));
 
-      const isMulti = group.count > 1;
-      const primaryPlace = group.places[0];
+      const lat = Number(group.latitude ?? primaryPlace?.latitude ?? 39.4699);
+      const lng = Number(group.longitude ?? primaryPlace?.longitude ?? -0.3763);
+
+      if (isNaN(lat) || isNaN(lng)) return;
 
       // Custom marker icon HTML/SVG
-      const markerType = group.primaryType;
+      const markerType = group.primaryType || primaryPlace?.type || 'memory';
       let badgeColor = '#EF826A'; // Coral
       let badgeIcon = '❤️';
 
@@ -141,14 +149,15 @@ export function AndreaMap({
         badgeIcon = '🎁';
       }
 
+      const displayCount = group.count || placesList.length || 1;
       const pinSvg = isMulti
-        ? '<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="22" cy="22" r="18" fill="' + badgeColor + '" stroke="#FFFFFF" stroke-width="3" filter="drop-shadow(0 4px 10px rgba(58,47,56,0.18))"/><text x="22" y="27" text-anchor="middle" fill="#3A2F38" font-family="Inter, sans-serif" font-weight="bold" font-size="14">' + group.count + '</text></svg>'
+        ? '<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="22" cy="22" r="18" fill="' + badgeColor + '" stroke="#FFFFFF" stroke-width="3" filter="drop-shadow(0 4px 10px rgba(58,47,56,0.18))"/><text x="22" y="27" text-anchor="middle" fill="#3A2F38" font-family="Inter, sans-serif" font-weight="bold" font-size="14">' + displayCount + '</text></svg>'
         : '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="16" fill="' + badgeColor + '" stroke="#FFFFFF" stroke-width="2.5" filter="drop-shadow(0 3px 8px rgba(58,47,56,0.16))"/><text x="20" y="24" text-anchor="middle" font-size="14">' + badgeIcon + '</text></svg>';
 
       const marker = new googleMaps.Marker({
-        position: { lat: group.latitude, lng: group.longitude },
+        position: { lat, lng },
         map: mapRef.current,
-        title: group.title,
+        title: group.title || primaryPlace?.title || 'Lugar',
         icon: {
           url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(pinSvg),
           scaledSize: new googleMaps.Size(isMulti ? 44 : 40, isMulti ? 44 : 40),
@@ -162,7 +171,7 @@ export function AndreaMap({
         triggerHaptic('selection');
         if (isMulti && onGroupPress) {
           onGroupPress(group);
-        } else if (onPlacePress) {
+        } else if (onPlacePress && primaryPlace) {
           onPlacePress(primaryPlace);
         }
       });
