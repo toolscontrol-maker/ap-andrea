@@ -116,15 +116,6 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
                   <IconCamera size={13} color="#FFFFFF" />
                 </View>
               </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  style={styles.avatarEditBadge}
-                  onPress={handleOpenPhotoEditor}
-                  activeOpacity={0.8}
-                >
-                  <IconCamera size={13} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
 
               <Text style={styles.userNameTitle}>{currentDevUser.name}</Text>
               <Text style={styles.userRoleSubtitle}>
