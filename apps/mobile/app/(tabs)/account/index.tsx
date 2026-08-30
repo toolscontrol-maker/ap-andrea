@@ -232,7 +232,7 @@ export default function AccountScreen() {
                 <Text style={styles.milestoneTitle}>Nuestra Primera Cita</Text>
                 <Text style={styles.milestoneDate}>Dic 2024</Text>
               </View>
-              <Text style={styles.milestoneLocation}>Restaurante El Pou · Valencia</Text>
+              <Text style={styles.milestoneLocation}>Restaurante Alqueria del Pou, Quatre Carreres · Valencia</Text>
               <Text style={styles.milestoneDesc}>
                 Cerca de la Ciudad de las Artes y las Ciencias. Risas, confidencias y un flechazo mutuo.
               </Text>

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { AndreaMapPlace, MapBounds, MapCameraState } from '../../types/map';
 import { MAPBOX_ACCESS_TOKEN, MAPBOX_STYLE_URL } from '../../lib/mapbox';
@@ -28,6 +28,7 @@ export function AndreaMap({
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const idleTimeoutRef = useRef<any>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
 
   // Filter out places with 'hidden' precision if not revealed
   const visiblePlaces = useMemo(() => {
@@ -80,6 +81,10 @@ export function AndreaMap({
         attributionControl: false,
       });
 
+      map.on('load', () => {
+        if (!isCancelled) setIsMapReady(true);
+      });
+
       map.on('moveend', () => {
         if (!onCameraIdle) return;
         if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current);
@@ -100,12 +105,17 @@ export function AndreaMap({
       });
 
       mapRef.current = map;
+      // Mark ready
+      setTimeout(() => {
+        if (!isCancelled) setIsMapReady(true);
+      }, 200);
     };
 
     loadMapboxGL();
 
     return () => {
       isCancelled = true;
+      setIsMapReady(false);
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -216,7 +226,7 @@ export function AndreaMap({
 
       markersRef.current.push(marker);
     });
-  }, [visiblePlaces, selectedPlaceId, onPlacePress]);
+  }, [visiblePlaces, selectedPlaceId, onPlacePress, isMapReady]);
 
   // Fly to selected place
   useEffect(() => {
