@@ -1,10 +1,18 @@
-import React, { useMemo } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useDev } from '../../../context/DevContext';
 import { useCalendarState } from '../state/useCalendarStore';
 import { sanitizeCoupleEvents, groupEventsByDate } from '../domain/calendar.selectors';
-import { RomanticIdea, SurpriseCreationPayload } from '../domain/calendar.types';
+import { buildOurStoryTimeline } from '../domain/calendar.timeline';
+import {
+  CalendarViewMode,
+  CompactViewMode,
+  RomanticIdea,
+  SurpriseCreationPayload,
+  UniversalEventType,
+} from '../domain/calendar.types';
 import { RandomDateIdea } from '../domain/calendar.randomDate';
 import { CalendarHeader } from './CalendarHeader';
 import { CalendarMonthGrid } from './CalendarMonthGrid';
@@ -17,12 +25,25 @@ import { RandomDateGeneratorModal } from './RandomDateGeneratorModal';
 import { FutureLetterModal } from './FutureLetterModal';
 import { EventDetailSheet } from './EventDetailSheet';
 import { PostEventMemoryModal } from './PostEventMemoryModal';
-import { Spacing } from '../../../theme/tokens';
+import { UniversalCreateModal } from './UniversalCreateModal';
+import { ExpandedCalendarModal } from './ExpandedCalendarModal';
+import { Radii, Shadows, Spacing, Typography } from '../../../theme/tokens';
+import { Colors } from '../../../theme/colors';
+import { triggerHaptic } from '../../../utils/haptics';
+import { Badge } from '../../../components/ui/Badge';
+import { formatDateNice } from '../utils/calendarDateUtils';
+
+const RELATIONSHIP_START_DATE = '2025-02-15';
+const RELATIONSHIP_MET_DATE = '2024-11-23';
 
 export function CalendarScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const {
     coupleEvents,
+    mapPlaces,
+    wishes,
+    entries,
     currentDevUser,
     partnerDevUser,
     addCoupleEvent,
@@ -31,6 +52,12 @@ export function CalendarScreen() {
   } = useDev();
 
   const store = useCalendarState();
+
+  // Local state for 2-level architecture
+  const [compactMode, setCompactMode] = useState<CompactViewMode>('month');
+  const [isExpandedModalOpen, setIsExpandedModalOpen] = useState(false);
+  const [expandedMode, setExpandedMode] = useState<CalendarViewMode>('week');
+  const [isUniversalCreateOpen, setIsUniversalCreateOpen] = useState(false);
 
   // 1. Sanitize all couple events based on the active role (Anti-Spoiler)
   const sanitizedEvents = useMemo(() => {
@@ -47,11 +74,100 @@ export function CalendarScreen() {
     return eventsByDate[store.selectedDate] || [];
   }, [eventsByDate, store.selectedDate]);
 
-  // 4. Find active selected event for detail sheet
+  // 4. Upcoming events (next 3 to 5 items)
+  const upcomingEvents = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return sanitizedEvents
+      .filter((ev) => ev.date >= todayStr && ev.status !== 'completed' && ev.status !== 'cancelled')
+      .sort((a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''))
+      .slice(0, 4);
+  }, [sanitizedEvents]);
+
+  // 5. Timeline items for "Nuestra Historia"
+  const timelineItems = useMemo(() => {
+    return buildOurStoryTimeline({
+      coupleEvents,
+      mapPlaces,
+      wishes,
+      entries,
+    });
+  }, [coupleEvents, mapPlaces, wishes, entries]);
+
+  // 6. Days together metrics
+  const { daysTogether, daysSinceMet } = useMemo(() => {
+    const today = new Date();
+    const start = new Date(RELATIONSHIP_START_DATE);
+    const met = new Date(RELATIONSHIP_MET_DATE);
+
+    const diffStart = Math.max(0, Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+    const diffMet = Math.max(0, Math.floor((today.getTime() - met.getTime()) / (1000 * 60 * 60 * 24)));
+
+    return { daysTogether: diffStart, daysSinceMet: diffMet };
+  }, []);
+
+  // 7. Find active selected event for detail sheet
   const selectedEvent = useMemo(() => {
     if (!store.selectedEventId) return null;
     return sanitizedEvents.find((e) => e.id === store.selectedEventId) || null;
   }, [sanitizedEvents, store.selectedEventId]);
+
+  // Handler for universal create menu options
+  const handleUniversalCreateSelect = (option: UniversalEventType) => {
+    setIsUniversalCreateOpen(false);
+
+    switch (option) {
+      case 'date':
+        addCoupleEvent({
+          eventType: 'shared_plan',
+          date: store.selectedDate,
+          time: '20:30',
+          title: 'Cena romántica juntos',
+          subtitle: 'Un momento para nosotros',
+        });
+        break;
+      case 'restaurant':
+        addCoupleEvent({
+          eventType: 'shared_plan',
+          date: store.selectedDate,
+          time: '21:00',
+          title: 'Reserva Restaurante',
+          subtitle: 'Mesa guardada para una velada especial',
+          location: 'Restaurante en Valencia',
+        });
+        break;
+      case 'surprise':
+        store.setIsCreateSurpriseFlowOpen(true);
+        break;
+      case 'trip':
+        addCoupleEvent({
+          eventType: 'future_trip',
+          date: store.selectedDate,
+          title: 'Escapada de fin de semana',
+          subtitle: 'Desconexión y descubrir nuevos rincones juntos',
+        });
+        break;
+      case 'wishlist':
+        router.push('/(tabs)/wishes' as any);
+        break;
+      case 'important_date':
+        addCoupleEvent({
+          eventType: 'important_date',
+          date: store.selectedDate,
+          title: 'Fecha Especial',
+          subtitle: 'Un día inolvidable para nosotros',
+        });
+        break;
+      case 'memory':
+        addCoupleEvent({
+          eventType: 'ritual',
+          date: store.selectedDate,
+          time: '22:00',
+          title: '🌿 Recuerdo del día',
+          subtitle: 'Un momento vivido con el corazón',
+        });
+        break;
+    }
+  };
 
   // Handler for triggering ideas from module or library
   const handleTriggerIdea = (idea: RomanticIdea) => {
@@ -147,39 +263,168 @@ export function CalendarScreen() {
       contentContainerStyle={[styles.content, { paddingTop: topPadding, paddingBottom: bottomPadding }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* 1. Header with Month switcher & + Action */}
+      {/* 1. Header with Month switcher, [Mes]/[Agenda] toggle, and [⛶ Expandir] */}
       <CalendarHeader
         year={store.currentYear}
         monthIndex={store.currentMonthIndex}
         onPrevMonth={store.prevMonth}
         onNextMonth={store.nextMonth}
-        onAddNewEvent={() => store.setIsSurpriseSelectorOpen(true)}
+        onAddNewEvent={() => setIsUniversalCreateOpen(true)}
+        compactMode={compactMode}
+        onChangeCompactMode={setCompactMode}
+        onExpand={() => {
+          setExpandedMode('week');
+          setIsExpandedModalOpen(true);
+        }}
+        onJumpToToday={() => {
+          const today = new Date();
+          store.setSelectedDate(today.toISOString().split('T')[0]);
+        }}
       />
 
-      {/* 2. Monthly Grid Matrix with Event Badges */}
-      <CalendarMonthGrid
-        year={store.currentYear}
-        monthIndex={store.currentMonthIndex}
-        selectedDate={store.selectedDate}
-        onSelectDate={store.setSelectedDate}
-        eventsByDate={eventsByDate}
-      />
+      {/* 2. Compact View Body: Month Grid or Agenda Stream */}
+      {compactMode === 'month' ? (
+        <CalendarMonthGrid
+          year={store.currentYear}
+          monthIndex={store.currentMonthIndex}
+          selectedDate={store.selectedDate}
+          onSelectDate={store.setSelectedDate}
+          eventsByDate={eventsByDate}
+        />
+      ) : null}
 
-      {/* 3. Daily Schedule Agenda */}
+      {/* 3. Selected Day Card with Warm Positive State & Actions */}
       <DayAgendaView
         selectedDate={store.selectedDate}
         events={eventsForSelectedDate}
         onSelectEvent={(ev) => store.setSelectedEventId(ev.id)}
-        onAddNewPlan={() => store.setIsSurpriseSelectorOpen(true)}
+        onAddNewPlan={() => setIsUniversalCreateOpen(true)}
+        onOpenRestaurants={() => {
+          router.push('/(tabs)/map' as any);
+        }}
       />
 
-      {/* 4. Activable Modes & Ideas Module ("Ideas para vosotros") */}
+      {/* 4. Próximamente (Next 3-5 Upcoming Plans / Surprises) */}
+      {upcomingEvents.length > 0 && (
+        <View style={styles.upcomingBlock}>
+          <View style={styles.upcomingHeaderRow}>
+            <Text style={styles.upcomingTitle}>Próximamente</Text>
+            <TouchableOpacity
+              onPress={() => {
+                triggerHaptic('light');
+                setExpandedMode('history');
+                setIsExpandedModalOpen(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.upcomingSeeAllText}>Nuestra Historia ›</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.upcomingList}>
+            {upcomingEvents.map((ev) => (
+              <TouchableOpacity
+                key={ev.id}
+                style={[
+                  styles.upcomingCard,
+                  ev.eventType === 'surprise' && styles.upcomingCardSurprise,
+                ]}
+                onPress={() => {
+                  triggerHaptic('selection');
+                  store.setSelectedEventId(ev.id);
+                }}
+                activeOpacity={0.8}
+              >
+                <View
+                  style={[
+                    styles.upcomingIconCircle,
+                    ev.eventType === 'surprise'
+                      ? { backgroundColor: 'rgba(232, 106, 88, 0.12)' }
+                      : { backgroundColor: 'rgba(224, 86, 102, 0.12)' },
+                  ]}
+                >
+                  <Text style={styles.upcomingIconEmoji}>
+                    {ev.eventType === 'surprise' ? '✦' : '🗓️'}
+                  </Text>
+                </View>
+
+                <View style={styles.upcomingInfo}>
+                  <Text style={styles.upcomingItemTitle} numberOfLines={1}>
+                    {ev.title}
+                  </Text>
+                  <Text style={styles.upcomingItemDate}>
+                    {formatDateNice(ev.date)} {ev.time ? `· ${ev.time}` : ''}
+                  </Text>
+                </View>
+
+                <Badge
+                  variant={
+                    ev.eventType === 'surprise'
+                      ? 'secondary'
+                      : ev.eventType === 'future_trip'
+                      ? 'mistBlue'
+                      : 'primary'
+                  }
+                  size="sm"
+                >
+                  {ev.eventType === 'surprise' ? 'Sorpresa' : 'Plan'}
+                </Badge>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* 5. Activable Modes & Suggestions (At bottom, non-dominant) */}
       <ActivableModesModule
         onTriggerIdea={handleTriggerIdea}
         onOpenAllIdeas={() => store.setIsIdeasSheetOpen(true)}
       />
 
-      {/* Modals & Bottom Sheets */}
+      {/* --- Modals & Level 2 Expanded Experience --- */}
+
+      {/* Universal Contextual + Creation Modal */}
+      <UniversalCreateModal
+        visible={isUniversalCreateOpen}
+        onClose={() => setIsUniversalCreateOpen(false)}
+        onSelectOption={handleUniversalCreateSelect}
+        selectedDate={store.selectedDate}
+        partnerName={partnerDevUser.name}
+      />
+
+      {/* Level 2: Expanded Suite (Hoy, Semana, Mes, Nuestra Historia) */}
+      <ExpandedCalendarModal
+        visible={isExpandedModalOpen}
+        onClose={() => setIsExpandedModalOpen(false)}
+        activeMode={expandedMode}
+        onChangeMode={setExpandedMode}
+        selectedDate={store.selectedDate}
+        onSelectDate={store.setSelectedDate}
+        year={store.currentYear}
+        monthIndex={store.currentMonthIndex}
+        onPrevMonth={store.prevMonth}
+        onNextMonth={store.nextMonth}
+        eventsByDate={eventsByDate}
+        timelineItems={timelineItems}
+        daysTogether={daysTogether}
+        daysSinceMet={daysSinceMet}
+        partnerName={partnerDevUser.name}
+        onSelectEvent={(ev) => {
+          setIsExpandedModalOpen(false);
+          store.setSelectedEventId(ev.id);
+        }}
+        onAddNewPlanForDate={(date) => {
+          store.setSelectedDate(date);
+          setIsUniversalCreateOpen(true);
+        }}
+        onOpenUniversalCreate={() => setIsUniversalCreateOpen(true)}
+        onOpenRestaurants={() => {
+          setIsExpandedModalOpen(false);
+          router.push('/(tabs)/map' as any);
+        }}
+      />
+
+      {/* Sub-modals */}
       <IdeasLibrarySheet
         visible={store.isIdeasSheetOpen}
         onClose={() => store.setIsIdeasSheetOpen(false)}
@@ -248,4 +493,69 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
   },
+  upcomingBlock: {
+    marginBottom: Spacing.lg,
+  },
+  upcomingHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+    paddingHorizontal: 2,
+  },
+  upcomingTitle: {
+    ...Typography.h2,
+    fontSize: 16,
+    color: Colors.light.text,
+  },
+  upcomingSeeAllText: {
+    ...Typography.captionBold,
+    fontSize: 12,
+    color: Colors.light.primary,
+  },
+  upcomingList: {
+    gap: Spacing.xs,
+  },
+  upcomingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radii.xl,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(20, 19, 18, 0.05)',
+    ...Shadows.subtle,
+  },
+  upcomingCardSurprise: {
+    backgroundColor: '#FAF8F5',
+    borderColor: 'rgba(232, 106, 88, 0.15)',
+  },
+  upcomingIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+  upcomingIconEmoji: {
+    fontSize: 16,
+  },
+  upcomingInfo: {
+    flex: 1,
+    marginRight: Spacing.xs,
+  },
+  upcomingItemTitle: {
+    ...Typography.bodyMedium,
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.light.text,
+    marginBottom: 1,
+  },
+  upcomingItemDate: {
+    ...Typography.caption,
+    fontSize: 11.5,
+    color: Colors.light.textMuted,
+  },
 });
+

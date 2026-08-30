@@ -44,10 +44,52 @@ export interface RomanticIdea {
 }
 
 export const CalendarColors = {
-  sharedPlan: '#4A7C9B',
+  sharedPlan: '#E05666', // Coral
   surprise: '#E86A58',
-  importantDate: '#CBA86A',
-  ritual: '#8A7BB5',
+  importantDate: '#D4AF37', // Gold
+  restaurant: '#D4AF37', // Butter / Gold
+  ritual: '#6D9E7B', // Sage
   reminder: '#66737C',
-  futureTrip: '#5C9F9A',
+  futureTrip: '#5C9F9A', // Lavender / Mist Blue
 } as const;
+
+export type CalendarViewMode = 'day' | 'week' | 'month' | 'history';
+export type CompactViewMode = 'month' | 'agenda';
+
+export type UniversalEventType =
+  | 'date'
+  | 'restaurant'
+  | 'surprise'
+  | 'trip'
+  | 'wishlist'
+  | 'important_date'
+  | 'memory';
+
+export type TimelineItemKind =
+  | 'milestone'
+  | 'memory'
+  | 'event'
+  | 'trip'
+  | 'restaurant'
+  | 'wish_fulfilled'
+  | 'surprise_revealed';
+
+export interface TimelineItem {
+  id: string;
+  kind: TimelineItemKind;
+  date: string; // YYYY-MM-DD
+  time?: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  locationName?: string;
+  imageUrl?: string;
+  photos?: string[];
+  emoji?: string;
+  badgeLabel?: string;
+  badgeColor?: string;
+  moodTag?: string;
+  isUpcoming?: boolean;
+  chapterTitle?: string;
+}
+

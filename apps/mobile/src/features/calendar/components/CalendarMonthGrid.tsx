@@ -4,6 +4,7 @@ import { buildMonthGrid, WEEKDAYS_SHORT_ES } from '../utils/calendarDateUtils';
 import { SanitizedEventItem } from '../domain/calendar.types';
 import { triggerHaptic } from '../../../utils/haptics';
 import { Radii, Shadows, Spacing, Typography } from '../../../theme/tokens';
+import { Colors } from '../../../theme/colors';
 
 interface CalendarMonthGridProps {
   year: number;
@@ -40,12 +41,14 @@ export function CalendarMonthGrid({
 
           const isSelected = selectedDate === item.dateString;
           const dayEvents = eventsByDate[item.dateString] || [];
-          const hasEvents = dayEvents.length > 0;
           const isToday = item.isToday;
 
-          // Check if there is a surprise on this day
+          // Categorize event types for multi-dot indicators
           const hasSurprise = dayEvents.some((e) => e.eventType === 'surprise');
+          const hasDateOrPlan = dayEvents.some((e) => e.eventType === 'shared_plan');
           const hasImportant = dayEvents.some((e) => e.eventType === 'important_date');
+          const hasTrip = dayEvents.some((e) => e.eventType === 'future_trip');
+          const hasRitual = dayEvents.some((e) => e.eventType === 'ritual');
 
           return (
             <TouchableOpacity
@@ -72,17 +75,47 @@ export function CalendarMonthGrid({
                 {item.dayNumber}
               </Text>
 
-              {/* Event Badge Dot */}
-              {hasEvents && (
-                <View
-                  style={[
-                    styles.eventDot,
-                    hasSurprise && styles.eventDotSurprise,
-                    hasImportant && styles.eventDotImportant,
-                    isSelected && styles.eventDotSelected,
-                  ]}
-                />
-              )}
+              {/* Semantic Multi-Dot Indicators (Max 3 visible dots or surprise spark) */}
+              <View style={styles.dotsRow}>
+                {hasSurprise ? (
+                  <Text style={[styles.sparkIcon, isSelected && { color: '#FFFFFF' }]}>✦</Text>
+                ) : (
+                  <>
+                    {hasDateOrPlan && (
+                      <View
+                        style={[
+                          styles.indicatorDot,
+                          { backgroundColor: isSelected ? '#FFFFFF' : '#E05666' },
+                        ]}
+                      />
+                    )}
+                    {hasImportant && (
+                      <View
+                        style={[
+                          styles.indicatorDot,
+                          { backgroundColor: isSelected ? '#FFFFFF' : '#D4AF37' },
+                        ]}
+                      />
+                    )}
+                    {hasTrip && (
+                      <View
+                        style={[
+                          styles.indicatorDot,
+                          { backgroundColor: isSelected ? '#FFFFFF' : '#5C9F9A' },
+                        ]}
+                      />
+                    )}
+                    {hasRitual && !hasDateOrPlan && (
+                      <View
+                        style={[
+                          styles.indicatorDot,
+                          { backgroundColor: isSelected ? '#FFFFFF' : '#6D9E7B' },
+                        ]}
+                      />
+                    )}
+                  </>
+                )}
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -97,9 +130,9 @@ const styles = StyleSheet.create({
     borderRadius: Radii['2xl'],
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(43, 33, 41, 0.08)',
+    borderColor: 'rgba(20, 19, 18, 0.06)',
     ...Shadows.sm,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   weekdaysRow: {
     flexDirection: 'row',
@@ -107,12 +140,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
     paddingBottom: Spacing.xs,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(43, 33, 41, 0.06)',
+    borderBottomColor: 'rgba(20, 19, 18, 0.05)',
   },
   weekdayLabel: {
     ...Typography.captionBold,
-    color: '#66737C',
-    width: 38,
+    color: Colors.light.textMuted,
+    width: 42,
     textAlign: 'center',
     fontSize: 12,
   },
@@ -122,13 +155,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
   },
   emptyDayCell: {
-    width: 38,
-    height: 44,
+    width: 42,
+    height: 46,
     marginVertical: 2,
   },
   dayCell: {
-    width: 38,
-    height: 44,
+    width: 42,
+    height: 46,
     justifyContent: 'center',
     alignItems: 'center',
     marginVertical: 2,
@@ -136,44 +169,43 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   dayCellSelected: {
-    backgroundColor: '#E86A58',
-    shadowColor: '#E86A58',
-    shadowOpacity: 0.45,
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: Colors.light.primary,
+    ...Shadows.sm,
   },
   dayCellToday: {
     borderWidth: 1.5,
-    borderColor: '#E86A58',
-    backgroundColor: '#FDEEEB',
+    borderColor: Colors.light.primary,
   },
   dayNumberText: {
     ...Typography.bodyMedium,
-    fontSize: 14,
-    color: '#1E252B',
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: Colors.light.text,
   },
   dayNumberTextSelected: {
     color: '#FFFFFF',
     fontWeight: '800',
   },
   dayNumberTextToday: {
-    color: '#E86A58',
+    color: Colors.light.primary,
     fontWeight: '800',
   },
-  eventDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: '#4A7C9B',
+  dotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2.5,
+    height: 6,
     marginTop: 2,
   },
-  eventDotSurprise: {
-    backgroundColor: '#E86A58',
+  indicatorDot: {
+    width: 4.5,
+    height: 4.5,
+    borderRadius: 2.25,
   },
-  eventDotImportant: {
-    backgroundColor: '#CBA86A',
-  },
-  eventDotSelected: {
-    backgroundColor: '#FFFFFF',
+  sparkIcon: {
+    fontSize: 9.5,
+    color: '#E86A58',
+    marginTop: -2,
   },
 });

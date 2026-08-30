@@ -4,6 +4,7 @@ import { SanitizedEventItem } from '../domain/calendar.types';
 import { formatDateNice } from '../utils/calendarDateUtils';
 import { triggerHaptic } from '../../../utils/haptics';
 import { Radii, Shadows, Spacing, Typography } from '../../../theme/tokens';
+import { Colors } from '../../../theme/colors';
 import { Badge } from '../../../components/ui';
 
 interface DayAgendaViewProps {
@@ -11,6 +12,7 @@ interface DayAgendaViewProps {
   events: SanitizedEventItem[];
   onSelectEvent: (event: SanitizedEventItem) => void;
   onAddNewPlan: () => void;
+  onOpenRestaurants?: () => void;
 }
 
 export function DayAgendaView({
@@ -18,24 +20,27 @@ export function DayAgendaView({
   events,
   onSelectEvent,
   onAddNewPlan,
+  onOpenRestaurants,
 }: DayAgendaViewProps) {
+  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+
   const getBadgeProps = (ev: SanitizedEventItem) => {
     if (ev.eventType === 'surprise') {
       if (ev.isOwner) {
-        return { variant: 'butter' as const, label: 'Sorpresa secreta', color: '#E86A58' };
+        return { variant: 'butter' as const, label: '✦ Sorpresa', color: '#E86A58' };
       }
-      return { variant: 'butter' as const, label: 'Plan especial para ti', color: '#E86A58' };
+      return { variant: 'butter' as const, label: '✦ Plan especial para ti', color: '#E86A58' };
     }
     if (ev.eventType === 'important_date') {
-      return { variant: 'butter' as const, label: 'Fecha importante', color: '#CBA86A' };
+      return { variant: 'butter' as const, label: 'Fecha importante', color: '#D4AF37' };
     }
     if (ev.eventType === 'future_trip') {
       return { variant: 'mistBlue' as const, label: 'Viaje', color: '#5C9F9A' };
     }
     if (ev.eventType === 'ritual') {
-      return { variant: 'sage' as const, label: 'Ritual', color: '#8A7BB5' };
+      return { variant: 'sage' as const, label: 'Ritual', color: '#6D9E7B' };
     }
-    return { variant: 'secondary' as const, label: 'Plan juntos', color: '#4A7C9B' };
+    return { variant: 'secondary' as const, label: 'Plan juntos', color: '#E05666' };
   };
 
   return (
@@ -43,7 +48,10 @@ export function DayAgendaView({
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.dateTitle}>{formatDateNice(selectedDate)}</Text>
+          <View style={styles.titleRow}>
+            {isToday && <Text style={styles.todayPrefix}>Hoy · </Text>}
+            <Text style={styles.dateTitle}>{formatDateNice(selectedDate)}</Text>
+          </View>
           <Text style={styles.dateSub}>
             {events.length > 0
               ? `${events.length} ${events.length === 1 ? 'momento programado' : 'momentos programados'}`
@@ -120,8 +128,37 @@ export function DayAgendaView({
         </View>
       ) : (
         <View style={styles.emptyBox}>
-          <Text style={styles.emptyEmoji}>🌿</Text>
-          <Text style={styles.emptyText}>Sin planes marcados para este día.</Text>
+          <Text style={styles.emptyEmoji}>🍃</Text>
+          <Text style={styles.emptyTitle}>No tenéis nada planeado todavía</Text>
+          <Text style={styles.emptyText}>
+            ¿Os apetece dejar hueco para algo bonito o guardar un sitio que tengáis ganas?
+          </Text>
+
+          <View style={styles.emptyButtonsRow}>
+            <TouchableOpacity
+              style={styles.emptyActionPrimary}
+              onPress={() => {
+                triggerHaptic('light');
+                onAddNewPlan();
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.emptyActionPrimaryText}>+ Crear un plan</Text>
+            </TouchableOpacity>
+
+            {onOpenRestaurants && (
+              <TouchableOpacity
+                style={styles.emptyActionSecondary}
+                onPress={() => {
+                  triggerHaptic('light');
+                  onOpenRestaurants();
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.emptyActionSecondaryText}>🍽️ Ver restaurantes</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       )}
     </View>
@@ -132,11 +169,11 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: Radii['2xl'],
-    padding: Spacing.xl,
+    padding: Spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(43, 33, 41, 0.08)',
+    borderColor: 'rgba(20, 19, 18, 0.06)',
     ...Shadows.sm,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   headerRow: {
     flexDirection: 'row',
@@ -144,47 +181,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  todayPrefix: {
+    ...Typography.captionBold,
+    fontSize: 14.5,
+    color: Colors.light.primary,
+  },
   dateTitle: {
-    ...Typography.h3,
-    fontSize: 17,
-    color: '#1E252B',
+    ...Typography.h2,
+    fontSize: 16,
+    color: Colors.light.text,
   },
   dateSub: {
     ...Typography.caption,
-    color: '#66737C',
+    color: Colors.light.textMuted,
     marginTop: 2,
   },
   addPlanBtn: {
-    backgroundColor: '#FDEEEB',
+    backgroundColor: 'rgba(224, 86, 102, 0.08)',
     paddingHorizontal: Spacing.md,
-    paddingVertical: 7,
+    paddingVertical: 6,
     borderRadius: Radii.full,
-    borderWidth: 1,
-    borderColor: 'rgba(232, 106, 88, 0.2)',
   },
   addPlanText: {
     ...Typography.captionBold,
-    color: '#E86A58',
     fontSize: 12,
+    color: Colors.light.primary,
   },
   eventsList: {
     gap: Spacing.sm,
   },
   eventCard: {
     flexDirection: 'row',
-    backgroundColor: '#FAF6F0',
-    borderRadius: Radii.xl,
+    backgroundColor: '#FAF8F5',
+    borderRadius: Radii.lg,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(43, 33, 41, 0.06)',
-    position: 'relative',
+    borderColor: 'rgba(20, 19, 18, 0.05)',
   },
   eventCardSurprise: {
-    backgroundColor: '#FAF7FD',
-    borderColor: 'rgba(232, 106, 88, 0.15)',
+    backgroundColor: 'rgba(232, 106, 88, 0.05)',
   },
   ribbon: {
-    width: 5,
+    width: 4,
   },
   eventContent: {
     flex: 1,
@@ -198,45 +241,83 @@ const styles = StyleSheet.create({
   },
   eventTimeText: {
     ...Typography.captionBold,
-    color: '#66737C',
-    fontSize: 11,
+    fontSize: 12,
+    color: Colors.light.textMuted,
   },
   eventTitle: {
     ...Typography.bodyMedium,
-    fontSize: 15,
-    color: '#1E252B',
-    fontWeight: '800',
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: Colors.light.text,
+    marginBottom: 2,
   },
   eventSubtitle: {
     ...Typography.caption,
     fontSize: 12,
-    color: '#66737C',
-    marginTop: 2,
+    color: Colors.light.textMuted,
+    lineHeight: 16,
   },
   eventLocation: {
-    ...Typography.captionBold,
+    ...Typography.caption,
     fontSize: 11.5,
-    color: '#4A7C9B',
+    color: Colors.light.textMuted,
     marginTop: 4,
   },
   privateNotesHint: {
     ...Typography.caption,
     fontSize: 11,
-    color: '#E86A58',
+    color: '#D4AF37',
     marginTop: 4,
-    fontWeight: '700',
   },
   emptyBox: {
     alignItems: 'center',
-    paddingVertical: Spacing.xl,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
   },
   emptyEmoji: {
     fontSize: 28,
     marginBottom: Spacing.xs,
   },
+  emptyTitle: {
+    ...Typography.bodyMedium,
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.light.text,
+    marginBottom: 2,
+  },
   emptyText: {
     ...Typography.caption,
-    color: '#66737C',
     fontSize: 12,
+    color: Colors.light.textMuted,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+    maxWidth: 290,
+  },
+  emptyButtonsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  emptyActionPrimary: {
+    backgroundColor: Colors.light.primary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 7,
+    borderRadius: Radii.md,
+    ...Shadows.subtle,
+  },
+  emptyActionPrimaryText: {
+    ...Typography.captionBold,
+    fontSize: 12,
+    color: '#FFFFFF',
+  },
+  emptyActionSecondary: {
+    backgroundColor: '#FAF8F5',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 7,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    borderColor: 'rgba(20, 19, 18, 0.08)',
+  },
+  emptyActionSecondaryText: {
+    color: Colors.light.text,
   },
 });
