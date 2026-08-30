@@ -30,14 +30,14 @@ export const DEV_USERS: { user1: DevUser; user2: DevUser } = {
     id: '11111111-aaaa-bbbb-cccc-111111111111',
     name: 'Tonet',
     avatar: 'T',
-    avatarPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+    avatarPhoto: undefined,
     roleDescription: 'Quien suele iniciar planes y documentar detalles'
   },
   user2: {
     id: '22222222-dddd-eeee-ffff-222222222222',
     name: 'Andrea',
     avatar: 'A',
-    avatarPhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+    avatarPhoto: undefined,
     roleDescription: 'Quien da significado y aporta calidez espontánea'
   }
 };
