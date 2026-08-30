@@ -7,32 +7,46 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDev } from '../../src/context/DevContext';
 import { IntroShootingAnimation } from '../../src/components/auth/IntroShootingAnimation';
-import { Colors } from '../../src/theme/colors';
 import { Typography } from '../../src/theme/tokens';
 import { triggerHaptic } from '../../src/utils/haptics';
-import { Mail, ArrowRight, Lock } from 'lucide-react-native';
+import { Mail, Lock, ArrowRight, KeyRound } from 'lucide-react-native';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const PRIVATE_ACCESS_KEY = '611171571';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { loginWithEmail, isCloudConnected } = useDev();
+  const { loginWithEmail } = useDev();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isShootingPaused, setIsShootingPaused] = useState(false);
 
-  const handleLogin = async (customEmail?: string) => {
+  const handleLogin = async (customEmail?: string, customPassword?: string) => {
     const targetEmail = (customEmail || email).trim();
+    const targetPassword = (customPassword || password).trim();
+
     if (!targetEmail) {
       triggerHaptic('error');
       Alert.alert('Email Requerido', 'Por favor, introduce tu correo electrónico para continuar.');
+      return;
+    }
+
+    if (!targetPassword) {
+      triggerHaptic('error');
+      Alert.alert('Contraseña Requerida', 'Por favor, introduce tu contraseña privada.');
+      return;
+    }
+
+    // Validación estricta de contraseña privada
+    if (targetPassword !== PRIVATE_ACCESS_KEY) {
+      triggerHaptic('error');
+      Alert.alert('Contraseña Incorrecta', 'La clave privada introducida no es válida.');
       return;
     }
 
@@ -55,17 +69,19 @@ export default function LoginScreen() {
 
   const handleQuickLoginTonet = () => {
     setEmail('hwrtseo@gmail.com');
-    handleLogin('hwrtseo@gmail.com');
+    setPassword(PRIVATE_ACCESS_KEY);
+    handleLogin('hwrtseo@gmail.com', PRIVATE_ACCESS_KEY);
   };
 
   const handleQuickLoginAndrea = () => {
     setEmail('andrea@amor.com');
-    handleLogin('andrea@amor.com');
+    setPassword(PRIVATE_ACCESS_KEY);
+    handleLogin('andrea@amor.com', PRIVATE_ACCESS_KEY);
   };
 
   return (
     <View style={styles.container}>
-      {/* 🎞️ Fullscreen Shooting Animation (0.3s frame speed) */}
+      {/* 🎞️ Fullscreen Shooting Animation (0.3s frame speed, limpio y sin flashes) */}
       <IntroShootingAnimation
         intervalMs={300}
         isPaused={isShootingPaused}
@@ -77,7 +93,7 @@ export default function LoginScreen() {
         style={styles.keyboardContainer}
       >
         <View style={styles.cardContainer}>
-          {/* Glass Card */}
+          {/* Glass Card Centrada */}
           <View style={styles.glassCard}>
             <View style={styles.cardHeader}>
               <View style={styles.lockBadge}>
@@ -86,7 +102,7 @@ export default function LoginScreen() {
               </View>
               <Text style={styles.cardTitle}>Bienvenido a Casa</Text>
               <Text style={styles.cardSubtitle}>
-                Introduce tu correo para acceder al atlas íntimo
+                Introduce tus credenciales para acceder a nuestro espacio
               </Text>
             </View>
 
@@ -95,13 +111,29 @@ export default function LoginScreen() {
               <Mail size={18} color="rgba(255, 255, 255, 0.6)" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="ej. hwrtseo@gmail.com"
+                placeholder="Correo (ej. hwrtseo@gmail.com)"
                 placeholderTextColor="rgba(255, 255, 255, 0.35)"
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
+                returnKeyType="next"
+              />
+            </View>
+
+            {/* Password Input */}
+            <View style={styles.inputWrapper}>
+              <KeyRound size={18} color="rgba(255, 255, 255, 0.6)" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Contraseña privada"
+                placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
                 returnKeyType="go"
                 onSubmitEditing={() => handleLogin()}
               />
@@ -126,7 +158,7 @@ export default function LoginScreen() {
 
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>O ACCESO DIRECTO</Text>
+              <Text style={styles.dividerText}>O ACCESO RÁPIDO</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -156,14 +188,6 @@ export default function LoginScreen() {
                 </View>
               </TouchableOpacity>
             </View>
-
-            {/* Cloud Status Footer */}
-            <View style={styles.cardFooter}>
-              <View style={[styles.statusDot, { backgroundColor: isCloudConnected ? '#34C759' : '#FF9500' }]} />
-              <Text style={styles.footerStatusText}>
-                {isCloudConnected ? '🟢 Supabase Cloud en Tiempo Real' : '☁️ Almacenamiento Local Seguro'}
-              </Text>
-            </View>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -181,17 +205,19 @@ const styles = StyleSheet.create({
   },
   keyboardContainer: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    zIndex: 10,
   },
   cardContainer: {
     width: '100%',
-    maxWidth: 440,
+    maxWidth: 420,
     alignSelf: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 44 : 28,
   },
   glassCard: {
-    backgroundColor: 'rgba(24, 22, 20, 0.88)',
+    backgroundColor: 'rgba(20, 18, 16, 0.90)',
     borderRadius: 28,
     padding: 24,
     borderWidth: 1,
@@ -246,7 +272,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     paddingHorizontal: 14,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   inputIcon: {
     marginRight: 10,
@@ -264,6 +290,7 @@ const styles = StyleSheet.create({
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 4,
   },
   btnDisabled: {
     opacity: 0.6,
@@ -299,7 +326,6 @@ const styles = StyleSheet.create({
   quickAccessRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 16,
   },
   quickBtn: {
     flex: 1,
@@ -329,22 +355,5 @@ const styles = StyleSheet.create({
     fontFamily: Typography.family.regular,
     fontSize: 10,
     color: 'rgba(255, 255, 255, 0.5)',
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingTop: 4,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  footerStatusText: {
-    fontFamily: Typography.family.medium,
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.55)',
   },
 });
