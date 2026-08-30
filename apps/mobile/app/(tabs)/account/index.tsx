@@ -243,16 +243,16 @@ export default function AccountScreen() {
 
           <View style={styles.milestoneItem}>
             <View style={[styles.milestoneIconBadge, { backgroundColor: 'rgba(224, 86, 102, 0.12)' }]}>
-              <Text style={{ fontSize: 16 }}>💍</Text>
+              <Text style={{ fontSize: 16 }}>💋</Text>
             </View>
             <View style={styles.milestoneContent}>
               <View style={styles.milestoneHeaderRow}>
-                <Text style={styles.milestoneTitle}>Empezamos a Salir</Text>
+                <Text style={styles.milestoneTitle}>Primer Beso & Empezamos a Salir</Text>
                 <Text style={styles.milestoneDate}>15 Feb 2025</Text>
               </View>
-              <Text style={styles.milestoneLocation}>Nuestro Aniversario Oficial · Valencia</Text>
+              <Text style={styles.milestoneLocation}>Pg. de l'Albereda, 44, Camins al Grau · Valencia</Text>
               <Text style={styles.milestoneDesc}>
-                El día que decidimos caminar juntos como pareja. {diffDays} días construyendo nuestro nido.
+                Donde nos dimos nuestro primer beso y donde Ángel le pidió salir a Andrea ({diffDays} días juntos).
               </Text>
             </View>
           </View>
