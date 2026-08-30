@@ -1297,6 +1297,12 @@ export interface DevContextType {
   // Aya AI Actions
   getRandomAyaQuestion: () => AyaQuestionPrompt;
 
+  // Auth state
+  isAuthenticated: boolean;
+  currentEmail: string | null;
+  loginWithEmail: (email: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+
   // Storage & Demo Mode Actions
   isDemoModeEnabled: boolean;
   resetAllDataToDefaults: () => Promise<void>;
@@ -1313,6 +1319,9 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const [isPremium, setIsPremium] = useState<boolean>(true);
   const [user1Consent, setUser1Consent] = useState<boolean>(true);
   const [user2Consent, setUser2Consent] = useState<boolean>(true);
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
 
   const [wishes, setWishes] = useState<WishlistItem[]>(INITIAL_WISHES);
   const [savedPlaces, setSavedPlaces] = useState<Place[]>(INITIAL_SAVED_PLACES);
@@ -1431,6 +1440,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
           savedSeeds,
           savedEntries,
           savedUsers,
+          savedAuth,
         ] = await Promise.all([
           StorageEngine.getItem<'user1' | 'user2'>(STORAGE_KEYS.ACTIVE_USER, 'user2'),
           StorageEngine.getItem<WishlistItem[] | null>(STORAGE_KEYS.WISHES, null),
@@ -1439,9 +1449,17 @@ export function DevProvider({ children }: { children: ReactNode }) {
           StorageEngine.getItem<RitualSeed[] | null>(STORAGE_KEYS.SEEDS, null),
           StorageEngine.getItem<DiaryEntryUI[] | null>('andrea_entries_v5', null),
           StorageEngine.getItem<{ user1: DevUser; user2: DevUser } | null>('andrea_users_v5', null),
+          StorageEngine.getItem<{ email: string; role: 'user1' | 'user2' } | null>('andrea_auth_session_v5', null),
         ]);
 
-        if (savedRole) setActiveRole(savedRole);
+        if (savedAuth && savedAuth.email) {
+          setIsAuthenticated(true);
+          setCurrentEmail(savedAuth.email);
+          if (savedAuth.role) setActiveRole(savedAuth.role);
+        } else if (savedRole) {
+          setActiveRole(savedRole);
+        }
+
         if (savedWishes !== null && Array.isArray(savedWishes)) setWishes(savedWishes);
         if (savedPlacesData !== null && Array.isArray(savedPlacesData)) setSavedPlaces(savedPlacesData);
         if (savedEvents !== null && Array.isArray(savedEvents)) setCoupleEvents(savedEvents);
@@ -1509,6 +1527,28 @@ export function DevProvider({ children }: { children: ReactNode }) {
       CloudSyncEngine.syncUserProfile(targetUserId, roleKey, updatedUser);
       return updated;
     });
+  };
+
+  const loginWithEmail = async (email: string): Promise<boolean> => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) return false;
+
+    const isTonet = cleanEmail === 'hwrtseo@gmail.com' || cleanEmail.includes('tonet') || cleanEmail.includes('hwrtseo');
+    const role: 'user1' | 'user2' = isTonet ? 'user1' : 'user2';
+
+    setActiveRole(role);
+    setCurrentEmail(cleanEmail);
+    setIsAuthenticated(true);
+
+    await StorageEngine.setItem('andrea_auth_session_v5', { email: cleanEmail, role });
+    await StorageEngine.setItem(STORAGE_KEYS.ACTIVE_USER, role);
+    return true;
+  };
+
+  const logout = async () => {
+    setIsAuthenticated(false);
+    setCurrentEmail(null);
+    await StorageEngine.setItem('andrea_auth_session_v5', null);
   };
 
   // 2. Auto-save watchers
@@ -1985,6 +2025,10 @@ export function DevProvider({ children }: { children: ReactNode }) {
   return (
     <DevContext.Provider
       value={{
+        isAuthenticated,
+        currentEmail,
+        loginWithEmail,
+        logout,
         activeRole,
         currentDevUser,
         partnerDevUser,

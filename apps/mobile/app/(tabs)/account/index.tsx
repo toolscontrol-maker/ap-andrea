@@ -71,6 +71,8 @@ export default function AccountScreen() {
     isCloudConnected,
     cloudSyncStatus,
     forceCloudSync,
+    logout,
+    currentEmail,
     isDemoModeEnabled,
     resetAllDataToDefaults,
     clearAllUserData,
@@ -630,12 +632,49 @@ export default function AccountScreen() {
             </View>
             <Text style={[styles.settingActionText, { color: '#E05666' }]}>Borrar</Text>
           </TouchableOpacity>
+
+          <View style={styles.settingDivider} />
+
+          {/* Logout */}
+          <TouchableOpacity
+            style={styles.settingRow}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerHaptic('medium');
+              Alert.alert(
+                'Cerrar Sesión',
+                '¿Deseas salir a la pantalla de bienvenida?',
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  {
+                    text: 'Cerrar Sesión',
+                    style: 'destructive',
+                    onPress: async () => {
+                      await logout();
+                      router.replace('/(auth)/login');
+                    },
+                  },
+                ]
+              );
+            }}
+          >
+            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(58, 47, 56, 0.08)' }]}>
+              <IconLogOut size={16} color={Colors.light.primary} />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Cerrar Sesión</Text>
+              <Text style={styles.settingDesc}>
+                {currentEmail ? `Conectado como ${currentEmail}` : 'Volver a la portada de shooting'}
+              </Text>
+            </View>
+            <Text style={styles.settingActionText}>Salir</Text>
+          </TouchableOpacity>
         </View>
 
         {/* APP INFO & VERSION FOOTER */}
         <View style={styles.footerInfoCard}>
           <Text style={styles.footerBrandName}>ANDREA APP</Text>
-          <Text style={styles.footerVersion}>Versión 1.0.0 (Edición Privada Local)</Text>
+          <Text style={styles.footerVersion}>Versión 1.0.0 (Edición Privada)</Text>
           <Text style={styles.footerDedication}>
             Creado con amor y cuidado para Andrea & Tonet.
           </Text>

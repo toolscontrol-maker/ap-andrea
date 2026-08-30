@@ -21,4 +21,9 @@ config.resolver.extraNodeModules = {
   '@andrea/types': path.resolve(monorepoRoot, 'packages/types'),
 };
 
+// 4. Support AVIF image assets
+if (!config.resolver.assetExts.includes('avif')) {
+  config.resolver.assetExts.push('avif');
+}
+
 module.exports = config;
