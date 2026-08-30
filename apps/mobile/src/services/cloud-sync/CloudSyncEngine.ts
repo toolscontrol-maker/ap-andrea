@@ -68,8 +68,124 @@ class CloudSyncEngineService {
     }
   }
 
+  // ── Database to TypeScript CamelCase Mappers ──
+  public mapProfileFromDb(row: any): DevUser {
+    return {
+      id: row.id,
+      name: row.name || (row.role_key === 'user1' ? 'Tonet' : 'Andrea'),
+      avatar: row.avatar || (row.name ? row.name[0].toUpperCase() : (row.role_key === 'user1' ? 'T' : 'A')),
+      avatarPhoto: row.avatar_photo || row.avatarPhoto || undefined,
+      roleDescription: row.role_description || row.roleDescription || '',
+    };
+  }
+
+  public mapWishFromDb(row: any): WishlistItem {
+    return {
+      id: row.id,
+      coupleId: row.couple_id || COUPLE_ID,
+      ownerUserId: row.owner_user_id || row.ownerUserId,
+      createdByUserId: row.created_by_user_id || row.createdByUserId,
+      title: row.title,
+      description: row.description,
+      type: row.type || 'other',
+      status: row.status || 'dreaming',
+      visibility: row.visibility || 'shared',
+      brand: row.brand,
+      sourceUrl: row.source_url || row.sourceUrl,
+      externalImageUrl: row.external_image_url || row.externalImageUrl,
+      images: Array.isArray(row.images) ? row.images : [],
+      estimatedPrice: row.estimated_price !== null && row.estimated_price !== undefined ? Number(row.estimated_price) : undefined,
+      currency: row.currency || 'EUR',
+      priceNote: row.price_note || row.priceNote,
+      color: row.color,
+      size: row.size,
+      desiredFor: row.desired_for || row.desiredFor,
+      occasion: row.occasion,
+      tags: Array.isArray(row.tags) ? row.tags : [],
+      isForSelf: row.is_for_self !== undefined ? row.is_for_self : true,
+      phoneNumber: row.phone_number || row.phoneNumber,
+      restaurantId: row.restaurant_id || row.restaurantId,
+      createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+      updatedAt: row.updated_at || row.updatedAt || new Date().toISOString(),
+    };
+  }
+
+  public mapSavedPlaceFromDb(row: any): Place {
+    return {
+      id: row.id,
+      coupleId: row.couple_id || COUPLE_ID,
+      createdByUserId: row.created_by_user_id || row.createdByUserId,
+      name: row.name,
+      category: row.category || 'restaurant',
+      status: row.status || 'favorite',
+      address: row.address,
+      city: row.city || 'Valencia',
+      country: row.country || 'España',
+      countryCode: row.country_code || row.countryCode || 'ES',
+      phoneNumber: row.phone_number || row.phoneNumber,
+      googleMapsUrl: row.google_maps_url || row.googleMapsUrl,
+      latitude: Number(row.latitude) || 39.4699,
+      longitude: Number(row.longitude) || -0.3763,
+      cuisine: Array.isArray(row.cuisine) ? row.cuisine : [],
+      priceLevel: row.price_level !== undefined ? row.price_level : 2,
+      vibe: row.vibe || 'romantico',
+      tags: Array.isArray(row.tags) ? row.tags : [],
+      ratingPersonal: row.rating_personal !== undefined ? Number(row.rating_personal) : 5,
+      note: row.note,
+      coverImageUrl: row.cover_image_url || row.coverImageUrl || '',
+      photos: Array.isArray(row.photos) ? row.photos : [],
+      visits: Array.isArray(row.visits) ? row.visits : [],
+      createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+      updatedAt: row.updated_at || row.updatedAt || new Date().toISOString(),
+    };
+  }
+
+  public mapMapPlaceFromDb(row: any): any {
+    return {
+      id: row.id,
+      title: row.title,
+      subtitle: row.subtitle,
+      cityName: row.city_name || row.cityName || 'Valencia',
+      country: row.country || 'España',
+      countryCode: row.country_code || row.countryCode || 'ES',
+      lat: Number(row.lat) || 39.4699,
+      lng: Number(row.lng) || -0.3763,
+      date: row.date,
+      story: row.story,
+      category: row.category || 'cita',
+      moodTag: row.mood_tag || row.moodTag || 'love',
+      photos: Array.isArray(row.photos) ? row.photos : [],
+      authorId: row.author_id || row.authorId,
+      locationPrecision: row.location_precision || row.locationPrecision || 'exact',
+      visibility: row.visibility || 'couple',
+      isMilestone: row.is_milestone !== undefined ? row.is_milestone : false,
+      createdAt: row.created_at || new Date().toISOString(),
+      updatedAt: row.updated_at || new Date().toISOString(),
+    };
+  }
+
+  public mapEventFromDb(row: any): CoupleEvent {
+    return {
+      id: row.id,
+      coupleId: row.couple_id || COUPLE_ID,
+      ownerId: row.owner_id || row.ownerId,
+      partnerId: row.partner_id || row.partnerId,
+      eventType: row.event_type || row.eventType,
+      date: row.date,
+      time: row.time,
+      actualStartAt: row.actual_start_at || row.actualStartAt,
+      ownerView: row.owner_view || row.ownerView || {},
+      partnerView: row.partner_view || row.partnerView || {},
+      revealPolicy: row.reveal_policy || row.revealPolicy || 'immediate',
+      visibility: row.visibility || 'shared',
+      status: row.status || 'completed',
+      createdAt: row.created_at || new Date().toISOString(),
+      updatedAt: row.updated_at || new Date().toISOString(),
+    };
+  }
+
   /**
-   * Initializes Supabase Realtime WebSocket connection
+   * Initializes Supabase Realtime WebSocket connection and registers event listeners
    */
   public async initializeRealtime() {
     try {
@@ -94,8 +210,16 @@ class CloudSyncEngineService {
           (payload: any) => {
             const table = payload.table as SyncEntity;
             const eventType = payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE';
-            const record = eventType === 'DELETE' ? payload.old : payload.new;
-            this.notifyListeners(table, eventType, record);
+            const rawRecord = eventType === 'DELETE' ? payload.old : payload.new;
+            let mappedRecord = rawRecord;
+            if (rawRecord) {
+              if (table === 'profiles') mappedRecord = this.mapProfileFromDb(rawRecord);
+              else if (table === 'wishes') mappedRecord = this.mapWishFromDb(rawRecord);
+              else if (table === 'saved_places') mappedRecord = this.mapSavedPlaceFromDb(rawRecord);
+              else if (table === 'map_places') mappedRecord = this.mapMapPlaceFromDb(rawRecord);
+              else if (table === 'couple_events') mappedRecord = this.mapEventFromDb(rawRecord);
+            }
+            this.notifyListeners(table, eventType, mappedRecord);
           }
         )
         .subscribe((status: string) => {
@@ -108,6 +232,53 @@ class CloudSyncEngineService {
     } catch (err: any) {
       console.warn('[CloudSync] Realtime initialization error:', err);
       this.setConnectionState(true, 'Almacenamiento Local Seguro');
+    }
+  }
+
+  /**
+   * Fetches full cloud state for cold-start hydration
+   */
+  public async fetchFullCloudState() {
+    if (!this.isSupabaseConfigured()) return null;
+    try {
+      const [
+        { data: profilesData },
+        { data: wishesData },
+        { data: placesData },
+        { data: mapPlacesData },
+        { data: eventsData },
+      ] = await Promise.all([
+        supabase.from('profiles').select('*').eq('couple_id', COUPLE_ID),
+        supabase.from('wishes').select('*').eq('couple_id', COUPLE_ID),
+        supabase.from('saved_places').select('*').eq('couple_id', COUPLE_ID),
+        supabase.from('map_places').select('*').eq('couple_id', COUPLE_ID),
+        supabase.from('couple_events').select('*').eq('couple_id', COUPLE_ID),
+      ]);
+
+      let user1: DevUser | null = null;
+      let user2: DevUser | null = null;
+
+      if (profilesData && profilesData.length > 0) {
+        for (const p of profilesData) {
+          const mapped = this.mapProfileFromDb(p);
+          if (p.role_key === 'user1' || p.name?.toLowerCase().includes('tonet')) {
+            user1 = mapped;
+          } else if (p.role_key === 'user2' || p.name?.toLowerCase().includes('andrea')) {
+            user2 = mapped;
+          }
+        }
+      }
+
+      return {
+        users: user1 || user2 ? { user1, user2 } : null,
+        wishes: wishesData && wishesData.length > 0 ? wishesData.map(w => this.mapWishFromDb(w)) : null,
+        savedPlaces: placesData && placesData.length > 0 ? placesData.map(p => this.mapSavedPlaceFromDb(p)) : null,
+        mapPlaces: mapPlacesData && mapPlacesData.length > 0 ? mapPlacesData.map(m => this.mapMapPlaceFromDb(m)) : null,
+        coupleEvents: eventsData && eventsData.length > 0 ? eventsData.map(e => this.mapEventFromDb(e)) : null,
+      };
+    } catch (e) {
+      console.warn('[CloudSync] Error fetching full cloud state:', e);
+      return null;
     }
   }
 
@@ -282,19 +453,34 @@ class CloudSyncEngineService {
 
   // ── 5. PROFILES & PHOTOS ──
   public async syncUserProfile(userId: string, roleKey: 'user1' | 'user2', profile: Partial<DevUser>) {
-    this.broadcastLocal('profiles', 'UPDATE', { id: userId, roleKey, ...profile });
+    const photo = profile.avatarPhoto || (profile as any).avatar_photo || null;
+    const name = profile.name || (roleKey === 'user1' ? 'Tonet' : 'Andrea');
+    const avatar = profile.avatar || name[0].toUpperCase();
+
+    const payloadToBroadcast = {
+      id: userId,
+      role_key: roleKey,
+      name,
+      avatar,
+      avatarPhoto: photo || undefined,
+      avatar_photo: photo || undefined,
+      roleDescription: profile.roleDescription || '',
+    };
+
+    this.broadcastLocal('profiles', 'UPDATE', payloadToBroadcast);
+
     try {
       if (this.isSupabaseConfigured()) {
         await supabase.from('profiles').upsert({
           id: userId,
           couple_id: COUPLE_ID,
           role_key: roleKey,
-          name: profile.name,
-          avatar: profile.avatar,
-          avatar_photo: profile.avatarPhoto,
-          role_description: profile.roleDescription,
+          name,
+          avatar,
+          avatar_photo: photo,
+          role_description: profile.roleDescription || null,
           updated_at: new Date().toISOString(),
-        });
+        }, { onConflict: 'id' });
       }
     } catch (e) {
       console.warn('[CloudSync] Profile sync error:', e);

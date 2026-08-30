@@ -1373,11 +1373,34 @@ export function DevProvider({ children }: { children: ReactNode }) {
             });
           }
         } else if (entity === 'profiles') {
-          if (record.id) {
-            setUsers((prev) => ({
-              user1: prev.user1.id === record.id ? { ...prev.user1, ...record } : prev.user1,
-              user2: prev.user2.id === record.id ? { ...prev.user2, ...record } : prev.user2,
-            }));
+          if (record) {
+            const role = record.role_key || record.roleKey || (record.name?.toLowerCase().includes('tonet') ? 'user1' : 'user2');
+            const isUser1 = role === 'user1' || record.id === DEV_USERS.user1.id;
+            const photo = record.avatarPhoto || record.avatar_photo;
+            const name = record.name;
+            const avatar = record.avatar || (name ? name[0].toUpperCase() : undefined);
+            const desc = record.roleDescription || record.role_description;
+
+            setUsers((prev) => {
+              const updated = {
+                user1: isUser1 ? {
+                  ...prev.user1,
+                  ...(name ? { name } : {}),
+                  ...(avatar ? { avatar } : {}),
+                  ...(photo !== undefined ? { avatarPhoto: photo } : {}),
+                  ...(desc ? { roleDescription: desc } : {}),
+                } : prev.user1,
+                user2: !isUser1 ? {
+                  ...prev.user2,
+                  ...(name ? { name } : {}),
+                  ...(avatar ? { avatar } : {}),
+                  ...(photo !== undefined ? { avatarPhoto: photo } : {}),
+                  ...(desc ? { roleDescription: desc } : {}),
+                } : prev.user2,
+              };
+              StorageEngine.setItem('andrea_users_v5', updated);
+              return updated;
+            });
           }
         } else if (entity === 'ritual_seeds') {
           setRitualSeeds((prev) => {
@@ -1396,7 +1419,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  // 1. Initial load from persistent storage
+  // 1. Initial load from persistent storage + cloud hydration
   useEffect(() => {
     async function loadStoredData() {
       try {
@@ -1430,6 +1453,31 @@ export function DevProvider({ children }: { children: ReactNode }) {
             user2: { ...prev.user2, ...(savedUsers.user2 || {}) },
           }));
         }
+
+        // 2. Fetch remote state from Supabase Cloud to ensure cross-device consistency!
+        if (CloudSyncEngine.isSupabaseConfigured()) {
+          try {
+            const cloudState = await CloudSyncEngine.fetchFullCloudState();
+            if (cloudState) {
+              if (cloudState.users) {
+                setUsers((prev) => {
+                  const merged = {
+                    user1: { ...prev.user1, ...(cloudState.users.user1 || {}) },
+                    user2: { ...prev.user2, ...(cloudState.users.user2 || {}) },
+                  };
+                  StorageEngine.setItem('andrea_users_v5', merged);
+                  return merged;
+                });
+              }
+              if (cloudState.wishes && cloudState.wishes.length > 0) setWishes(cloudState.wishes);
+              if (cloudState.savedPlaces && cloudState.savedPlaces.length > 0) setSavedPlaces(cloudState.savedPlaces);
+              if (cloudState.mapPlaces && cloudState.mapPlaces.length > 0) setMapPlaces(cloudState.mapPlaces);
+              if (cloudState.coupleEvents && cloudState.coupleEvents.length > 0) setCoupleEvents(cloudState.coupleEvents);
+            }
+          } catch (cloudErr) {
+            console.warn('[DevContext] Cloud hydration error:', cloudErr);
+          }
+        }
       } catch (e) {
         console.warn('Error loading persisted data:', e);
       } finally {
@@ -1441,15 +1489,24 @@ export function DevProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateUserProfile = async (userId: string, updates: Partial<DevUser>) => {
+    const isUser1 = userId === DEV_USERS.user1.id || (updates.name && updates.name.toLowerCase().includes('tonet'));
+    const roleKey: 'user1' | 'user2' = isUser1 ? 'user1' : 'user2';
+    const targetUserId = isUser1 ? DEV_USERS.user1.id : DEV_USERS.user2.id;
+
     setUsers((prev) => {
-      const isUser1 = prev.user1.id === userId;
-      const updatedUser = isUser1 ? { ...prev.user1, ...updates } : { ...prev.user2, ...updates };
+      const currentUser = isUser1 ? prev.user1 : prev.user2;
+      const updatedUser: DevUser = {
+        ...currentUser,
+        ...updates,
+        id: targetUserId,
+        avatar: updates.name ? updates.name[0].toUpperCase() : currentUser.avatar,
+      };
       const updated = {
         user1: isUser1 ? updatedUser : prev.user1,
         user2: !isUser1 ? updatedUser : prev.user2,
       };
       StorageEngine.setItem('andrea_users_v5', updated);
-      CloudSyncEngine.syncUserProfile(userId, isUser1 ? 'user1' : 'user2', updatedUser);
+      CloudSyncEngine.syncUserProfile(targetUserId, roleKey, updatedUser);
       return updated;
     });
   };
