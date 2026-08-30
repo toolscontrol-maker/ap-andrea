@@ -27,21 +27,7 @@ import {
   IconSliders,
 } from '../ui/Icons';
 
-const ANDREA_PRESET_PHOTOS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&auto=format&fit=crop&q=80',
-];
-
-const TONET_PRESET_PHOTOS = [
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&auto=format&fit=crop&q=80',
-];
+import { INTRO_PHOTOS } from '../../constants/introImages';
 
 interface ProfileSettingsModalProps {
   visible: boolean;
@@ -321,22 +307,30 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
                 />
               </View>
 
-              {/* Presets */}
+              {/* Presets from Authentic Gallery */}
               <View style={styles.inputBlock}>
-                <Text style={styles.inputLabel}>Retratos Estéticos Sugeridos</Text>
+                <Text style={styles.inputLabel}>Fotografías Reales de Vuestro Álbum</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetsScroll}>
-                  {(activeRole === 'user1' ? TONET_PRESET_PHOTOS : ANDREA_PRESET_PHOTOS).map((url, idx) => (
+                  {INTRO_PHOTOS.map((photo, idx) => (
                     <TouchableOpacity
-                      key={idx}
-                      style={[styles.presetThumb, editPhotoUrl === url && styles.presetThumbActive]}
+                      key={photo.id || idx}
+                      style={[styles.presetThumb, editPhotoUrl === (photo.source.uri || photo.source) && styles.presetThumbActive]}
                       onPress={() => {
                         triggerHaptic('selection');
-                        setEditPhotoUrl(url);
+                        // Use the photo source object or asset uri
+                        if (typeof photo.source === 'string') {
+                          setEditPhotoUrl(photo.source);
+                        } else if (photo.source && photo.source.uri) {
+                          setEditPhotoUrl(photo.source.uri);
+                        } else {
+                          // Asset number or direct require
+                          setEditPhotoUrl(photo.source);
+                        }
                       }}
                       activeOpacity={0.8}
                     >
-                      <Image source={{ uri: url }} style={styles.presetImg} />
-                      {editPhotoUrl === url && (
+                      <Image source={photo.source} style={styles.presetImg} resizeMode="cover" />
+                      {editPhotoUrl === (photo.source.uri || photo.source) && (
                         <View style={styles.presetCheckmark}>
                           <IconCheck size={11} color="#FFFFFF" />
                         </View>
@@ -346,13 +340,13 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
                 </ScrollView>
               </View>
 
-              {/* Upload via Camera/File */}
+              {/* Upload via Gallery / Camera */}
               <View style={styles.inputBlock}>
                 <PhotoUploadField
                   imageUri={editPhotoUrl}
                   onImageChange={(uri) => setEditPhotoUrl(uri || '')}
-                  label="Subir desde tu dispositivo"
-                  placeholderText="Toca para abrir cámara o carrete"
+                  label="Elegir foto de tu carrete o dispositivo"
+                  placeholderText="Toca para permitir acceso a tu galería y elegir tu foto"
                   aspect={[1, 1]}
                 />
               </View>

@@ -38,22 +38,8 @@ import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
 import { triggerHaptic } from '../../../src/utils/haptics';
 import { ConnectedCoupleHeart } from '../../../src/components/ui/ConnectedCoupleHeart';
 import { CloudSyncStatusBadge } from '../../../src/components/ui/CloudSyncStatusBadge';
-
-const ANDREA_PRESET_PHOTOS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&auto=format&fit=crop&q=80',
-];
-
-const TONET_PRESET_PHOTOS = [
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&auto=format&fit=crop&q=80',
-];
+import { INTRO_PHOTOS } from '../../../src/constants/introImages';
+import { THEME_PALETTES, ThemePalette } from '../../../src/theme/colors';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -73,6 +59,8 @@ export default function AccountScreen() {
     forceCloudSync,
     logout,
     currentEmail,
+    themePalette,
+    setThemePalette,
     isDemoModeEnabled,
     resetAllDataToDefaults,
     clearAllUserData,
@@ -280,9 +268,36 @@ export default function AccountScreen() {
           <View style={styles.coupleInfoSection}>
             <Text style={styles.coupleNames}>Andrea & Tonet</Text>
             <Text style={styles.coupleSubtitle}>Juntos desde el 15 de Febrero de 2025 · Valencia</Text>
-            <View style={styles.vaultSecurityBadge}>
-              <IconShield size={13} color={Colors.light.primary} />
-              <Text style={styles.vaultSecurityText}>Bóveda Privada en Dispositivo</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
+              <View style={styles.vaultSecurityBadge}>
+                <IconShield size={13} color={Colors.light.primary} />
+                <Text style={styles.vaultSecurityText}>Atlas Privado</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.btnLogoutHero}
+                activeOpacity={0.8}
+                onPress={() => {
+                  triggerHaptic('medium');
+                  Alert.alert(
+                    'Cerrar Sesión',
+                    '¿Deseas salir a la pantalla de bienvenida?',
+                    [
+                      { text: 'Cancelar', style: 'cancel' },
+                      {
+                        text: 'Cerrar Sesión',
+                        style: 'destructive',
+                        onPress: async () => {
+                          await logout();
+                          router.replace('/(auth)/login');
+                        },
+                      },
+                    ]
+                  );
+                }}
+              >
+                <IconLogOut size={12} color={Colors.light.primary} />
+                <Text style={styles.btnLogoutHeroText}>Cerrar Sesión</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </TiltedCard>
@@ -312,17 +327,17 @@ export default function AccountScreen() {
           <View style={styles.milestoneDivider} />
 
           <View style={styles.milestoneItem}>
-            <View style={[styles.milestoneIconBadge, { backgroundColor: 'rgba(74, 124, 155, 0.12)' }]}>
-              <Text style={{ fontSize: 16 }}>🍽️</Text>
+            <View style={[styles.milestoneIconBadge, { backgroundColor: 'rgba(224, 86, 102, 0.12)' }]}>
+              <Text style={{ fontSize: 16 }}>💫</Text>
             </View>
             <View style={styles.milestoneContent}>
               <View style={styles.milestoneHeaderRow}>
-                <Text style={styles.milestoneTitle}>Nuestra Primera Cita</Text>
-                <Text style={styles.milestoneDate}>Dic 2024</Text>
+                <Text style={styles.milestoneTitle}>Primer Beso</Text>
+                <Text style={styles.milestoneDate}>08 Dic 2024</Text>
               </View>
-              <Text style={styles.milestoneLocation}>Restaurante Alqueria del Pou, Quatre Carreres · Valencia</Text>
+              <Text style={styles.milestoneLocation}>Paseo de la Alameda · Valencia</Text>
               <Text style={styles.milestoneDesc}>
-                Cerca de la Ciudad de las Artes y las Ciencias. Risas, confidencias y un flechazo mutuo.
+                Bajo los árboles de la Alameda en una noche fría y perfecta ({daysSinceKiss} días).
               </Text>
             </View>
           </View>
@@ -331,16 +346,13 @@ export default function AccountScreen() {
 
           <View style={styles.milestoneItem}>
             <View style={[styles.milestoneIconBadge, { backgroundColor: 'rgba(224, 86, 102, 0.12)' }]}>
-              <Text style={{ fontSize: 16 }}>💋</Text>
+              <Text style={{ fontSize: 16 }}>💍</Text>
             </View>
             <View style={styles.milestoneContent}>
               <View style={styles.milestoneHeaderRow}>
-                <Text style={styles.milestoneTitle}>Primer Beso & Empezamos a Salir</Text>
+                <Text style={styles.milestoneTitle}>Inicio de Nuestra Relación</Text>
                 <Text style={styles.milestoneDate}>15 Feb 2025</Text>
               </View>
-              <Text style={styles.milestoneLocation}>Pg. de l'Albereda, 44, Camins al Grau · Valencia</Text>
-              <Text style={styles.milestoneDesc}>
-                Donde nos dimos nuestro primer beso y donde Tonet le pidió salir a Andrea ({diffDays} días juntos).
               </Text>
             </View>
           </View>
@@ -810,45 +822,49 @@ export default function AccountScreen() {
                 />
               </View>
 
-              {/* PHOTO PRESETS SELECTION */}
+              {/* PHOTO PRESETS SELECTION FROM AUTHENTIC ALBUM */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Retratos y Estilos Sugeridos</Text>
-                <Text style={styles.inputSublabel}>Selecciona en 1 toque una fotografía estética:</Text>
+                <Text style={styles.inputLabel}>Fotografías Reales de Vuestro Álbum</Text>
+                <Text style={styles.inputSublabel}>Selecciona en 1 toque una foto de vuestra galería:</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsRow}>
-                  {(editingUserId === users.user1.id ? TONET_PRESET_PHOTOS : ANDREA_PRESET_PHOTOS).map(
-                    (url, idx) => {
-                      const isSelected = editPhotoUrl === url;
-                      return (
-                        <TouchableOpacity
-                          key={idx}
-                          style={[styles.presetItem, isSelected && styles.presetItemSelected]}
-                          activeOpacity={0.8}
-                          onPress={() => {
-                            triggerHaptic('selection');
-                            setEditPhotoUrl(url);
-                          }}
-                        >
-                          <Image source={{ uri: url }} style={styles.presetImage} />
-                          {isSelected && (
-                            <View style={styles.presetCheckmark}>
-                              <IconCheck size={12} color="#FFFFFF" />
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      );
-                    }
-                  )}
+                  {INTRO_PHOTOS.map((photo, idx) => {
+                    const isSelected = editPhotoUrl === (photo.source.uri || photo.source);
+                    return (
+                      <TouchableOpacity
+                        key={photo.id || idx}
+                        style={[styles.presetItem, isSelected && styles.presetItemSelected]}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          triggerHaptic('selection');
+                          if (typeof photo.source === 'string') {
+                            setEditPhotoUrl(photo.source);
+                          } else if (photo.source && photo.source.uri) {
+                            setEditPhotoUrl(photo.source.uri);
+                          } else {
+                            setEditPhotoUrl(photo.source);
+                          }
+                        }}
+                      >
+                        <Image source={photo.source} style={styles.presetImage} resizeMode="cover" />
+                        {isSelected && (
+                          <View style={styles.presetCheckmark}>
+                            <IconCheck size={12} color="#FFFFFF" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
               </View>
 
               {/* DEVICE UPLOAD VIA CAMERA / GALLERY */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Subir Foto desde tu Dispositivo</Text>
+                <Text style={styles.inputLabel}>Elegir Foto desde tu Galería</Text>
                 <PhotoUploadField
                   imageUri={editPhotoUrl}
                   onImageChange={(uri) => setEditPhotoUrl(uri || '')}
                   label=""
-                  placeholderText="Toca para elegir foto de tu carrete o cámara"
+                  placeholderText="Toca para permitir acceso a tus fotos y elegir una imagen real"
                   aspect={[1, 1]}
                 />
               </View>
@@ -1391,5 +1407,83 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: Spacing.sm,
     marginTop: Spacing.md,
+  },
+  btnLogoutHero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(224, 86, 102, 0.08)',
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 4,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    borderColor: 'rgba(224, 86, 102, 0.2)',
+    gap: 4,
+  },
+  btnLogoutHeroText: {
+    ...Typography.captionBold,
+    fontSize: 11,
+    color: Colors.light.primary,
+  },
+  palettesScrollContent: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    gap: Spacing.sm,
+  },
+  paletteCard: {
+    width: 148,
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radii.lg,
+    padding: Spacing.sm + 2,
+    borderWidth: 1.5,
+    borderColor: 'rgba(20, 19, 18, 0.06)',
+    position: 'relative',
+    ...Shadows.subtle,
+  },
+  paletteCardActive: {
+    borderColor: Colors.light.primary,
+    backgroundColor: 'rgba(224, 86, 102, 0.03)',
+  },
+  paletteSwatchesRow: {
+    flexDirection: 'row',
+    gap: 5,
+    marginBottom: Spacing.xs,
+  },
+  paletteColorDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+  },
+  paletteInfo: {
+    marginTop: 2,
+  },
+  paletteName: {
+    ...Typography.captionBold,
+    fontSize: 12,
+    color: Colors.light.text,
+    marginBottom: 1,
+  },
+  paletteSub: {
+    ...Typography.caption,
+    fontSize: 10,
+    color: Colors.light.textMuted,
+  },
+  paletteActiveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.light.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 3,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+  },
+  paletteActiveBadgeText: {
+    fontFamily: Typography.family.medium,
+    fontSize: 9.5,
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
 });
