@@ -55,6 +55,7 @@ export default function AccountScreen() {
     savedPlaces,
     coupleEvents,
     ritualSeeds,
+    entries,
     isCloudConnected,
     cloudSyncStatus,
     forceCloudSync,
