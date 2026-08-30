@@ -271,6 +271,48 @@ export default function MapScreen() {
     });
   }, [activeDetailPlace]);
 
+  const handleAddMultiplePhotosToPlace = useCallback(async (placeId: string, newPhotoUrls: string[]) => {
+    if (!newPhotoUrls || newPhotoUrls.length === 0) return;
+
+    const uploadedUrls = await Promise.all(
+      newPhotoUrls.map(async (url, i) => {
+        if (url && (url.startsWith('data:') || url.startsWith('blob:'))) {
+          try {
+            const isVid = url.includes('video');
+            const ext = isVid ? 'mp4' : (url.includes('webp') ? 'webp' : 'jpg');
+            return await CloudSyncEngine.uploadMediaImage(url, `map_media_${placeId}_${Date.now()}_${i}.${ext}`);
+          } catch (e) {
+            console.warn('[Map] Error uploading multi-photo:', e);
+            return url;
+          }
+        }
+        return url;
+      })
+    );
+
+    setAllPlaces((prev) => {
+      const idx = prev.findIndex((p) => p.id === placeId);
+      if (idx >= 0) {
+        const place = prev[idx];
+        const updatedPhotos = Array.from(new Set([...(place.photos || []), ...uploadedUrls])).filter(Boolean);
+        const updatedPlace: AndreaMapPlace = {
+          ...place,
+          imageUrl: place.imageUrl || updatedPhotos[0],
+          photos: updatedPhotos,
+        };
+        const next = [...prev];
+        next[idx] = updatedPlace;
+        if (activeDetailPlace && activeDetailPlace.id === placeId) {
+          setActiveDetailPlace(updatedPlace);
+        }
+        StorageEngine.setItem('andrea_map_places_v7', next);
+        CloudSyncEngine.syncMapPlace(updatedPlace);
+        return next;
+      }
+      return prev;
+    });
+  }, [activeDetailPlace]);
+
   const handleReorderPlacePhotos = useCallback((placeId: string, updatedPhotos: string[]) => {
     setAllPlaces((prev) => {
       const idx = prev.findIndex((p) => p.id === placeId);
@@ -458,6 +500,7 @@ export default function MapScreen() {
         place={activeDetailPlace}
         onClose={() => setIsGalleryModalOpen(false)}
         onAddPhoto={handleAddPhotoToPlace}
+        onAddMultiplePhotos={handleAddMultiplePhotosToPlace}
         onRemovePhoto={handleRemovePhotoFromPlace}
         onReorderPhotos={handleReorderPlacePhotos}
       />

@@ -14,13 +14,15 @@ import {
 import { AndreaMapPlace } from '../../types/map';
 import { triggerHaptic } from '../../utils/haptics';
 import { PhotoUploadField } from '../ui/PhotoUploadField';
-import { IconTrash, IconSparkles } from '../ui/Icons';
+import { IconTrash, IconSparkles, IconPlus } from '../ui/Icons';
+import { pickMultipleMediaFromGallery } from '../../utils/imagePicker';
 
 interface PlaceGalleryModalProps {
   visible: boolean;
   place: AndreaMapPlace | null;
   onClose: () => void;
   onAddPhoto: (placeId: string, newPhotoUrl: string) => void;
+  onAddMultiplePhotos?: (placeId: string, newPhotoUrls: string[]) => void;
   onRemovePhoto?: (placeId: string, photoUrl: string) => void;
   onReorderPhotos?: (placeId: string, updatedPhotos: string[]) => void;
 }
@@ -30,11 +32,14 @@ export function PlaceGalleryModal({
   place,
   onClose,
   onAddPhoto,
+  onAddMultiplePhotos,
   onRemovePhoto,
   onReorderPhotos,
 }: PlaceGalleryModalProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadStatus, setUploadStatus] = useState<string>('');
 
   if (!place) return null;
 
@@ -44,6 +49,43 @@ export function PlaceGalleryModal({
       ...(place.imageUrl ? [place.imageUrl] : []),
     ])
   ).filter(Boolean);
+
+  const handlePickMultiple = async () => {
+    try {
+      setIsUploading(true);
+      setUploadStatus('Seleccionando fotos y vídeos...');
+      const picked = await pickMultipleMediaFromGallery({
+        quality: 0.92,
+        onProgress: (current, total) => {
+          setUploadStatus(`Procesando ${current} de ${total} archivos en Ultra HD...`);
+        },
+      });
+
+      if (!picked || picked.length === 0) {
+        setIsUploading(false);
+        setUploadStatus('');
+        return;
+      }
+
+      setUploadStatus(`Guardando ${picked.length} archivos en la nube...`);
+      const urls = picked.map((p) => p.base64 || p.uri).filter(Boolean);
+
+      if (onAddMultiplePhotos) {
+        await onAddMultiplePhotos(place.id, urls);
+      } else {
+        for (const u of urls) {
+          onAddPhoto(place.id, u);
+        }
+      }
+
+      triggerHaptic('success');
+    } catch (err) {
+      console.warn('[Gallery] Multi-upload error:', err);
+    } finally {
+      setIsUploading(false);
+      setUploadStatus('');
+    }
+  };
 
   const isVideoMedia = (url?: string | null): boolean => {
     if (!url || typeof url !== 'string') return false;
@@ -171,15 +213,26 @@ export function PlaceGalleryModal({
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.uploadCard}>
-              <Text style={styles.uploadCardTitle}>Añadir nueva foto a este rincón</Text>
+              <Text style={styles.uploadCardTitle}>Añadir fotos y vídeos a este rincón</Text>
               <Text style={styles.uploadCardSubtitle}>
-                Sube fotos de tus momentos aquí para que Tonet y Andrea las tengan siempre sincronizadas
+                Selecciona una o varias fotos a la vez desde tu galería, cámara o archivos en Ultra HD.
               </Text>
-              <PhotoUploadField
-                photoUrl={null}
-                onPhotoSelected={handlePhotoUploaded}
-                placeholderText="Toca aquí para seleccionar de la galería o cámara"
-              />
+
+              {isUploading ? (
+                <View style={styles.uploadProgressBox}>
+                  <Text style={styles.uploadProgressIcon}>✨</Text>
+                  <Text style={styles.uploadProgressText}>{uploadStatus || 'Subiendo recuerdos a Supabase...'}</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.multiUploadBtn}
+                  activeOpacity={0.85}
+                  onPress={handlePickMultiple}
+                >
+                  <IconPlus size={18} color="#FFFFFF" strokeWidth={2.2} />
+                  <Text style={styles.multiUploadBtnText}>📸 Seleccionar varias fotos / vídeos a la vez</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {allPhotos.length > 0 ? (
@@ -480,7 +533,46 @@ const styles = StyleSheet.create({
   uploadCardSubtitle: {
     fontSize: 12,
     color: '#766B72',
-    marginBottom: 12,
+    marginBottom: 14,
+  },
+  multiUploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#EF826A',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    shadowColor: '#EF826A',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  multiUploadBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  uploadProgressBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FDF8E8',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#F4C95D',
+  },
+  uploadProgressIcon: {
+    fontSize: 16,
+  },
+  uploadProgressText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#8A6208',
   },
   photosGridWrapper: {
     flexDirection: 'row',

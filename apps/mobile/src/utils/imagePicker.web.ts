@@ -194,7 +194,7 @@ export async function takePhotoWithCamera(
 }
 
 /**
- * Universal web prompt
+ * Universal web prompt for single photo/video
  */
 export async function promptPhotoPicker(options: {
   title?: string;
@@ -205,4 +205,84 @@ export async function promptPhotoPicker(options: {
   if (result) {
     options.onImageSelected(result);
   }
+}
+
+/**
+ * Universal web multi-selector for multiple photos and videos at once
+ */
+export async function pickMultipleMediaFromGallery(
+  options: {
+    quality?: number;
+    onProgress?: (current: number, total: number) => void;
+  } = {}
+): Promise<PickedImageResult[]> {
+  return new Promise((resolve) => {
+    triggerHaptic('light');
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,video/*';
+    input.multiple = true;
+    input.style.display = 'none';
+
+    input.onchange = async (event: any) => {
+      const fileList: FileList = event.target?.files;
+      if (!fileList || fileList.length === 0) {
+        resolve([]);
+        return;
+      }
+
+      const files: File[] = Array.from(fileList);
+      const results: PickedImageResult[] = [];
+      const total = files.length;
+
+      for (let i = 0; i < total; i++) {
+        const file = files[i];
+        if (options.onProgress) {
+          options.onProgress(i + 1, total);
+        }
+
+        try {
+          if (file.type && file.type.startsWith('video/')) {
+            const rawBase64 = await new Promise<string>((res, rej) => {
+              const reader = new FileReader();
+              reader.onload = (e) => res(e.target?.result as string);
+              reader.onerror = rej;
+              reader.readAsDataURL(file);
+            });
+            results.push({
+              uri: rawBase64,
+              base64: rawBase64,
+              mimeType: file.type || 'video/mp4',
+            });
+          } else {
+            const rawBase64 = await new Promise<string>((res, rej) => {
+              const reader = new FileReader();
+              reader.onload = (e) => res(e.target?.result as string);
+              reader.onerror = rej;
+              reader.readAsDataURL(file);
+            });
+            const targetQuality = options.quality ?? 0.92;
+            const compressed = await compressImage(rawBase64, 2048, 2048, targetQuality);
+            results.push({
+              uri: compressed,
+              base64: compressed,
+              mimeType: compressed.startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg',
+            });
+          }
+        } catch (err) {
+          console.warn('[imagePicker] Error processing file:', file.name, err);
+        }
+      }
+
+      triggerHaptic('selection');
+      resolve(results);
+    };
+
+    document.body.appendChild(input);
+    input.click();
+    setTimeout(() => {
+      document.body.removeChild(input);
+    }, 1000);
+  });
 }
