@@ -30,6 +30,8 @@ import {
 import { Colors } from '../../../src/theme/colors';
 import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
 import { DailyRitualType } from '@andrea/types';
+import { ProfileSettingsModal } from '../../../src/components/account/ProfileSettingsModal';
+import { triggerHaptic } from '../../../src/utils/haptics';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -50,6 +52,7 @@ export default function HomeScreen() {
   const [uploadedPhotoUri, setUploadedPhotoUri] = useState<string | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(getRandomAyaQuestion());
   const [isSeedSubmitted, setIsSeedSubmitted] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Dynamic days calculation from 15 Feb 2025
   const ANNIVERSARY_DATE = new Date('2025-02-15');
@@ -90,33 +93,38 @@ export default function HomeScreen() {
       {/* ── DYNAMIC ISLAND HEADER PILL ── */}
       <DynamicIsland />
 
-      {/* ── GREETING & AMBIENT HEADER ── */}
+      {/* ── GREETING & AMBIENT HEADER (PERSONAL ENFOCADO EN TI) ── */}
       <View style={styles.headerBlock}>
-        <View>
-          <Text style={styles.greetingEyebrow}>NUESTRO ESPACIO</Text>
+        <View style={styles.greetingTextGroup}>
+          <Text style={styles.greetingEyebrow}>TU ESPACIO PERSONAL</Text>
           <Text style={styles.greetingTitle}>
-            Hola, {currentDevUser.name} & {partnerDevUser.name}
+            Hola, {currentDevUser.name}
           </Text>
           <Text style={styles.greetingSubtitle}>
-            💕 {daysTogether} días juntos · Desde el 15 Feb 2025
+            Un día bonito para ti y vuestra historia.
           </Text>
         </View>
-        <View style={styles.avatarPair}>
-          <View style={[styles.avatarBubble, { backgroundColor: Colors.light.primary, overflow: 'hidden' }]}>
-            {currentDevUser.avatarPhoto ? (
-              <Image source={{ uri: currentDevUser.avatarPhoto }} style={styles.avatarBubbleImg} />
-            ) : (
-              <Text style={styles.avatarBubbleText}>{currentDevUser.avatar}</Text>
-            )}
+
+        {/* Circular Avatar Trigger -> Abre Cuenta, Perfil y Ajustes */}
+        <TouchableOpacity
+          style={styles.profileAvatarTrigger}
+          onPress={() => {
+            triggerHaptic('selection');
+            setIsProfileModalOpen(true);
+          }}
+          activeOpacity={0.8}
+        >
+          {currentDevUser.avatarPhoto ? (
+            <Image source={{ uri: currentDevUser.avatarPhoto }} style={styles.profileAvatarImg} />
+          ) : (
+            <View style={[styles.profileAvatarFallback, { backgroundColor: Colors.light.primary }]}>
+              <Text style={styles.profileAvatarFallbackText}>{currentDevUser.avatar}</Text>
+            </View>
+          )}
+          <View style={styles.profileSettingsBadge}>
+            <Text style={styles.profileSettingsBadgeIcon}>⚙</Text>
           </View>
-          <View style={[styles.avatarBubble, styles.avatarBubblePartner, { backgroundColor: Colors.light.secondary, overflow: 'hidden' }]}>
-            {partnerDevUser.avatarPhoto ? (
-              <Image source={{ uri: partnerDevUser.avatarPhoto }} style={styles.avatarBubbleImg} />
-            ) : (
-              <Text style={styles.avatarBubbleText}>{partnerDevUser.avatar}</Text>
-            )}
-          </View>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* ── DAILY RITUAL: SEMILLA DEL DÍA (CERO PRESIÓN) ── */}
@@ -320,6 +328,11 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
       )}
+      {/* ── PROFILE & ACCOUNT MODAL SHEET ── */}
+      <ProfileSettingsModal
+        visible={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </ScreenWrapper>
   );
 }
@@ -331,6 +344,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.xl,
     paddingTop: Spacing.xs,
+  },
+  greetingTextGroup: {
+    flex: 1,
+    paddingRight: Spacing.md,
   },
   greetingEyebrow: {
     ...Typography.overline,
@@ -346,32 +363,49 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
     marginTop: 2,
   },
-  avatarPair: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  profileAvatarTrigger: {
+    position: 'relative',
   },
-  avatarBubble: {
-    width: 38,
-    height: 38,
-    borderRadius: Radii.full,
+  profileAvatarImg: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    ...Shadows.subtle,
+  },
+  profileAvatarFallback: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#FFFFFF',
     ...Shadows.subtle,
   },
-  avatarBubblePartner: {
-    marginLeft: -12,
-  },
-  avatarBubbleText: {
-    color: Colors.light.textInverse,
+  profileAvatarFallbackText: {
+    fontSize: 18,
     fontWeight: '700',
-    fontSize: 14,
+    color: '#FFFFFF',
   },
-  avatarBubbleImg: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 19,
+  profileSettingsBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FAF7F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    ...Shadows.subtle,
+  },
+  profileSettingsBadgeIcon: {
+    fontSize: 10,
+    color: Colors.light.textSecondary,
   },
   ritualCard: {
     padding: Spacing.lg,

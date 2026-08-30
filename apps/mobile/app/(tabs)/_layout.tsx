@@ -92,17 +92,11 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* Hide Account from bottom bar, accessed via top-right profile avatar */}
       <Tabs.Screen
         name="account"
         options={{
-          title: 'Cuenta',
-          tabBarIcon: ({ color, focused }) => (
-            <IconUser
-              size={20}
-              color={color}
-              strokeWidth={focused ? 2.2 : 1.75}
-            />
-          ),
+          href: null,
         }}
       />
       {/* Retain aya & surprises routes internally without displaying separate tabs */}
