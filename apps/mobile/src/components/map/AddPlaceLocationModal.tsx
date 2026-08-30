@@ -12,11 +12,11 @@ import {
   Alert,
 } from 'react-native';
 import {
-  searchMapboxPlaces,
-  reverseGeocodeCoordinates,
+  searchGooglePlaces,
+  reverseGeocodeGoogleCoordinates,
   GeocodingResult,
-  getMapboxToken,
-} from '../../services/mapboxGeocoding';
+} from '../../services/googlePlacesGeocoding';
+import { loadGoogleMapsSDK, ANDREA_GOOGLE_MAP_STYLES } from '../../lib/googleMaps';
 import { AndreaMapPlace, MapPlaceType, LocationPrecision, LocationSource } from '../../types/map';
 import { Colors } from '../../theme/colors';
 import { Spacing, Radii, Shadows, Typography } from '../../theme/tokens';
@@ -112,8 +112,8 @@ export function AddPlaceLocationModal({
 
     const timer = setTimeout(async () => {
       setIsSearching(true);
-      const res = await searchMapboxPlaces(searchQuery, {
-        country: searchContext === 'valencia' ? 'ES' : undefined,
+      const res = await searchGooglePlaces(searchQuery, {
+        country: searchContext === 'valencia' ? 'es' : undefined,
         proximity: searchContext === 'valencia' ? [-0.3763, 39.4699] : undefined,
       });
       setResults(res);
@@ -132,92 +132,74 @@ export function AddPlaceLocationModal({
     async function initMiniMap() {
       if (!mapContainerRef.current) return;
 
-      // 1. Ensure Mapbox CSS is loaded
-      if (!document.getElementById('mapbox-gl-css')) {
-        const link = document.createElement('link');
-        link.id = 'mapbox-gl-css';
-        link.rel = 'stylesheet';
-        link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css';
-        document.head.appendChild(link);
-      }
-
-      // 2. Ensure Mapbox JS is loaded
-      if (!(window as any).mapboxgl) {
-        await new Promise<void>((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js';
-          script.async = true;
-          script.onload = () => resolve();
-          script.onerror = (e) => reject(e);
-          document.head.appendChild(script);
-        });
-      }
-
-      if (!isMounted || !mapContainerRef.current) return;
-
-      const mapboxgl = (window as any).mapboxgl;
-      if (!mapboxgl) return;
-
-      mapboxgl.accessToken = getMapboxToken();
+      const googleMaps = await loadGoogleMapsSDK();
+      if (!isMounted || !mapContainerRef.current || !googleMaps) return;
 
       // Clean old instance
-      if (mapboxInstanceRef.current) {
-        mapboxInstanceRef.current.remove();
-        mapboxInstanceRef.current = null;
+      if (markerInstanceRef.current && markerInstanceRef.current.setMap) {
+        markerInstanceRef.current.setMap(null);
+        markerInstanceRef.current = null;
       }
 
-      const map = new mapboxgl.Map({
-        container: mapContainerRef.current,
-        style: 'mapbox://styles/mapbox/dark-v11',
-        center: selectedCoordinates,
-        zoom: locationPrecision === 'city' ? 11 : 15.5,
-        attributionControl: false,
+      const center = { lat: selectedCoordinates[1], lng: selectedCoordinates[0] };
+      const map = new googleMaps.Map(mapContainerRef.current, {
+        center,
+        zoom: locationPrecision === 'city' ? 11 : 16,
+        styles: ANDREA_GOOGLE_MAP_STYLES,
+        disableDefaultUI: true,
+        gestureHandling: 'greedy',
+        backgroundColor: '#FFF8F2',
       });
 
-      // Draggable / Interactive Marker
-      const el = document.createElement('div');
-      el.style.width = '36px';
-      el.style.height = '36px';
-      el.style.borderRadius = '50%';
-      el.style.backgroundColor = '#E05666';
-      el.style.border = '2.5px solid #FFFFFF';
-      el.style.boxShadow = '0 6px 18px rgba(0,0,0,0.45)';
-      el.style.display = 'flex';
-      el.style.alignItems = 'center';
-      el.style.justifyContent = 'center';
-      el.style.fontSize = '17px';
-      el.style.cursor = 'grab';
-      el.innerHTML = type === 'restaurant' ? '🍽️' : '📍';
+      const markerColor = type === 'restaurant' ? '#F4C95D' : '#EF826A';
+      const markerIcon = type === 'restaurant' ? '🍽️' : '📍';
 
-      const marker = new mapboxgl.Marker({ element: el, draggable: true })
-        .setLngLat(selectedCoordinates)
-        .addTo(map);
+      const pinSvg = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="16" fill="' + markerColor + '" stroke="#FFFFFF" stroke-width="2.5" filter="drop-shadow(0 3px 8px rgba(58,47,56,0.16))"/><text x="20" y="24" text-anchor="middle" font-size="14">' + markerIcon + '</text></svg>';
+
+      const marker = new googleMaps.Marker({
+        position: center,
+        map,
+        draggable: true,
+        icon: {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(pinSvg),
+          scaledSize: new googleMaps.Size(40, 40),
+          anchor: new googleMaps.Point(20, 20),
+        },
+      });
 
       markerInstanceRef.current = marker;
 
-      // On Drag End -> Reverse Geocode coordinates
-      marker.on('dragend', async () => {
-        const lngLat = marker.getLngLat();
-        setSelectedCoordinates([lngLat.lng, lngLat.lat]);
+      marker.addListener('dragend', async () => {
+        const pos = marker.getPosition();
+        if (!pos) return;
+        const lng = pos.lng();
+        const lat = pos.lat();
+        setSelectedCoordinates([lng, lat]);
         setLocationSource('manual_pin');
         setIsReverseGeocoding(true);
-        const rev = await reverseGeocodeCoordinates(lngLat.lng, lngLat.lat);
-        setVerifiedAddress(rev.formattedAddress);
-        setVerifiedCity(rev.city || 'Valencia');
-        setVerifiedCountry(rev.country || 'España');
+        const rev = await reverseGeocodeGoogleCoordinates([lng, lat]);
+        if (rev) {
+          setVerifiedAddress(rev.formattedAddress);
+          setVerifiedCity(rev.city || 'Valencia');
+          setVerifiedCountry(rev.country || 'España');
+        }
         setIsReverseGeocoding(false);
       });
 
-      // On Map Click -> Reposition marker & reverse geocode
-      map.on('click', async (e: any) => {
-        marker.setLngLat([e.lngLat.lng, e.lngLat.lat]);
-        setSelectedCoordinates([e.lngLat.lng, e.lngLat.lat]);
+      map.addListener('click', async (e: any) => {
+        if (!e.latLng) return;
+        const lng = e.latLng.lng();
+        const lat = e.latLng.lat();
+        marker.setPosition(e.latLng);
+        setSelectedCoordinates([lng, lat]);
         setLocationSource('manual_pin');
         setIsReverseGeocoding(true);
-        const rev = await reverseGeocodeCoordinates(e.lngLat.lng, e.lngLat.lat);
-        setVerifiedAddress(rev.formattedAddress);
-        setVerifiedCity(rev.city || 'Valencia');
-        setVerifiedCountry(rev.country || 'España');
+        const rev = await reverseGeocodeGoogleCoordinates([lng, lat]);
+        if (rev) {
+          setVerifiedAddress(rev.formattedAddress);
+          setVerifiedCity(rev.city || 'Valencia');
+          setVerifiedCountry(rev.country || 'España');
+        }
         setIsReverseGeocoding(false);
       });
 
@@ -231,9 +213,9 @@ export function AddPlaceLocationModal({
     return () => {
       isMounted = false;
       clearTimeout(timer);
-      if (mapboxInstanceRef.current) {
-        mapboxInstanceRef.current.remove();
-        mapboxInstanceRef.current = null;
+      if (markerInstanceRef.current && markerInstanceRef.current.setMap) {
+        markerInstanceRef.current.setMap(null);
+        markerInstanceRef.current = null;
       }
     };
   }, [step, selectedCoordinates[0], selectedCoordinates[1], type, locationPrecision]);
