@@ -1606,39 +1606,40 @@ export function DevProvider({ children }: { children: ReactNode }) {
             user2: { ...prev.user2, ...(savedUsers.user2 || {}) },
           }));
         }
-
-        // 2. Fetch remote state from Supabase Cloud to ensure cross-device consistency!
-        if (CloudSyncEngine.isSupabaseConfigured()) {
-          try {
-            const cloudState = await CloudSyncEngine.fetchFullCloudState();
-            if (cloudState) {
-              if (cloudState.users) {
-                setUsers((prev) => {
-                  const merged = {
-                    user1: { ...prev.user1, ...(cloudState.users.user1 || {}) },
-                    user2: { ...prev.user2, ...(cloudState.users.user2 || {}) },
-                  };
-                  try {
-                    StorageEngine.setItem('andrea_users_v5', merged);
-                  } catch {
-                    // ignore
-                  }
-                  return merged;
-                });
-              }
-              if (cloudState.wishes && cloudState.wishes.length > 0) setWishes(cloudState.wishes);
-              if (cloudState.savedPlaces && cloudState.savedPlaces.length > 0) setSavedPlaces(cloudState.savedPlaces);
-              if (cloudState.mapPlaces && cloudState.mapPlaces.length > 0) setMapPlaces(cloudState.mapPlaces);
-              if (cloudState.coupleEvents && cloudState.coupleEvents.length > 0) setCoupleEvents(cloudState.coupleEvents);
-            }
-          } catch (cloudErr) {
-            console.warn('[DevContext] Cloud hydration error:', cloudErr);
-          }
-        }
       } catch (e) {
         console.warn('Error loading persisted data:', e);
       } finally {
+        // INSTANTLY UNBLOCK UI: Renders LoginScreen or HomeScreen in <2ms with ZERO SPINNER HANG
         setIsLoaded(true);
+      }
+
+      // 2. Fetch remote state from Supabase Cloud in the background without blocking the UI
+      if (CloudSyncEngine.isSupabaseConfigured()) {
+        try {
+          const cloudState = await CloudSyncEngine.fetchFullCloudState();
+          if (cloudState) {
+            if (cloudState.users) {
+              setUsers((prev) => {
+                const merged = {
+                  user1: { ...prev.user1, ...(cloudState.users.user1 || {}) },
+                  user2: { ...prev.user2, ...(cloudState.users.user2 || {}) },
+                };
+                try {
+                  StorageEngine.setItem('andrea_users_v5', merged);
+                } catch {
+                  // ignore
+                }
+                return merged;
+              });
+            }
+            if (cloudState.wishes && cloudState.wishes.length > 0) setWishes(cloudState.wishes);
+            if (cloudState.savedPlaces && cloudState.savedPlaces.length > 0) setSavedPlaces(cloudState.savedPlaces);
+            if (cloudState.mapPlaces && cloudState.mapPlaces.length > 0) setMapPlaces(cloudState.mapPlaces);
+            if (cloudState.coupleEvents && cloudState.coupleEvents.length > 0) setCoupleEvents(cloudState.coupleEvents);
+          }
+        } catch (cloudErr) {
+          console.warn('[DevContext] Background Cloud hydration error:', cloudErr);
+        }
       }
     }
 
