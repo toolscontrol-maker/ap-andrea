@@ -1,7 +1,13 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+﻿import React, { useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  Animated,
+} from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Colors } from '../../theme/colors';
 import { triggerHaptic } from '../../utils/haptics';
 
 const TAB_EMOJIS: Record<string, string> = {
@@ -11,6 +17,12 @@ const TAB_EMOJIS: Record<string, string> = {
   map: '📍',
 };
 
+const PILL_WIDTH = 275;
+const PADDING_H = 6;
+const INNER_WIDTH = PILL_WIDTH - PADDING_H * 2; // 263
+const NUM_TABS = 4;
+const TAB_ITEM_WIDTH = INNER_WIDTH / NUM_TABS; // ~65.75
+
 export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   // Filter only the 4 visible main routes
   const visibleRoutes = state.routes.filter((route) => {
@@ -18,11 +30,45 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
     return (options as any).href !== null && TAB_EMOJIS[route.name] !== undefined;
   });
 
+  const activeIndex = Math.max(
+    0,
+    visibleRoutes.findIndex((r) => r.name === state.routes[state.index]?.name)
+  );
+
+  // Animated sliding pill value
+  const slideAnim = useRef(new Animated.Value(activeIndex)).current;
+
+  useEffect(() => {
+    Animated.spring(slideAnim, {
+      toValue: activeIndex,
+      useNativeDriver: false,
+      stiffness: 420,
+      damping: 28,
+      mass: 0.7,
+    }).start();
+  }, [activeIndex]);
+
+  const pillTranslateX = slideAnim.interpolate({
+    inputRange: [0, 1, 2, 3],
+    outputRange: [0, TAB_ITEM_WIDTH, TAB_ITEM_WIDTH * 2, TAB_ITEM_WIDTH * 3],
+  });
+
   return (
     <View style={styles.outerWrapper} pointerEvents="box-none">
       <View style={styles.glassPill}>
-        {visibleRoutes.map((route) => {
-          const isFocused = state.routes[state.index].name === route.name;
+        {/* Animated Sliding Frosted Glass Indicator Pill */}
+        <Animated.View
+          style={[
+            styles.slidingIndicatorPill,
+            {
+              width: TAB_ITEM_WIDTH,
+              transform: [{ translateX: pillTranslateX }],
+            },
+          ]}
+        />
+
+        {visibleRoutes.map((route, idx) => {
+          const isFocused = activeIndex === idx;
           const emoji = TAB_EMOJIS[route.name] || '✦';
 
           const onPress = () => {
@@ -43,7 +89,7 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
               key={route.key}
               onPress={onPress}
               activeOpacity={0.7}
-              style={[styles.tabButton, isFocused && styles.tabButtonActive]}
+              style={styles.tabButton}
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
             >
@@ -55,7 +101,6 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
               >
                 {emoji}
               </Text>
-              {isFocused && <View style={styles.activePillIndicator} />}
             </TouchableOpacity>
           );
         })}
@@ -75,21 +120,22 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   glassPill: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    width: 275,
+    width: PILL_WIDTH,
     height: 56,
     borderRadius: 28,
-    paddingHorizontal: 6,
+    paddingHorizontal: PADDING_H,
     paddingVertical: 5,
-    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.42)' : 'rgba(255, 255, 255, 0.75)',
+    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.40)' : 'rgba(255, 255, 255, 0.72)',
     ...(Platform.OS === 'web'
       ? ({
           backdropFilter: 'blur(36px) saturate(220%)',
           WebkitBackdropFilter: 'blur(36px) saturate(220%)',
           boxShadow:
-            '0 12px 36px 0 rgba(0, 0, 0, 0.22), inset 0 1px 2px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.06)',
+            '0 14px 38px 0 rgba(0, 0, 0, 0.22), inset 0 1px 2px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.06)',
         } as any)
       : {}),
     borderWidth: 1.5,
@@ -100,47 +146,46 @@ const styles = StyleSheet.create({
     shadowRadius: 28,
     elevation: 16,
   },
+  slidingIndicatorPill: {
+    position: 'absolute',
+    top: 5,
+    bottom: 5,
+    left: PADDING_H,
+    borderRadius: 23,
+    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.72)' : 'rgba(255, 255, 255, 0.95)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.95)',
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow:
+            '0 3px 10px 0 rgba(0, 0, 0, 0.10), inset 0 1px 1px 0 rgba(255, 255, 255, 0.95)',
+        } as any)
+      : {}),
+    shadowColor: 'rgba(0, 0, 0, 0.10)',
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 4,
+    zIndex: 1,
+  },
   tabButton: {
     flex: 1,
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 22,
-    position: 'relative',
-  },
-  tabButtonActive: {
-    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.68)' : 'rgba(255, 255, 255, 0.92)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.95)',
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 2px 8px 0 rgba(0, 0, 0, 0.08), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9)',
-        } as any)
-      : {}),
-    shadowColor: 'rgba(0, 0, 0, 0.08)',
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 3,
+    zIndex: 2,
   },
   tabEmoji: {
     textAlign: 'center',
   },
   tabEmojiActive: {
-    fontSize: 21,
+    fontSize: 22,
     opacity: 1,
-    transform: [{ scale: 1.05 }],
+    transform: [{ scale: 1.08 }],
   },
   tabEmojiInactive: {
     fontSize: 18,
-    opacity: 0.55,
+    opacity: 0.52,
     transform: [{ scale: 0.95 }],
-  },
-  activePillIndicator: {
-    position: 'absolute',
-    bottom: 3,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.light.primary,
   },
 });
