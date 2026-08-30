@@ -588,7 +588,7 @@ class CloudSyncEngineService {
         const filePath = `${COUPLE_ID}/${Date.now()}_${fileName}`;
         
         // If web data url
-        if (fileBase64OrUri.startsWith('data:')) {
+        if (fileBase64OrUri.startsWith('data:') || fileBase64OrUri.startsWith('blob:')) {
           const res = await fetch(fileBase64OrUri);
           const blob = await res.blob();
           const { error } = await supabase.storage.from('andrea-media').upload(filePath, blob, {

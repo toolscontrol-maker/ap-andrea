@@ -1718,23 +1718,23 @@ export function DevProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    setUsers((prev) => {
-      const currentUser = isUser1 ? prev.user1 : prev.user2;
-      const updatedUser: DevUser = {
-        ...currentUser,
-        ...updates,
-        avatarPhoto: finalPhoto !== undefined ? finalPhoto : currentUser.avatarPhoto,
-        id: targetUserId,
-        avatar: updates.name ? updates.name[0].toUpperCase() : currentUser.avatar,
-      };
-      const updated = {
-        user1: isUser1 ? updatedUser : prev.user1,
-        user2: !isUser1 ? updatedUser : prev.user2,
-      };
-      StorageEngine.setItem('andrea_users_v5', updated);
-      CloudSyncEngine.syncUserProfile(targetUserId, roleKey, updatedUser);
-      return updated;
-    });
+    const currentUser = isUser1 ? users.user1 : users.user2;
+    const updatedUser: DevUser = {
+      ...currentUser,
+      ...updates,
+      avatarPhoto: finalPhoto !== undefined ? finalPhoto : currentUser.avatarPhoto,
+      id: targetUserId,
+      avatar: updates.name ? updates.name[0].toUpperCase() : currentUser.avatar,
+    };
+
+    const nextUsers = {
+      user1: isUser1 ? updatedUser : users.user1,
+      user2: !isUser1 ? updatedUser : users.user2,
+    };
+
+    setUsers(nextUsers);
+    await StorageEngine.setItem('andrea_users_v5', nextUsers);
+    await CloudSyncEngine.syncUserProfile(targetUserId, roleKey, updatedUser);
   };
 
   const loginWithEmail = async (email: string): Promise<boolean> => {
@@ -1851,7 +1851,16 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const toggleUser2Consent = () => setUser2Consent((prev) => !prev);
 
   // ── Wishbook Actions ──
-  const addWish = (wish: Partial<WishlistItem>) => {
+  const addWish = async (wish: Partial<WishlistItem>) => {
+    let finalExternalImage = wish.externalImageUrl;
+    if (finalExternalImage && (finalExternalImage.startsWith('data:') || finalExternalImage.startsWith('blob:'))) {
+      try {
+        finalExternalImage = await CloudSyncEngine.uploadMediaImage(finalExternalImage, `wish_${Date.now()}.jpg`);
+      } catch (e) {
+        console.warn('[DevContext] Wish photo upload error:', e);
+      }
+    }
+
     const newId = 'wish-' + Date.now();
     const item: WishlistItem = {
       id: newId,
@@ -1861,8 +1870,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
       title: wish.title || 'Deseo sin título',
       description: wish.description,
       sourceUrl: wish.sourceUrl,
-      externalImageUrl: wish.externalImageUrl,
-      images: wish.images,
+      externalImageUrl: finalExternalImage,
+      images: wish.images && wish.images.length > 0 ? wish.images : (finalExternalImage ? [finalExternalImage] : []),
       type: wish.type || 'other',
       status: wish.status || 'dreaming',
       brand: wish.brand,
@@ -1871,11 +1880,15 @@ export function DevProvider({ children }: { children: ReactNode }) {
       phoneNumber: wish.phoneNumber,
       visibility: 'shared',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
-    setWishes((prev) => [item, ...prev]);
-    CloudSyncEngine.syncWish(item);
+    setWishes((prev) => {
+      const next = [item, ...prev];
+      StorageEngine.setItem(STORAGE_KEYS.WISHES, next);
+      return next;
+    });
+    await CloudSyncEngine.syncWish(item);
   };
 
   const updateWishStatus = (id: string, newStatus: WishlistStatus) => {

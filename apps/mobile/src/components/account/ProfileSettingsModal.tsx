@@ -104,13 +104,18 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
             {/* 1. User Hero Profile Card */}
             <View style={styles.userHeroCard}>
-              <View style={styles.avatarWrapper}>
+              <TouchableOpacity style={styles.avatarWrapper} onPress={handleOpenPhotoEditor} activeOpacity={0.85}>
                 {currentDevUser.avatarPhoto ? (
                   <Image source={{ uri: currentDevUser.avatarPhoto }} style={styles.avatarHeroImg} />
                 ) : (
                   <View style={[styles.avatarHeroFallback, { backgroundColor: Colors.light.primary }]}>
                     <Text style={styles.avatarHeroText}>{currentDevUser.avatar}</Text>
                   </View>
+                )}
+                <View style={styles.avatarEditBadge}>
+                  <IconCamera size={13} color="#FFFFFF" />
+                </View>
+              </TouchableOpacity>
                 )}
                 <TouchableOpacity
                   style={styles.avatarEditBadge}
