@@ -1511,7 +1511,11 @@ export function DevProvider({ children }: { children: ReactNode }) {
                     user1: { ...prev.user1, ...(cloudState.users.user1 || {}) },
                     user2: { ...prev.user2, ...(cloudState.users.user2 || {}) },
                   };
-                  StorageEngine.setItem('andrea_users_v5', merged);
+                  try {
+                    StorageEngine.setItem('andrea_users_v5', merged);
+                  } catch {
+                    // ignore
+                  }
                   return merged;
                 });
               }
@@ -1585,12 +1589,16 @@ export function DevProvider({ children }: { children: ReactNode }) {
     setCurrentEmail(cleanEmail);
     setIsAuthenticated(true);
 
-    await StorageEngine.setItem(AUTH_SESSION_KEY, {
-      email: cleanEmail,
-      role,
-      timestamp: Date.now(),
-    });
-    await StorageEngine.setItem(STORAGE_KEYS.ACTIVE_USER, role);
+    try {
+      await StorageEngine.setItem(AUTH_SESSION_KEY, {
+        email: cleanEmail,
+        role,
+        timestamp: Date.now(),
+      });
+      await StorageEngine.setItem(STORAGE_KEYS.ACTIVE_USER, role);
+    } catch (err) {
+      console.warn('[DevContext] Storage write error on login:', err);
+    }
     return true;
   };
 
