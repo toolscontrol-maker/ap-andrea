@@ -10,7 +10,6 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <DevProvider>
         <StatusBar style="dark" />
-        <DevSwitcherBar />
         <Stack
           screenOptions={{
             headerStyle: { backgroundColor: Colors.light.background },

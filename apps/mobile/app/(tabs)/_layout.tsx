@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Colors } from '../../src/theme/colors';
 import { Layout, Typography, Shadows } from '../../src/theme/tokens';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import {
   IconHome,
   IconHeart,
@@ -9,10 +9,15 @@ import {
   IconMapPin,
   IconUser
 } from '../../src/components/ui/Icons';
+import { GlobalProfileAvatar } from '../../src/components/GlobalProfileAvatar';
 
 export default function TabLayout() {
   return (
-    <Tabs
+    <View style={{ flex: 1 }}>
+      {/* Permanent Fixed Top-Right Circular Profile Avatar */}
+      <GlobalProfileAvatar />
+
+      <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors.light.primary,
         tabBarInactiveTintColor: Colors.light.textMuted,
@@ -113,5 +118,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+  </View>
   );
 }

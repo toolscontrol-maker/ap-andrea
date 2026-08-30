@@ -30,7 +30,6 @@ import {
 import { Colors } from '../../../src/theme/colors';
 import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
 import { DailyRitualType } from '@andrea/types';
-import { ProfileSettingsModal } from '../../../src/components/account/ProfileSettingsModal';
 import { triggerHaptic } from '../../../src/utils/haptics';
 
 export default function HomeScreen() {
@@ -52,7 +51,6 @@ export default function HomeScreen() {
   const [uploadedPhotoUri, setUploadedPhotoUri] = useState<string | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(getRandomAyaQuestion());
   const [isSeedSubmitted, setIsSeedSubmitted] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Dynamic days calculation from 15 Feb 2025
   const ANNIVERSARY_DATE = new Date('2025-02-15');
@@ -104,27 +102,6 @@ export default function HomeScreen() {
             Un día bonito para ti y vuestra historia.
           </Text>
         </View>
-
-        {/* Circular Avatar Trigger -> Abre Cuenta, Perfil y Ajustes */}
-        <TouchableOpacity
-          style={styles.profileAvatarTrigger}
-          onPress={() => {
-            triggerHaptic('selection');
-            setIsProfileModalOpen(true);
-          }}
-          activeOpacity={0.8}
-        >
-          {currentDevUser.avatarPhoto ? (
-            <Image source={{ uri: currentDevUser.avatarPhoto }} style={styles.profileAvatarImg} />
-          ) : (
-            <View style={[styles.profileAvatarFallback, { backgroundColor: Colors.light.primary }]}>
-              <Text style={styles.profileAvatarFallbackText}>{currentDevUser.avatar}</Text>
-            </View>
-          )}
-          <View style={styles.profileSettingsBadge}>
-            <Text style={styles.profileSettingsBadgeIcon}>⚙</Text>
-          </View>
-        </TouchableOpacity>
       </View>
 
       {/* ── DAILY RITUAL: SEMILLA DEL DÍA (CERO PRESIÓN) ── */}
@@ -328,11 +305,6 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
       )}
-      {/* ── PROFILE & ACCOUNT MODAL SHEET ── */}
-      <ProfileSettingsModal
-        visible={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-      />
     </ScreenWrapper>
   );
 }
@@ -347,7 +319,7 @@ const styles = StyleSheet.create({
   },
   greetingTextGroup: {
     flex: 1,
-    paddingRight: Spacing.md,
+    paddingRight: 52,
   },
   greetingEyebrow: {
     ...Typography.overline,
@@ -362,50 +334,6 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.light.textSecondary,
     marginTop: 2,
-  },
-  profileAvatarTrigger: {
-    position: 'relative',
-  },
-  profileAvatarImg: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    ...Shadows.subtle,
-  },
-  profileAvatarFallback: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    ...Shadows.subtle,
-  },
-  profileAvatarFallbackText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  profileSettingsBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#FAF7F2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-    ...Shadows.subtle,
-  },
-  profileSettingsBadgeIcon: {
-    fontSize: 10,
-    color: Colors.light.textSecondary,
   },
   ritualCard: {
     padding: Spacing.lg,

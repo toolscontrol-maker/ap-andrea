@@ -167,8 +167,8 @@ export default function MapScreen() {
         <Text style={styles.headerTitle}>Nuestra Historia</Text>
       </View>
 
-      {/* 3. Top-Right Floating iOS Glass HUD Controls */}
-      <View style={[styles.hudControls, { top: topOffset }]} pointerEvents="box-none">
+      {/* 3. Top-Right Floating iOS Glass HUD Controls (Under Global Profile Avatar) */}
+      <View style={[styles.hudControls, { top: topOffset + 50 }]} pointerEvents="box-none">
         {/* Close / Reset Selection */}
         {selectedPlaceId ? (
           <TouchableOpacity

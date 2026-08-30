@@ -989,7 +989,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: Spacing.lg,
-    paddingTop: Spacing.sm
+    paddingTop: Spacing.sm,
+    paddingRight: 52,
   },
   headerTextGroup: {
     flex: 1,

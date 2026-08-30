@@ -169,6 +169,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.xs,
+    paddingRight: 48,
   },
   monthControls: {
     flexDirection: 'row',
