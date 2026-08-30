@@ -8,13 +8,13 @@ export interface PickedImageResult {
   mimeType?: string;
 }
 
-function compressImage(base64: string, maxWidth = 800, maxHeight = 800, quality = 0.85): Promise<string> {
+function compressImage(base64: string, maxWidth = 2048, maxHeight = 2048, quality = 0.92): Promise<string> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
       resolve(base64);
       return;
     }
-    const timeout = setTimeout(() => resolve(base64), 1500);
+    const timeout = setTimeout(() => resolve(base64), 2000);
     const img = new Image();
     img.onload = () => {
       clearTimeout(timeout);
@@ -27,13 +27,12 @@ function compressImage(base64: string, maxWidth = 800, maxHeight = 800, quality 
           return;
         }
 
-        if (width > height) {
-          if (width > maxWidth) {
+        // Only scale down if image exceeds 2048px Ultra HD boundary
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
             height = Math.round((height * maxWidth) / width);
             width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
+          } else {
             width = Math.round((width * maxHeight) / height);
             height = maxHeight;
           }
@@ -47,8 +46,22 @@ function compressImage(base64: string, maxWidth = 800, maxHeight = 800, quality 
           resolve(base64);
           return;
         }
+        
+        // High quality image smoothing
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
-        const compressed = canvas.toDataURL('image/jpeg', quality);
+
+        // Try WebP first for superior compression without loss of crispness, fallback to JPEG
+        let compressed = '';
+        try {
+          compressed = canvas.toDataURL('image/webp', quality);
+        } catch {}
+
+        if (!compressed || compressed.startsWith('data:image/png') || compressed.length < 100) {
+          compressed = canvas.toDataURL('image/jpeg', quality);
+        }
+
         if (!compressed || compressed === 'data:,' || compressed.length < 100) {
           resolve(base64);
         } else {
@@ -109,12 +122,13 @@ export async function pickImageFromGallery(
       const reader = new FileReader();
       reader.onload = async (e) => {
         const rawBase64 = e.target?.result as string;
-        const compressedBase64 = await compressImage(rawBase64, 480, 480, options.quality || 0.82);
+        const targetQuality = options.quality ?? 0.92;
+        const compressedBase64 = await compressImage(rawBase64, 2048, 2048, targetQuality);
         triggerHaptic('selection');
         resolve({
           uri: compressedBase64,
           base64: compressedBase64,
-          mimeType: 'image/jpeg',
+          mimeType: compressedBase64.startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg',
         });
       };
       reader.onerror = () => {
@@ -154,13 +168,15 @@ export async function takePhotoWithCamera(
       }
 
       const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = e.target?.result as string;
+      reader.onload = async (e) => {
+        const rawBase64 = e.target?.result as string;
+        const targetQuality = options.quality ?? 0.92;
+        const compressedBase64 = await compressImage(rawBase64, 2048, 2048, targetQuality);
         triggerHaptic('selection');
         resolve({
-          uri: base64,
-          base64: base64,
-          mimeType: file.type,
+          uri: compressedBase64,
+          base64: compressedBase64,
+          mimeType: compressedBase64.startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg',
         });
       };
       reader.onerror = () => {
