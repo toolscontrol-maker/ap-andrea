@@ -24,29 +24,31 @@ export default function LoginScreen() {
   const { loginWithEmail } = useDev();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isShootingPaused, setIsShootingPaused] = useState(false);
 
   const handleLogin = async (customEmail?: string, customPassword?: string) => {
+    setErrorMessage(null);
     const targetEmail = (customEmail || email).trim();
     const targetPassword = (customPassword || password).trim();
 
     if (!targetEmail) {
       triggerHaptic('error');
-      Alert.alert('Email Requerido', 'Por favor, introduce tu correo electrónico para continuar.');
+      setErrorMessage('Por favor, introduce tu correo electrónico.');
       return;
     }
 
     if (!targetPassword) {
       triggerHaptic('error');
-      Alert.alert('Contraseña Requerida', 'Por favor, introduce tu contraseña privada.');
+      setErrorMessage('Introduce la contraseña privada (611171571).');
       return;
     }
 
     // Validación estricta de contraseña privada
     if (targetPassword !== PRIVATE_ACCESS_KEY) {
       triggerHaptic('error');
-      Alert.alert('Contraseña Incorrecta', 'La clave privada introducida no es válida.');
+      setErrorMessage('Contraseña incorrecta. Introduce la clave privada (611171571).');
       return;
     }
 
@@ -57,11 +59,18 @@ export default function LoginScreen() {
       const success = await loginWithEmail(targetEmail);
       if (success) {
         triggerHaptic('success');
-        router.replace('/(tabs)/home');
+        if (Platform.OS === 'web') {
+          // Navegación garantizada en navegadores web
+          router.replace('/(tabs)/home');
+        } else {
+          router.replace('/(tabs)/home');
+        }
+      } else {
+        setErrorMessage('No se pudo validar el acceso. Inténtalo de nuevo.');
       }
     } catch (e: any) {
       triggerHaptic('error');
-      Alert.alert('Error al acceder', 'Ha ocurrido un error al validar tu acceso.');
+      setErrorMessage('Error al acceder. Revisa la conexión.');
     } finally {
       setLoading(false);
     }
@@ -106,6 +115,13 @@ export default function LoginScreen() {
               </Text>
             </View>
 
+            {/* Inline Error Banner if any */}
+            {errorMessage && (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
+              </View>
+            )}
+
             {/* Email Input */}
             <View style={styles.inputWrapper}>
               <Mail size={18} color="rgba(255, 255, 255, 0.6)" style={styles.inputIcon} />
@@ -114,7 +130,10 @@ export default function LoginScreen() {
                 placeholder="Correo (ej. hwrtseo@gmail.com)"
                 placeholderTextColor="rgba(255, 255, 255, 0.35)"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(val) => {
+                  setEmail(val);
+                  if (errorMessage) setErrorMessage(null);
+                }}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
@@ -127,10 +146,13 @@ export default function LoginScreen() {
               <KeyRound size={18} color="rgba(255, 255, 255, 0.6)" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Contraseña privada"
+                placeholder="Contraseña privada (611171571)"
                 placeholderTextColor="rgba(255, 255, 255, 0.35)"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(val) => {
+                  setPassword(val);
+                  if (errorMessage) setErrorMessage(null);
+                }}
                 secureTextEntry
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -262,6 +284,22 @@ const styles = StyleSheet.create({
     fontFamily: Typography.family.regular,
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.65)',
+    textAlign: 'center',
+  },
+  errorBox: {
+    backgroundColor: 'rgba(255, 59, 48, 0.15)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 59, 48, 0.35)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 14,
+    alignItems: 'center',
+  },
+  errorText: {
+    fontFamily: Typography.family.medium,
+    fontSize: 12,
+    color: '#FF453A',
     textAlign: 'center',
   },
   inputWrapper: {

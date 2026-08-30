@@ -46,7 +46,23 @@ export const StorageEngine = {
       } else {
         await AsyncStorage.setItem(key, value);
       }
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.name === 'QuotaExceededError' || e?.message?.includes('quota') || e?.code === 22) {
+        try {
+          if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+            for (let i = window.localStorage.length - 1; i >= 0; i--) {
+              const k = window.localStorage.key(i);
+              if (k && (k.includes('_backup_') || k.startsWith('andrea_auth_session_') || k.includes('_v1') || k.includes('_v2') || k.includes('_v3') || k.includes('_v4'))) {
+                window.localStorage.removeItem(k);
+              }
+            }
+            window.localStorage.setItem(key, value);
+            return;
+          }
+        } catch {
+          // ignore
+        }
+      }
       console.warn(`[StorageEngine] Failed to setRaw for key "${key}":`, e);
     }
   },
