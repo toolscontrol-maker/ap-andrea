@@ -1,10 +1,8 @@
 /**
- * Andrea Design System — Core Tokens (Apple HIG × Vintage HTML / Acne Studios Standards)
- * Monochromatic hierarchy, high-fashion negative letter-spacing, vintage HTML metadata tags,
- * generous editorial spacing rhythm, and continuous squircle geometry.
+ * Andrea Design System — Core Tokens (Apple HIG & Quiet Luxury Standards)
+ * Inspired by Apple Design Awards, Apple Journal, Things 3 & Flighty.
+ * 8-point geometric scale, G2 continuous squircle curvature, Materials & SF Pro optical tracking.
  */
-
-import { Platform } from 'react-native';
 
 export const Spacing = {
   none: 0,
@@ -23,12 +21,12 @@ export const Spacing = {
 
 export const Radii = {
   none: 0,
-  xs: 6,      // Micro tags, vintage badges
-  sm: 10,     // Chips, inner items
-  md: 14,     // Buttons, interactive pills
-  lg: 18,     // Inset cards, medium widgets
+  xs: 8,      // Micro tags, badges
+  sm: 12,     // Inputs, chips, inner items
+  md: 16,     // Buttons, interactive pills
+  lg: 20,     // Inset cards, medium widgets
   xl: 24,     // Feature cards, photo frames
-  '2xl': 28,  // Modal sheets, bottom drawers
+  '2xl': 28,  // Modal sheets, bottom sheets
   '3xl': 32,  // Hero cards, dialog containers
   '4xl': 36,  // Large bottom drawers
   full: 9999, // Circular buttons, action pills
@@ -36,44 +34,44 @@ export const Radii = {
 
 export const Typography = {
   display: {
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 32,
+    lineHeight: 38,
     fontWeight: '800' as const,
-    letterSpacing: -1.2,
+    letterSpacing: -0.8,
   },
   h1: {
     fontSize: 26,
     lineHeight: 32,
     fontWeight: '700' as const,
-    letterSpacing: -0.8,
+    letterSpacing: -0.6,
   },
   h2: {
     fontSize: 20,
     lineHeight: 26,
     fontWeight: '700' as const,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
   },
   h3: {
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: '600' as const,
     letterSpacing: -0.3,
   },
   headline: {
-    fontSize: 16,
-    lineHeight: 21,
+    fontSize: 16.5,
+    lineHeight: 22,
     fontWeight: '600' as const,
     letterSpacing: -0.3,
   },
   bodyLarge: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 16.5,
+    lineHeight: 23,
     fontWeight: '400' as const,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
   body: {
     fontSize: 14.5,
-    lineHeight: 20,
+    lineHeight: 21,
     fontWeight: '400' as const,
     letterSpacing: -0.15,
   },
@@ -81,18 +79,18 @@ export const Typography = {
     fontSize: 14.5,
     lineHeight: 20,
     fontWeight: '600' as const,
-    letterSpacing: -0.15,
+    letterSpacing: -0.2,
   },
   callout: {
     fontSize: 15,
     lineHeight: 20,
-    fontWeight: '400' as const,
+    fontWeight: '500' as const,
     letterSpacing: -0.2,
   },
   subheadline: {
-    fontSize: 14,
-    lineHeight: 19,
-    fontWeight: '400' as const,
+    fontSize: 13.5,
+    lineHeight: 18,
+    fontWeight: '500' as const,
     letterSpacing: -0.1,
   },
   footnote: {
@@ -105,30 +103,48 @@ export const Typography = {
     fontSize: 11.5,
     lineHeight: 15,
     fontWeight: '500' as const,
-    letterSpacing: 0.2,
+    letterSpacing: 0.15,
   },
   captionBold: {
-    fontSize: 11,
+    fontSize: 11.5,
     lineHeight: 15,
     fontWeight: '700' as const,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase' as const,
-  },
-  // Vintage HTML & Technical Micro-Grotesque Tags
-  vintageTag: {
-    fontSize: 10,
-    lineHeight: 14,
-    fontWeight: '700' as const,
-    letterSpacing: 1.8,
-    textTransform: 'uppercase' as const,
-    fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
+    letterSpacing: 0.2,
   },
   overline: {
     fontSize: 10.5,
     lineHeight: 14,
     fontWeight: '700' as const,
-    letterSpacing: 1.8,
+    letterSpacing: 1.2,
     textTransform: 'uppercase' as const,
+  },
+} as const;
+
+export const Materials = {
+  ultraThin: {
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    borderColor: 'rgba(255, 255, 255, 0.20)',
+    borderWidth: 1,
+  },
+  thin: {
+    backgroundColor: 'rgba(255, 255, 255, 0.70)',
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    borderWidth: 1,
+  },
+  regular: {
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+  },
+  thick: {
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderWidth: 1,
+  },
+  darkGlass: {
+    backgroundColor: 'rgba(12, 24, 48, 0.80)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
   },
 } as const;
 
@@ -141,48 +157,56 @@ export const Shadows = {
     elevation: 0,
   },
   subtle: {
-    shadowColor: '#111111',
+    shadowColor: 'rgba(30, 20, 35, 0.04)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 1,
     shadowRadius: 8,
     elevation: 1,
   },
   sm: {
-    shadowColor: '#111111',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 1,
-  },
-  md: {
-    shadowColor: '#111111',
+    shadowColor: 'rgba(30, 20, 35, 0.06)',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
+    shadowOpacity: 1,
+    shadowRadius: 12,
     elevation: 2,
   },
-  lg: {
-    shadowColor: '#111111',
+  md: {
+    shadowColor: 'rgba(30, 20, 35, 0.08)',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
+    shadowOpacity: 1,
+    shadowRadius: 20,
     elevation: 4,
   },
-  glass: {
-    shadowColor: '#111111',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.06,
-    shadowRadius: 28,
-    elevation: 3,
+  lg: {
+    shadowColor: 'rgba(30, 20, 35, 0.12)',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 1,
+    shadowRadius: 32,
+    elevation: 8,
+  },
+} as const;
+
+export const SpringPresets = {
+  interactiveTap: {
+    stiffness: 400,
+    damping: 25,
+    mass: 0.8,
+  },
+  sheetSlide: {
+    stiffness: 300,
+    damping: 30,
+    mass: 1.0,
+  },
+  segmentSnap: {
+    stiffness: 500,
+    damping: 35,
+    mass: 0.6,
   },
 } as const;
 
 export const Layout = {
-  headerHeight: 52,
+  maxContentWidth: 680,
+  screenPaddingHorizontal: Spacing.lg,
+  screenPaddingVertical: Spacing.lg,
   tabBarHeight: 68,
-  screenPadding: Spacing.md,
-  screenPaddingHorizontal: Spacing.md,
-  cardGap: Spacing.sm,
-  sectionGap: Spacing.xl,
-  maxContentWidth: 480, // High-fashion central runway constraint
 } as const;
