@@ -7,10 +7,6 @@ export const GOOGLE_MAPS_API_KEY =
     extra.googleMapsApiKey ||
     'AIzaSyCoOQUfW0CwUpJGBElhUy2T3fy0_znH73Q') as string;
 
-/**
- * Editorial Warm Quiet-Luxury Google Maps Styling
- * Tailored to match Andrea Design System (Cream, Sage, Soft Blush, Charcoal)
- */
 export const ANDREA_GOOGLE_MAP_STYLES = [
   {
     elementType: 'geometry',
@@ -93,8 +89,9 @@ export function loadGoogleMapsSDK(): Promise<any> {
     return Promise.resolve(null);
   }
 
-  if ((window as any).google && (window as any).google.maps) {
-    return Promise.resolve((window as any).google.maps);
+  const win = window as any;
+  if (win.google && win.google.maps && typeof win.google.maps.Map === 'function') {
+    return Promise.resolve(win.google.maps);
   }
 
   if (googleMapsPromise) {
@@ -102,29 +99,29 @@ export function loadGoogleMapsSDK(): Promise<any> {
   }
 
   googleMapsPromise = new Promise((resolve, reject) => {
+    // Callback name
+    const cbName = '__initAndreaGoogleMaps__' + Date.now();
+    win[cbName] = () => {
+      delete win[cbName];
+      resolve(win.google.maps);
+    };
+
     const existingScript = document.getElementById('google-maps-script');
     if (existingScript) {
-      existingScript.addEventListener('load', () => resolve((window as any).google.maps));
-      existingScript.addEventListener('error', reject);
-      return;
+      if (win.google && win.google.maps && typeof win.google.maps.Map === 'function') {
+        resolve(win.google.maps);
+        return;
+      }
     }
 
     const script = document.createElement('script');
     script.id = 'google-maps-script';
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + GOOGLE_MAPS_API_KEY + '&libraries=places,geometry,marker&loading=async&v=weekly';
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + GOOGLE_MAPS_API_KEY + '&libraries=places,geometry,marker&callback=' + cbName;
     script.async = true;
     script.defer = true;
 
-    script.onload = () => {
-      if ((window as any).google && (window as any).google.maps) {
-        resolve((window as any).google.maps);
-      } else {
-        reject(new Error('Google Maps SDK loaded but google.maps is not defined.'));
-      }
-    };
-
     script.onerror = (err) => {
-      console.error('[GoogleMaps] Error loading script:', err);
+      console.error('[GoogleMaps] Failed to load SDK script:', err);
       reject(err);
     };
 
