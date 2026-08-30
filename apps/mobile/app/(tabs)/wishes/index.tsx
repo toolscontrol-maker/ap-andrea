@@ -25,7 +25,7 @@ import { EmptyState } from '../../../src/components/ui/EmptyState';
 import { PhotoUploadField } from '../../../src/components/ui/PhotoUploadField';
 import { IconSparkles } from '../../../src/components/ui/Icons';
 import { Colors } from '../../../src/theme/colors';
-import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
+import { Spacing, Radii, Shadows } from '../../../src/theme/tokens';
 import { WishlistItem, WishlistStatus, WishlistItemType, Place } from '@andrea/types';
 import { extractLinkMetadata } from '../../../src/utils/linkMetadata';
 import { triggerHaptic } from '../../../src/utils/haptics';
@@ -197,7 +197,7 @@ export default function WishesScreen() {
       Linking.openURL(`tel:${cleanPhone}`).catch(() => {
         Alert.alert(
           'Teléfono del Restaurante',
-          `Número de contacto para ${name}: ${rawPhone}\n\nLa cita para cenar ha sido guardada en vuestra Agenda.`
+          `Número de contacto para ${name}: ${rawPhone}\n\nLa cita para cenar ha sido guardada en vuestro Calendario.`
         );
       });
       Alert.alert(
@@ -207,7 +207,7 @@ export default function WishesScreen() {
     } else {
       Alert.alert(
         '📅 Cita Agendada',
-        `Cena en ${name} programada en vuestra Agenda para el próximo fin de semana.`
+        `Cena en ${name} programada en vuestro Calendario para el próximo fin de semana.`
       );
     }
   };
@@ -288,7 +288,7 @@ export default function WishesScreen() {
     convertWishToSurprise(wish.id, `Sorpresa preparada por ${currentDevUser.name} para cumplir el deseo.`);
     Alert.alert(
       'Sorpresa en marcha',
-      `Se ha programado en secreto en la Agenda sin revelar los detalles a ${partnerDevUser.name}.`
+      `Se ha programado en secreto en el Calendario sin revelar los detalles a ${partnerDevUser.name}.`
     );
   };
 
@@ -315,24 +315,17 @@ export default function WishesScreen() {
     <ScreenWrapper>
       {/* HEADER EDITORIAL */}
       <View style={styles.headerContainer}>
-        <View style={styles.headerTopMeta}>
-          <Text style={styles.vintageHeaderTag}>[ WISHBOOK // ARCHIVE 2026 ]</Text>
-          <Text style={styles.vintageHeaderDate}>CATÁLOGO COMPARTIDO</Text>
+        <View style={styles.headerTextGroup}>
+          <Text style={styles.headerTitle}>Deseos & Rincones</Text>
+          <Text style={styles.headerSubtitle}>Para ahora, para después o para algún día</Text>
         </View>
-
-        <View style={styles.headerMainRow}>
-          <View style={styles.headerTextGroup}>
-            <Text style={styles.headerTitle}>Deseos & Rincones</Text>
-            <Text style={styles.headerSubtitle}>Para ahora, para después o para algún día</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.btnQuickAdd}
-            activeOpacity={0.85}
-            onPress={() => setIsAddModalOpen(true)}
-          >
-            <Text style={styles.btnQuickAddText}>+ Guardar deseo</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.btnQuickAdd}
+          activeOpacity={0.85}
+          onPress={() => setIsAddModalOpen(true)}
+        >
+          <Text style={styles.btnQuickAddText}>+ Guardar deseo</Text>
+        </TouchableOpacity>
       </View>
 
       {/* FILTER PILLS */}
@@ -346,7 +339,7 @@ export default function WishesScreen() {
           onPress={() => setActiveFilter('all')}
         >
           <Text style={[styles.filterChipText, activeFilter === 'all' && styles.filterChipTextActive]}>
-            TODOS ({wishes.length})
+            Todos ({wishes.length})
           </Text>
         </TouchableOpacity>
 
@@ -355,7 +348,7 @@ export default function WishesScreen() {
           onPress={() => setActiveFilter('restaurants')}
         >
           <Text style={[styles.filterChipText, activeFilter === 'restaurants' && styles.filterChipTextActive]}>
-            RESTAURANTES
+            Restaurantes
           </Text>
         </TouchableOpacity>
 
@@ -364,7 +357,7 @@ export default function WishesScreen() {
           onPress={() => setActiveFilter('fashion')}
         >
           <Text style={[styles.filterChipText, activeFilter === 'fashion' && styles.filterChipTextActive]}>
-            MODA & BELLEZA
+            Moda & Belleza
           </Text>
         </TouchableOpacity>
 
@@ -373,7 +366,7 @@ export default function WishesScreen() {
           onPress={() => setActiveFilter('trips')}
         >
           <Text style={[styles.filterChipText, activeFilter === 'trips' && styles.filterChipTextActive]}>
-            VIAJES & CITAS
+            Viajes & Citas
           </Text>
         </TouchableOpacity>
 
@@ -382,7 +375,7 @@ export default function WishesScreen() {
           onPress={() => setActiveFilter('home')}
         >
           <Text style={[styles.filterChipText, activeFilter === 'home' && styles.filterChipTextActive]}>
-            HOGAR
+            Hogar
           </Text>
         </TouchableOpacity>
 
@@ -391,7 +384,7 @@ export default function WishesScreen() {
           onPress={() => setActiveFilter('fulfilled')}
         >
           <Text style={[styles.filterChipText, activeFilter === 'fulfilled' && styles.filterChipTextActive]}>
-            CUMPLIDOS
+            Cumplidos
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -498,15 +491,6 @@ export default function WishesScreen() {
                     )}
 
                     <View style={styles.wishCardContent}>
-                      {/* VINTAGE HTML CARD HEADER */}
-                      <View style={styles.cardTechnicalHeader}>
-                        <Text style={styles.cardTechnicalIndex}>[ 0{index + 1} ]</Text>
-                        <Text style={styles.cardTechnicalRef}>REF. {wish.type?.toUpperCase() || 'ITEM'}</Text>
-                        <Text style={styles.cardTechnicalStatus}>
-                          {wish.status === 'fulfilled' ? '● CUMPLIDO' : wish.status === 'planned' ? '✦ ESPECIAL' : '○ DESEO'}
-                        </Text>
-                      </View>
-
                       <View style={styles.wishTopRow}>
                         <View style={styles.wishBadgeRow}>
                           {getStatusBadge(wish.status)}
@@ -1001,110 +985,67 @@ export default function WishesScreen() {
 
 const styles = StyleSheet.create({
   headerContainer: {
-    marginBottom: Spacing.xl,
-    paddingTop: Spacing.xs,
-  },
-  headerTopMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-    paddingBottom: Spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17, 17, 17, 0.06)',
-  },
-  vintageHeaderTag: {
-    ...Typography.vintageTag,
-    color: Colors.light.text,
-  },
-  vintageHeaderDate: {
-    ...Typography.vintageTag,
-    color: Colors.light.textMuted,
-  },
-  headerMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: Spacing.xs,
+    marginBottom: Spacing.lg,
+    paddingTop: Spacing.sm
   },
   headerTextGroup: {
     flex: 1,
-    paddingRight: Spacing.md,
+    paddingRight: Spacing.md
   },
   headerTitle: {
-    ...Typography.display,
     fontSize: 26,
+    fontWeight: '700',
     color: Colors.light.text,
+    letterSpacing: -0.5
   },
   headerSubtitle: {
-    ...Typography.body,
     fontSize: 13,
     color: Colors.light.textSecondary,
-    marginTop: 2,
+    marginTop: 2
   },
   btnQuickAdd: {
-    backgroundColor: '#111111',
-    paddingVertical: 9,
+    backgroundColor: Colors.light.primary,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: Radii.full,
-    ...Shadows.sm,
+    ...Shadows.sm
   },
   btnQuickAddText: {
-    ...Typography.captionBold,
-    color: '#FFFFFF',
-    fontSize: 11.5,
+    color: Colors.light.textInverse,
+    fontWeight: '600',
+    fontSize: 13
   },
   filterScroll: {
     paddingBottom: Spacing.md,
-    gap: Spacing.xs,
+    gap: Spacing.xs
   },
   filterChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 13,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
     borderRadius: Radii.full,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.light.surface,
     borderWidth: 1,
-    borderColor: 'rgba(17, 17, 17, 0.08)',
-    marginRight: Spacing.xs,
+    borderColor: Colors.light.border,
+    marginRight: Spacing.xs
   },
   filterChipActive: {
-    backgroundColor: '#111111',
-    borderColor: '#111111',
+    backgroundColor: Colors.light.text,
+    borderColor: Colors.light.text
   },
   filterChipText: {
-    ...Typography.vintageTag,
-    fontSize: 9.5,
-    color: Colors.light.textSecondary,
+    fontSize: 12.5,
+    fontWeight: '500',
+    color: Colors.light.textSecondary
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
-  },
-  cardTechnicalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingBottom: Spacing.xs,
-    marginBottom: Spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17, 17, 17, 0.06)',
-  },
-  cardTechnicalIndex: {
-    ...Typography.vintageTag,
-    color: Colors.light.text,
-    fontSize: 9.5,
-  },
-  cardTechnicalRef: {
-    ...Typography.vintageTag,
-    color: Colors.light.textMuted,
-    fontSize: 9,
-  },
-  cardTechnicalStatus: {
-    ...Typography.vintageTag,
-    color: Colors.light.textSecondary,
-    fontSize: 9,
+    color: Colors.light.textInverse,
+    fontWeight: '600'
   },
   sectionBlock: {
-    marginTop: Spacing.xl,
+    marginTop: Spacing.lg
   },
   restaurantsScroll: {
     paddingVertical: Spacing.xs,

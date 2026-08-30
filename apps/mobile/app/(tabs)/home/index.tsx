@@ -239,7 +239,7 @@ export default function HomeScreen() {
       {nextUpcomingEvent && (
         <View style={styles.sectionBlock}>
           <SectionHeader
-            title="Próximo Plan en la Agenda"
+            title="Próximo Plan en el Calendario"
             subtitle="La vida que estáis preparando juntos"
           />
 

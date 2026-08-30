@@ -138,7 +138,7 @@ export default function AccountScreen() {
     triggerHaptic('success');
     Alert.alert(
       '📦 Copia de Seguridad Generada',
-      'Vuestro historial de recuerdos, deseos y agenda ha sido respaldado de forma segura y cifrada.'
+      'Vuestro historial de recuerdos, deseos y calendario ha sido respaldado de forma segura y cifrada.'
     );
   };
 
@@ -270,7 +270,7 @@ export default function AccountScreen() {
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statNumber}>{coupleEvents.length}</Text>
-            <Text style={styles.statLabel}>Citas en Agenda</Text>
+            <Text style={styles.statLabel}>Citas en Calendario</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statNumber}>{entries.length}</Text>
