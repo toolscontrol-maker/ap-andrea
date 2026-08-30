@@ -1408,6 +1408,7 @@ export interface DevContextType {
   getRandomAyaQuestion: () => AyaQuestionPrompt;
 
   // Auth state
+  isLoaded: boolean;
   isAuthenticated: boolean;
   currentEmail: string | null;
   loginWithEmail: (email: string) => Promise<boolean>;
@@ -2197,6 +2198,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
   return (
     <DevContext.Provider
       value={{
+        isLoaded,
         isAuthenticated,
         currentEmail,
         loginWithEmail,
