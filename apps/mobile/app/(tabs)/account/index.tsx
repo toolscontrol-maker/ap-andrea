@@ -66,7 +66,12 @@ export default function AccountScreen() {
     wishes,
     savedPlaces,
     coupleEvents,
-    entries
+    ritualSeeds,
+    isDemoModeEnabled,
+    resetAllDataToDefaults,
+    clearAllUserData,
+    exportAllUserData,
+    importAllUserData,
   } = useDev();
 
   // Settings local state
@@ -80,6 +85,11 @@ export default function AccountScreen() {
   const [editingUserId, setEditingUserId] = useState<string>(users.user2.id);
   const [editName, setEditName] = useState('');
   const [editPhotoUrl, setEditPhotoUrl] = useState('');
+
+  // Privacy and Import modals
+  const [isPrivacyNoticeOpen, setIsPrivacyNoticeOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importJsonText, setImportJsonText] = useState('');
 
   // Anniversary & milestones calculation
   const ANNIVERSARY_DATE = new Date('2025-02-15');
@@ -109,36 +119,6 @@ export default function AccountScreen() {
     setIsEditModalVisible(false);
     Alert.alert('✨ Perfil Actualizado', `La foto y los datos de ${finalName} se han guardado con éxito.`);
   };
-
-  const handleToggleBiometrics = (val: boolean) => {
-    triggerHaptic('selection');
-    setBiometricsEnabled(val);
-    if (val) {
-      Alert.alert('Protección Activada', 'Tu bóveda privada está protegida mediante Face ID / Touch ID.');
-    }
-  };
-
-  const {
-    activeRole,
-    switchRole,
-    users,
-    currentDevUser,
-    partnerDevUser,
-    updateUserProfile,
-    wishes,
-    savedPlaces,
-    coupleEvents,
-    ritualSeeds,
-    isDemoModeEnabled,
-    resetAllDataToDefaults,
-    clearAllUserData,
-    exportAllUserData,
-    importAllUserData,
-  } = useDev();
-
-  const [isPrivacyNoticeOpen, setIsPrivacyNoticeOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [importJsonText, setImportJsonText] = useState('');
 
   const handleToggleBiometrics = (val: boolean) => {
     triggerHaptic('selection');

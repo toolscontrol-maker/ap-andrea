@@ -1686,17 +1686,6 @@ export function DevProvider({ children }: { children: ReactNode }) {
     StorageEngine.setItem('andrea_entries_v1', entries);
   }, [entries, isLoaded]);
 
-  const resetAllDataToDefaults = async () => {
-    await StorageEngine.clearAllData();
-    setActiveRole('user2');
-    setWishes(INITIAL_WISHES);
-    setSavedPlaces(INITIAL_SAVED_PLACES);
-    setMapPlaces(SAMPLE_MAP_PLACES);
-    setCoupleEvents(INITIAL_COUPLE_EVENTS);
-    setRitualSeeds(INITIAL_RITUAL_SEEDS);
-    setEntries(INITIAL_ENTRIES);
-  };
-
   const currentDevUser = activeRole === 'user1' ? users.user1 : users.user2;
   const partnerDevUser = activeRole === 'user1' ? users.user2 : users.user1;
 
