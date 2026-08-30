@@ -1676,6 +1676,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
             if (cloudState.savedPlaces && cloudState.savedPlaces.length > 0) setSavedPlaces(cloudState.savedPlaces);
             if (cloudState.mapPlaces && cloudState.mapPlaces.length > 0) setMapPlaces(cloudState.mapPlaces);
             if (cloudState.coupleEvents && cloudState.coupleEvents.length > 0) setCoupleEvents(cloudState.coupleEvents);
+            if (cloudState.ritualSeeds && cloudState.ritualSeeds.length > 0) setRitualSeeds(cloudState.ritualSeeds);
           }
         } catch (cloudErr) {
           console.warn('[DevContext] Background Cloud hydration error:', cloudErr);
@@ -1775,6 +1776,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
           if (cloudState.savedPlaces && cloudState.savedPlaces.length > 0) setSavedPlaces(cloudState.savedPlaces);
           if (cloudState.mapPlaces && cloudState.mapPlaces.length > 0) setMapPlaces(cloudState.mapPlaces);
           if (cloudState.coupleEvents && cloudState.coupleEvents.length > 0) setCoupleEvents(cloudState.coupleEvents);
+            if (cloudState.ritualSeeds && cloudState.ritualSeeds.length > 0) setRitualSeeds(cloudState.ritualSeeds);
         }
       }).catch((e) => console.warn('[DevContext] Cloud sync on login error:', e));
     }
@@ -2085,7 +2087,16 @@ export function DevProvider({ children }: { children: ReactNode }) {
   };
 
   // ── Ritual Seeds Actions ──
-  const addRitualSeed = (seed: Partial<RitualSeed>) => {
+  const addRitualSeed = async (seed: Partial<RitualSeed>) => {
+    let finalPhoto = seed.photoUrl || seed.imageUrl;
+    if (finalPhoto && (finalPhoto.startsWith('data:') || finalPhoto.startsWith('blob:'))) {
+      try {
+        finalPhoto = await CloudSyncEngine.uploadMediaImage(finalPhoto, `ritual_${Date.now()}.jpg`);
+      } catch (e) {
+        console.warn('[DevContext] Ritual photo upload error:', e);
+      }
+    }
+
     const newSeed: RitualSeed = {
       id: 'seed-' + Date.now(),
       coupleId: 'andrea-tonet',
@@ -2093,9 +2104,9 @@ export function DevProvider({ children }: { children: ReactNode }) {
       date: seed.date || new Date().toISOString().split('T')[0],
       type: seed.type || 'gratitude_note',
       title: seed.title || 'Momento compartido',
-      body: seed.body,
-      imageUrl: seed.imageUrl || seed.photoUrl,
-      photoUrl: seed.photoUrl || seed.imageUrl,
+      body: seed.body || '',
+      imageUrl: finalPhoto,
+      photoUrl: finalPhoto,
       mood: seed.mood || 'grateful',
       isSharedWithPartner: true,
       partnerResponded: false,
@@ -2103,6 +2114,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
     };
 
     setRitualSeeds((prev) => [newSeed, ...prev]);
+    await CloudSyncEngine.syncRitualSeed(newSeed);
   };
 
   // ── Map & Diary Actions ──

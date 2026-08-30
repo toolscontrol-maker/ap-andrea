@@ -208,6 +208,24 @@ class CloudSyncEngineService {
     };
   }
 
+  public mapRitualSeedFromDb(row: any): RitualSeed {
+    return {
+      id: row.id,
+      coupleId: row.couple_id || COUPLE_ID,
+      authorId: row.author_id || row.authorId,
+      date: row.date || (row.created_at ? row.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+      type: row.type || 'gratitude_note',
+      title: row.title || 'Momento compartido',
+      body: row.body || '',
+      imageUrl: row.image_url || row.imageUrl || row.photoUrl || undefined,
+      photoUrl: row.image_url || row.imageUrl || row.photoUrl || undefined,
+      mood: row.mood || 'love',
+      isSharedWithPartner: row.is_shared_with_partner !== undefined ? row.is_shared_with_partner : true,
+      partnerResponded: Boolean(row.partner_responded),
+      createdAt: row.created_at || new Date().toISOString(),
+    };
+  }
+
   public mapEventFromDb(row: any): CoupleEvent {
     return {
       id: row.id,
@@ -262,6 +280,7 @@ class CloudSyncEngineService {
               else if (table === 'saved_places') mappedRecord = this.mapSavedPlaceFromDb(rawRecord);
               else if (table === 'map_places') mappedRecord = this.mapMapPlaceFromDb(rawRecord);
               else if (table === 'couple_events') mappedRecord = this.mapEventFromDb(rawRecord);
+              else if (table === 'ritual_seeds') mappedRecord = this.mapRitualSeedFromDb(rawRecord);
             }
             this.notifyListeners(table, eventType, mappedRecord);
           }
@@ -291,12 +310,14 @@ class CloudSyncEngineService {
         { data: placesData },
         { data: mapPlacesData },
         { data: eventsData },
+        { data: ritualSeedsData },
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('couple_id', COUPLE_ID),
         supabase.from('wishes').select('*').eq('couple_id', COUPLE_ID),
         supabase.from('saved_places').select('*').eq('couple_id', COUPLE_ID),
         supabase.from('map_places').select('*').eq('couple_id', COUPLE_ID),
         supabase.from('couple_events').select('*').eq('couple_id', COUPLE_ID),
+        supabase.from('ritual_seeds').select('*').eq('couple_id', COUPLE_ID),
       ]);
 
       let user1: DevUser | null = null;
@@ -319,6 +340,7 @@ class CloudSyncEngineService {
         savedPlaces: placesData && placesData.length > 0 ? placesData.map(p => this.mapSavedPlaceFromDb(p)) : null,
         mapPlaces: mapPlacesData && mapPlacesData.length > 0 ? mapPlacesData.map(m => this.mapMapPlaceFromDb(m)) : null,
         coupleEvents: eventsData && eventsData.length > 0 ? eventsData.map(e => this.mapEventFromDb(e)) : null,
+        ritualSeeds: ritualSeedsData && ritualSeedsData.length > 0 ? ritualSeedsData.map(s => this.mapRitualSeedFromDb(s)) : null,
       };
     } catch (e) {
       console.warn('[CloudSync] Error fetching full cloud state:', e);
@@ -493,6 +515,31 @@ class CloudSyncEngineService {
       }
     } catch (e) {
       console.warn('[CloudSync] Event sync error:', e);
+    }
+  }
+
+  // ── 6. RITUAL SEEDS ──
+  public async syncRitualSeed(seed: RitualSeed) {
+    this.broadcastLocal('ritual_seeds', 'UPDATE', seed);
+    try {
+      if (this.isSupabaseConfigured()) {
+        await supabase.from('ritual_seeds').upsert({
+          id: seed.id,
+          couple_id: COUPLE_ID,
+          author_id: seed.authorId,
+          date: seed.date || new Date().toISOString().split('T')[0],
+          type: seed.type,
+          title: seed.title || 'Momento compartido',
+          body: seed.body || '',
+          mood: seed.mood || 'love',
+          image_url: seed.photoUrl || seed.imageUrl || null,
+          is_shared_with_partner: seed.isSharedWithPartner ?? true,
+          partner_responded: seed.partnerResponded ?? false,
+          created_at: seed.createdAt || new Date().toISOString(),
+        }, { onConflict: 'id' });
+      }
+    } catch (e) {
+      console.warn('[CloudSync] Ritual seed sync error:', e);
     }
   }
 
