@@ -1437,6 +1437,13 @@ export function DevProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function loadStoredData() {
       try {
+        const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        const AUTH_SESSION_KEY = 'andrea_auth_session_v7';
+
+        // 1. Purge legacy sessions to force fresh login on all devices
+        StorageEngine.setItem('andrea_auth_session_v5', null);
+        StorageEngine.setItem('andrea_auth_session_v6', null);
+
         const [
           savedRole,
           savedWishes,
@@ -1455,7 +1462,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
           StorageEngine.getItem<RitualSeed[] | null>(STORAGE_KEYS.SEEDS, null),
           StorageEngine.getItem<DiaryEntryUI[] | null>('andrea_entries_v5', null),
           StorageEngine.getItem<{ user1: DevUser; user2: DevUser } | null>('andrea_users_v5', null),
-          StorageEngine.getItem<{ email: string; role: 'user1' | 'user2' } | null>('andrea_auth_session_v5', null),
+          StorageEngine.getItem<{ email: string; role: 'user1' | 'user2'; timestamp?: number } | null>(AUTH_SESSION_KEY, null),
           StorageEngine.getItem<'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux' | null>('andrea_theme_palette_v5', null),
         ]);
 
@@ -1463,12 +1470,22 @@ export function DevProvider({ children }: { children: ReactNode }) {
           setThemePaletteState(savedTheme);
         }
 
-        if (savedAuth && savedAuth.email) {
-          setIsAuthenticated(true);
-          setCurrentEmail(savedAuth.email);
-          if (savedAuth.role) setActiveRole(savedAuth.role);
-        } else if (savedRole) {
-          setActiveRole(savedRole);
+        // Validate 24-hour expiration window
+        if (savedAuth && savedAuth.email && savedAuth.timestamp) {
+          const elapsed = Date.now() - savedAuth.timestamp;
+          if (elapsed < SESSION_MAX_AGE_MS) {
+            setIsAuthenticated(true);
+            setCurrentEmail(savedAuth.email);
+            if (savedAuth.role) setActiveRole(savedAuth.role);
+          } else {
+            console.log('[DevContext] Session expired (>24h). Auto-logging out.');
+            await StorageEngine.setItem(AUTH_SESSION_KEY, null);
+            setIsAuthenticated(false);
+            setCurrentEmail(null);
+          }
+        } else {
+          setIsAuthenticated(false);
+          setCurrentEmail(null);
         }
 
         if (savedWishes !== null && Array.isArray(savedWishes)) setWishes(savedWishes);
@@ -1517,6 +1534,23 @@ export function DevProvider({ children }: { children: ReactNode }) {
     loadStoredData();
   }, []);
 
+  // 24-hour periodic session expiration check
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (isAuthenticated) {
+        const session = await StorageEngine.getItem<{ email: string; role: 'user1' | 'user2'; timestamp?: number } | null>(AUTH_SESSION_KEY, null);
+        if (session && session.timestamp) {
+          const elapsed = Date.now() - session.timestamp;
+          if (elapsed >= SESSION_MAX_AGE_MS) {
+            console.log('[DevContext] Active session reached 24 hours. Logging out.');
+            await logout();
+          }
+        }
+      }
+    }, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
   const updateUserProfile = async (userId: string, updates: Partial<DevUser>) => {
     const isUser1 = userId === DEV_USERS.user1.id || (updates.name && updates.name.toLowerCase().includes('tonet'));
     const roleKey: 'user1' | 'user2' = isUser1 ? 'user1' : 'user2';
@@ -1551,7 +1585,11 @@ export function DevProvider({ children }: { children: ReactNode }) {
     setCurrentEmail(cleanEmail);
     setIsAuthenticated(true);
 
-    await StorageEngine.setItem('andrea_auth_session_v5', { email: cleanEmail, role });
+    await StorageEngine.setItem(AUTH_SESSION_KEY, {
+      email: cleanEmail,
+      role,
+      timestamp: Date.now(),
+    });
     await StorageEngine.setItem(STORAGE_KEYS.ACTIVE_USER, role);
     return true;
   };
@@ -1559,7 +1597,9 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     setIsAuthenticated(false);
     setCurrentEmail(null);
+    await StorageEngine.setItem(AUTH_SESSION_KEY, null);
     await StorageEngine.setItem('andrea_auth_session_v5', null);
+    await StorageEngine.setItem('andrea_auth_session_v6', null);
   };
 
   const setThemePalette = async (newTheme: 'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux') => {

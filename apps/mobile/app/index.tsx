@@ -3,7 +3,11 @@ import { Redirect } from 'expo-router';
 import { useDev } from '../src/context/DevContext';
 
 export default function IndexScreen() {
-  const { isAuthenticated } = useDev();
+  const { isAuthenticated, isLoaded } = useDev();
+
+  if (!isLoaded) {
+    return null;
+  }
 
   if (!isAuthenticated) {
     return <Redirect href="/(auth)/login" />;

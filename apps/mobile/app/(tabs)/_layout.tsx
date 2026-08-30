@@ -1,9 +1,16 @@
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { View } from 'react-native';
+import { useDev } from '../../src/context/DevContext';
 import { GlobalProfileAvatar } from '../../src/components/GlobalProfileAvatar';
 import { FloatingGlassTabBar } from '../../src/components/navigation/FloatingGlassTabBar';
 
 export default function TabLayout() {
+  const { isAuthenticated, isLoaded } = useDev();
+
+  if (isLoaded && !isAuthenticated) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
   return (
     <View style={{ flex: 1 }}>
       {/* Permanent Fixed Top-Right Circular Profile Avatar */}
