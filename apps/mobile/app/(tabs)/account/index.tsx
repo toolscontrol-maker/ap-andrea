@@ -214,7 +214,7 @@ export default function AccountScreen() {
                 <Text style={styles.milestoneTitle}>Nos Conocimos</Text>
                 <Text style={styles.milestoneDate}>23 Nov 2024</Text>
               </View>
-              <Text style={styles.milestoneLocation}>Discoteca Room Valencia</Text>
+              <Text style={styles.milestoneLocation}>Ent. Rico, 6, Quatre Carreres · Valencia</Text>
               <Text style={styles.milestoneDesc}>
                 La noche donde cruzamos miradas por primera vez y empezó nuestra historia ({daysSinceMet} días).
               </Text>
