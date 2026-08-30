@@ -17,6 +17,7 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps {
   title?: string;
+  children?: React.ReactNode;
   variant?: ButtonVariant;
   size?: ButtonSize;
   onPress: () => void;
@@ -32,6 +33,7 @@ export interface ButtonProps {
 
 export function Button({
   title,
+  children,
   variant = 'primary',
   size = 'md',
   onPress,
@@ -160,7 +162,7 @@ export function Button({
         ) : (
           <View style={styles.contentRow}>
             {icon && iconPosition === 'left' && <View style={styles.iconLeft}>{icon}</View>}
-            {title && (
+            {(title || (typeof children === 'string' && children)) ? (
               <Text
                 style={[
                   styles.titleText,
@@ -171,8 +173,10 @@ export function Button({
                   textStyle,
                 ]}
               >
-                {title}
+                {title || children}
               </Text>
+            ) : (
+              children
             )}
             {icon && iconPosition === 'right' && <View style={styles.iconRight}>{icon}</View>}
           </View>
