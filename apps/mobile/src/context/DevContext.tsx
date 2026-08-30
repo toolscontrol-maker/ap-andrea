@@ -34,7 +34,7 @@ export const DEV_USERS: { user1: DevUser; user2: DevUser } = {
     id: '11111111-aaaa-bbbb-cccc-111111111111',
     name: 'Tonet',
     avatar: 'T',
-    avatarPhoto: undefined,
+    avatarPhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop',
     roleDescription: 'Quien suele iniciar planes y documentar detalles',
     birthday: '19 de Octubre',
   },
@@ -42,13 +42,52 @@ export const DEV_USERS: { user1: DevUser; user2: DevUser } = {
     id: '22222222-dddd-eeee-ffff-222222222222',
     name: 'Andrea',
     avatar: 'A',
-    avatarPhoto: undefined,
+    avatarPhoto: 'https://qxnsksrdqmrsjsqxyxtq.supabase.co/storage/v1/object/public/andrea-media/avatars/avatar_user2_1788120276429.jpg',
     roleDescription: 'Quien da significado y aporta calidez espontánea',
     birthday: '1 de Septiembre',
   }
 };
 
-export const INITIAL_WISHES: WishlistItem[] = [];
+export const INITIAL_WISHES: WishlistItem[] = [
+  {
+    id: 'wish-viaje-paris-2025',
+    coupleId: 'andrea-tonet',
+    ownerUserId: DEV_USERS.user2.id,
+    createdByUserId: DEV_USERS.user1.id,
+    title: 'Escapada Romántica a París',
+    description: 'Pasear de la mano por el Sena, subir a Montmartre y cenar en un bistró con velas.',
+    type: 'travel',
+    status: 'dreaming',
+    visibility: 'shared',
+    brand: 'Viaje Soñado',
+    estimatedPrice: 600,
+    currency: 'EUR',
+    desiredFor: 'Próximas vacaciones',
+    tags: ['viaje', 'paris', 'romantico', 'sueno'],
+    isForSelf: false,
+    createdAt: '2025-01-01T10:00:00Z',
+    updatedAt: '2025-01-01T10:00:00Z',
+  },
+  {
+    id: 'wish-bolso-zara-atelier',
+    coupleId: 'andrea-tonet',
+    ownerUserId: DEV_USERS.user2.id,
+    createdByUserId: DEV_USERS.user2.id,
+    title: 'Bolso de Piel Minimalista',
+    description: 'Bolso estructurado en tono marfil con detalles dorados para ocasiones especiales.',
+    type: 'fashion',
+    status: 'dreaming',
+    visibility: 'shared',
+    brand: 'Zara / Massimo Dutti',
+    estimatedPrice: 89.95,
+    currency: 'EUR',
+    desiredFor: 'Cumpleaños o sorpresa',
+    tags: ['moda', 'bolso', 'regalo'],
+    isForSelf: true,
+    createdAt: '2025-01-10T12:00:00Z',
+    updatedAt: '2025-01-10T12:00:00Z',
+  },
+];
 
 export const INITIAL_SAVED_PLACES: Place[] = [
   {
@@ -1708,6 +1747,28 @@ export function DevProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.warn('[DevContext] Storage write error on login:', err);
     }
+
+    if (CloudSyncEngine.isSupabaseConfigured()) {
+      CloudSyncEngine.fetchFullCloudState().then((cloudState) => {
+        if (cloudState) {
+          if (cloudState.users) {
+            setUsers((prev) => {
+              const merged = {
+                user1: { ...prev.user1, ...(cloudState.users.user1 || {}) },
+                user2: { ...prev.user2, ...(cloudState.users.user2 || {}) },
+              };
+              StorageEngine.setItem('andrea_users_v5', merged);
+              return merged;
+            });
+          }
+          if (cloudState.wishes && cloudState.wishes.length > 0) setWishes(cloudState.wishes);
+          if (cloudState.savedPlaces && cloudState.savedPlaces.length > 0) setSavedPlaces(cloudState.savedPlaces);
+          if (cloudState.mapPlaces && cloudState.mapPlaces.length > 0) setMapPlaces(cloudState.mapPlaces);
+          if (cloudState.coupleEvents && cloudState.coupleEvents.length > 0) setCoupleEvents(cloudState.coupleEvents);
+        }
+      }).catch((e) => console.warn('[DevContext] Cloud sync on login error:', e));
+    }
+
     return true;
   };
 
