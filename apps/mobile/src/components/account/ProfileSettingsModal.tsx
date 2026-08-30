@@ -200,29 +200,9 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
               </View>
             </View>
 
-            {/* 4. Group: Preferencias y Andrea Premium */}
+            {/* 4. Group: Preferencias */}
             <View style={styles.groupCard}>
               <Text style={styles.groupHeaderTitle}>PREFERENCIAS</Text>
-
-              <View style={styles.groupRow}>
-                <View style={styles.rowIconCircle}>
-                  <IconSparkles size={16} color={Colors.light.butter} />
-                </View>
-                <View style={styles.rowContent}>
-                  <Text style={styles.rowTitle}>Andrea Premium (1 paga, 2 usan)</Text>
-                  <Text style={styles.rowSubtitle}>Recuerdos HD y AYA ilimitado</Text>
-                </View>
-                <Switch
-                  value={isPremium}
-                  onValueChange={() => {
-                    triggerHaptic('selection');
-                    togglePremium();
-                  }}
-                  trackColor={{ false: 'rgba(20, 19, 18, 0.1)', true: Colors.light.primary }}
-                />
-              </View>
-
-              <View style={styles.divider} />
 
               <View style={styles.groupRow}>
                 <View style={styles.rowIconCircle}>
