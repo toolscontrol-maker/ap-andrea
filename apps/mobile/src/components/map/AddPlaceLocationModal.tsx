@@ -550,41 +550,60 @@ export function AddPlaceLocationModal({
 
           {step === 'details' && (
             <ScrollView style={styles.contentContainer} keyboardShouldPersistTaps="handled">
-              <Text style={styles.fieldLabel}>Categoría del Lugar</Text>
+              <Text style={styles.fieldLabel}>🏛️ Categoría del Lugar</Text>
               <View style={styles.categoryRow}>
+                <TouchableOpacity
+                  style={[styles.categoryPill, type === 'restaurant' && styles.categoryPillActive]}
+                  onPress={() => setType('restaurant')}
+                >
+                  <Text style={[styles.categoryPillText, type === 'restaurant' && styles.categoryPillTextActive]}>
+                    🍽️ Restaurante
+                  </Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={[styles.categoryPill, type === 'stage' && styles.categoryPillActive]}
                   onPress={() => setType('stage')}
                 >
-                  <Text style={styles.categoryPillText}>🏡 Etapa</Text>
+                  <Text style={[styles.categoryPillText, type === 'stage' && styles.categoryPillTextActive]}>
+                    🏡 Hogar / Etapa
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[styles.categoryPill, type === 'memory' && styles.categoryPillActive]}
                   onPress={() => setType('memory')}
                 >
-                  <Text style={styles.categoryPillText}>❤️ Recuerdo</Text>
+                  <Text style={[styles.categoryPillText, type === 'memory' && styles.categoryPillTextActive]}>
+                    ❤️ Recuerdo
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[styles.categoryPill, type === 'date' && styles.categoryPillActive]}
                   onPress={() => setType('date')}
                 >
-                  <Text style={styles.categoryPillText}>🥂 Cita</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.categoryPill, type === 'restaurant' && styles.categoryPillActive]}
-                  onPress={() => setType('restaurant')}
-                >
-                  <Text style={styles.categoryPillText}>🍽️ Restaurante</Text>
+                  <Text style={[styles.categoryPillText, type === 'date' && styles.categoryPillTextActive]}>
+                    🥂 Cita / Plan
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[styles.categoryPill, type === 'trip' && styles.categoryPillActive]}
                   onPress={() => setType('trip')}
                 >
-                  <Text style={styles.categoryPillText}>✈️ Viaje</Text>
+                  <Text style={[styles.categoryPillText, type === 'trip' && styles.categoryPillTextActive]}>
+                    ✈️ Viaje / Alojamiento
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.categoryPill, type === 'future_place' && styles.categoryPillActive]}
+                  onPress={() => setType('future_place')}
+                >
+                  <Text style={[styles.categoryPillText, type === 'future_place' && styles.categoryPillTextActive]}>
+                    ✨ Futuro Deseo
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -598,7 +617,7 @@ export function AddPlaceLocationModal({
 
               {type === 'stage' && (
                 <View style={styles.specificFieldsBox}>
-                  <Text style={styles.specificBoxTitle}>🏡 Configuración de Etapa de Vida</Text>
+                  <Text style={styles.specificBoxTitle}>🏡 Configuración de Hogar / Etapa de Vida</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.subFieldLabel}>Fecha Inicio (Desde)</Text>
@@ -742,6 +761,19 @@ export function AddPlaceLocationModal({
                       />
                     </View>
                   )}
+                </View>
+              )}
+
+              {type === 'future_place' && (
+                <View style={styles.specificFieldsBox}>
+                  <Text style={styles.specificBoxTitle}>✨ Configuración de Futuro Deseo</Text>
+                  <Text style={styles.subFieldLabel}>¿Por qué queremos ir? / Notas del deseo</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Ej: Nos lo recomendaron, un sitio especial para un aniversario..."
+                    value={stageSummary}
+                    onChangeText={setStageSummary}
+                  />
                 </View>
               )}
 
@@ -1107,6 +1139,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#3A2F38',
+  },
+  categoryPillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   specificFieldsBox: {
     backgroundColor: '#FFFDF9',
