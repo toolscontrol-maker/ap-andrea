@@ -49,6 +49,7 @@ import { LogoutConfirmModal } from '../../../src/components/account/LogoutConfir
 import { ChangePasswordModal } from '../../../src/components/account/ChangePasswordModal';
 import { ChangeEmailModal } from '../../../src/components/account/ChangeEmailModal';
 import { SettingsSubpageContainer } from '../../../src/components/account/SettingsSubpageContainer';
+import { AndreaOnboardingModal } from '../../../src/components/onboarding/AndreaOnboardingModal';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -82,6 +83,7 @@ export default function AccountScreen() {
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isChangePasswordVisible, setIsChangePasswordVisible] = useState(false);
   const [isChangeEmailVisible, setIsChangeEmailVisible] = useState(false);
+  const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
 
   // Settings local state
   const [hapticFeedback, setHapticFeedback] = useState(true);
@@ -427,6 +429,27 @@ export default function AccountScreen() {
 
           <View style={styles.settingDivider} />
 
+          {/* Guía & Bienvenida */}
+          <TouchableOpacity
+            style={styles.navRow}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerHaptic('selection');
+              setIsOnboardingModalOpen(true);
+            }}
+          >
+            <View style={[styles.navIconBox, { backgroundColor: 'rgba(224, 86, 102, 0.15)' }]}>
+              <Text style={{ fontSize: 16 }}>🌸</Text>
+            </View>
+            <View style={styles.navTextCol}>
+              <Text style={styles.navTitle}>Guía de Bienvenida & Tutorial</Text>
+              <Text style={styles.navSubtitle}>Descubre cada rincón y detalle que Tonet ha creado para ti</Text>
+            </View>
+            <Text style={styles.chevronText}>›</Text>
+          </TouchableOpacity>
+
+          <View style={styles.settingDivider} />
+
           {/* 2. Milestones & Dates */}
           <TouchableOpacity
             style={styles.navRow}
@@ -707,6 +730,13 @@ export default function AccountScreen() {
         currentEmail={currentEmail || (activeRole === 'user1' ? user1Email : user2Email)}
         onChangeEmail={(newEmail) => changeUserEmail(activeRole, newEmail)}
         userName={currentDevUser.name}
+      />
+
+      {/* Andrea Onboarding & Welcome Guide */}
+      <AndreaOnboardingModal
+        visible={isOnboardingModalOpen}
+        onClose={() => setIsOnboardingModalOpen(false)}
+        onComplete={() => setIsOnboardingModalOpen(false)}
       />
 
       {/* 6. Change Password Modal */}

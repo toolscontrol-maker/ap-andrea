@@ -42,6 +42,7 @@ import { LogoutConfirmModal } from './LogoutConfirmModal';
 import { ChangePasswordModal } from './ChangePasswordModal';
 import { ChangeEmailModal } from './ChangeEmailModal';
 import { SettingsSubpageContainer } from './SettingsSubpageContainer';
+import { AndreaOnboardingModal } from '../onboarding/AndreaOnboardingModal';
 
 interface ProfileSettingsModalProps {
   visible: boolean;
@@ -80,6 +81,7 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isChangePasswordVisible, setIsChangePasswordVisible] = useState(false);
   const [isChangeEmailVisible, setIsChangeEmailVisible] = useState(false);
+  const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
 
   // Settings local state
   const [hapticFeedback, setHapticFeedback] = useState(true);
@@ -425,6 +427,27 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
 
               <View style={styles.divider} />
 
+              {/* Guía & Bienvenida */}
+              <TouchableOpacity
+                style={styles.groupRow}
+                activeOpacity={0.7}
+                onPress={() => {
+                  triggerHaptic('selection');
+                  setIsOnboardingModalOpen(true);
+                }}
+              >
+                <View style={[styles.rowIconCircle, { backgroundColor: 'rgba(224, 86, 102, 0.15)' }]}>
+                  <Text style={{ fontSize: 15 }}>🌸</Text>
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={styles.rowTitle}>Guía de Bienvenida & Tutorial</Text>
+                  <Text style={styles.rowSubtitle}>Descubre cada rincón y detalle que Tonet ha creado para ti</Text>
+                </View>
+                <Text style={styles.rowChevron}>›</Text>
+              </TouchableOpacity>
+
+              <View style={styles.divider} />
+
               {/* Milestones & Dates */}
               <TouchableOpacity
                 style={styles.groupRow}
@@ -702,6 +725,13 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
               logout();
             }}
             userName={currentDevUser.name}
+          />
+
+          {/* Andrea Onboarding & Welcome Guide */}
+          <AndreaOnboardingModal
+            visible={isOnboardingModalOpen}
+            onClose={() => setIsOnboardingModalOpen(false)}
+            onComplete={() => setIsOnboardingModalOpen(false)}
           />
 
           {/* 8. Photo Editor Sub-Modal */}

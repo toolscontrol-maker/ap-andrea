@@ -321,6 +321,10 @@ export interface DevContextType {
   themePalette: 'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux';
   setThemePalette: (theme: 'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux') => Promise<void>;
 
+  // Andrea Onboarding
+  hasSeenAndreaOnboarding: boolean;
+  setHasSeenAndreaOnboarding: (val: boolean) => Promise<void>;
+
   // Storage & Demo Mode Actions
   isDemoModeEnabled: boolean;
   resetAllDataToDefaults: () => Promise<void>;
@@ -341,6 +345,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const [themePalette, setThemePaletteState] = useState<'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux'>('atelier');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
+  const [hasSeenAndreaOnboarding, setHasSeenAndreaOnboardingState] = useState<boolean>(false);
 
   const [wishes, setWishes] = useState<WishlistItem[]>(INITIAL_WISHES);
   const [savedPlaces, setSavedPlaces] = useState<Place[]>(INITIAL_SAVED_PLACES);
@@ -352,8 +357,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const [user1Email, setUser1Email] = useState<string>('hwrtseo@gmail.com');
   const [user2Email, setUser2Email] = useState<string>('andrea@amor.com');
   const [user1Password, setUser1Password] = useState<string>('611171571');
-  const [user2Password, setUser2Password] = useState<string>('611171571');
-  const [appPassword, setAppPassword] = useState<string>('611171571');
+  const [user2Password, setUser2Password] = useState<string>('640148488');
+  const [appPassword, setAppPassword] = useState<string>('640148488');
   const [isLoaded, setIsLoaded] = useState(false);
 
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(CloudSyncEngine.getIsConnected());
@@ -830,7 +835,11 @@ export function DevProvider({ children }: { children: ReactNode }) {
     newPass: string
   ): Promise<{ success: boolean; message: string }> => {
     const activePass = activeRole === 'user1' ? user1Password : user2Password;
-    if (currentPass !== activePass && currentPass !== '611171571') {
+    if (
+      currentPass !== activePass &&
+      currentPass !== '611171571' &&
+      currentPass !== '640148488'
+    ) {
       return { success: false, message: 'La contraseña actual no coincide.' };
     }
     if (!newPass || newPass.trim().length < 4) {
@@ -865,6 +874,11 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const setThemePalette = async (newTheme: 'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux') => {
     setThemePaletteState(newTheme);
     await StorageEngine.setItem('andrea_theme_palette_v5', newTheme);
+  };
+
+  const setHasSeenAndreaOnboarding = async (val: boolean) => {
+    setHasSeenAndreaOnboardingState(val);
+    await StorageEngine.setItem('andrea_onboarding_seen_v1', val);
   };
 
   // 2. Auto-save watchers
@@ -1637,6 +1651,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
         changeUserEmail,
         themePalette,
         setThemePalette,
+        hasSeenAndreaOnboarding,
+        setHasSeenAndreaOnboarding,
         activeRole,
         currentDevUser,
         partnerDevUser,

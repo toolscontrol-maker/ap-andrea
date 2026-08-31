@@ -36,10 +36,14 @@ import { triggerHaptic } from '../../../src/utils/haptics';
 import { CreateSurpriseFlow } from '../../../src/features/calendar/components/CreateSurpriseFlow';
 import { SurpriseCreationPayload } from '../../../src/features/calendar/domain/calendar.types';
 import { PartnerProfileModal } from '../../../src/components/partner/PartnerProfileModal';
+import { AndreaOnboardingModal } from '../../../src/components/onboarding/AndreaOnboardingModal';
 
 export default function HomeScreen() {
   const router = useRouter();
   const {
+    activeRole,
+    hasSeenAndreaOnboarding,
+    setHasSeenAndreaOnboarding,
     currentDevUser,
     partnerDevUser,
     users,
@@ -67,6 +71,17 @@ export default function HomeScreen() {
   const [surpriseWishTarget, setSurpriseWishTarget] = useState<WishlistItem | null>(null);
   const [isSurpriseFlowOpen, setIsSurpriseFlowOpen] = useState(false);
   const [isPartnerProfileOpen, setIsPartnerProfileOpen] = useState(false);
+  const [isOnboardingVisible, setIsOnboardingVisible] = useState(false);
+
+  // Auto-launch Onboarding for Andrea on first login
+  useEffect(() => {
+    if (activeRole === 'user2' && !hasSeenAndreaOnboarding) {
+      const timer = setTimeout(() => {
+        setIsOnboardingVisible(true);
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [activeRole, hasSeenAndreaOnboarding]);
 
   // Dynamic days calculation from 15 Feb 2025
   const ANNIVERSARY_DATE = new Date('2025-02-15');
@@ -723,6 +738,16 @@ export default function HomeScreen() {
           } else {
             setIsSurpriseFlowOpen(true);
           }
+        }}
+      />
+
+      {/* ── ANDREA ONBOARDING & WELCOME EXPERIENCE ── */}
+      <AndreaOnboardingModal
+        visible={isOnboardingVisible}
+        onClose={() => setIsOnboardingVisible(false)}
+        onComplete={() => {
+          setHasSeenAndreaOnboarding(true);
+          setIsOnboardingVisible(false);
         }}
       />
     </ScreenWrapper>
