@@ -46,6 +46,10 @@ export default function HomeScreen() {
     weeklySummary,
     coupleEvents,
     wishes,
+    dailyCheckIns,
+    weeklyPhotos,
+    recordDailyMeetingCheckIn,
+    recordWeeklyPhoto,
     addRitualSeed,
     addCoupleEvent,
     getRandomAyaQuestion,
@@ -65,6 +69,29 @@ export default function HomeScreen() {
   const ANNIVERSARY_DATE = new Date('2025-02-15');
   const now = new Date();
   const daysTogether = Math.max(1, Math.floor((now.getTime() - ANNIVERSARY_DATE.getTime()) / (1000 * 60 * 60 * 24)));
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayCheckIn = dailyCheckIns?.[todayStr];
+  const isUser1 = currentDevUser.name.toLowerCase().includes('tonet');
+  const currentResponse = isUser1 ? todayCheckIn?.tonetResponse : todayCheckIn?.andreaResponse;
+
+  const currentWeekId = '2026-W35';
+  const currentWeekData = weeklyPhotos?.[currentWeekId] || {
+    weekId: currentWeekId,
+    weekRangeLabel: '25 - 31 Ago 2026',
+  };
+
+  const handleAnswerCheckIn = (response: 'seen' | 'not_seen' | 'wont_see') => {
+    triggerHaptic('medium');
+    recordDailyMeetingCheckIn(todayStr, response);
+    if (response === 'seen') {
+      Alert.alert('❤️ Registrado', 'Has indicado que os habéis visto hoy. Cuando ' + partnerDevUser.name + ' responda también, se activará el corazoncito negro 🖤 en el calendario.');
+    } else if (response === 'wont_see') {
+      Alert.alert('⏳ Marcado', 'Has marcado que hoy no os vais a ver.');
+    } else {
+      Alert.alert('🌧️ Registrado', 'Has marcado que no os habéis visto hoy.');
+    }
+  };
 
   const nextUpcomingEvent = coupleEvents.find((e) => e.status === 'scheduled');
   const partnerWishes = wishes.filter(
@@ -249,6 +276,148 @@ export default function HomeScreen() {
               </Text>
             </TouchableOpacity>
           ))}
+        </View>
+      </Card>
+
+      {/* ── DAILY MEETING CHECK-IN CARD (CORAZONCITO NEGRO EN CALENDARIO) ── */}
+      <Card style={[styles.ritualCard, { marginBottom: 28 }]} variant="glass">
+        <View style={styles.ritualCardHeader}>
+          <View style={styles.ritualTitleGroup}>
+            <Badge variant="primary">ENCUENTRO DIARIO</Badge>
+            <Text style={styles.ritualCardTitle}>¿Nos hemos visto hoy?</Text>
+          </View>
+          <Text style={styles.ritualCardSubtitle}>
+            Si ambos confirmáis que os habéis visto, aparecerá un corazoncito negro 🖤 en vuestro calendario.
+          </Text>
+        </View>
+
+        {/* Partner Live Status Badges */}
+        <View style={styles.checkInStatusRow}>
+          <View style={[styles.checkInUserBadge, todayCheckIn?.tonetResponse === 'seen' && styles.checkInUserBadgeActiveSeen]}>
+            <Text style={styles.checkInUserEmoji}>
+              {todayCheckIn?.tonetResponse === 'seen' ? '❤️' : todayCheckIn?.tonetResponse === 'wont_see' ? '⏳' : todayCheckIn?.tonetResponse === 'not_seen' ? '🌧️' : '⏳'}
+            </Text>
+            <Text style={styles.checkInUserName}>
+              Tonet: {todayCheckIn?.tonetResponse === 'seen' ? 'Nos vimos' : todayCheckIn?.tonetResponse === 'wont_see' ? 'No nos vemos' : todayCheckIn?.tonetResponse === 'not_seen' ? 'No nos vimos' : 'Pendiente'}
+            </Text>
+          </View>
+
+          <View style={[styles.checkInUserBadge, todayCheckIn?.andreaResponse === 'seen' && styles.checkInUserBadgeActiveSeen]}>
+            <Text style={styles.checkInUserEmoji}>
+              {todayCheckIn?.andreaResponse === 'seen' ? '❤️' : todayCheckIn?.andreaResponse === 'wont_see' ? '⏳' : todayCheckIn?.andreaResponse === 'not_seen' ? '🌧️' : '⏳'}
+            </Text>
+            <Text style={styles.checkInUserName}>
+              Andrea: {todayCheckIn?.andreaResponse === 'seen' ? 'Nos vimos' : todayCheckIn?.andreaResponse === 'wont_see' ? 'No nos vemos' : todayCheckIn?.andreaResponse === 'not_seen' ? 'No nos vimos' : 'Pendiente'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Result banner if met or marked wont_see */}
+        {todayCheckIn?.confirmedMet ? (
+          <View style={styles.confirmedMetBanner}>
+            <Text style={styles.confirmedMetText}>
+              🖤 ¡Hoy os habéis visto! Marcado con corazón negro en el calendario de este mes.
+            </Text>
+          </View>
+        ) : todayCheckIn?.wontSee ? (
+          <View style={styles.wontSeeBanner}>
+            <Text style={styles.wontSeeText}>
+              ⏳ Marcado: Hoy no os vais a ver. ¡Mucho ánimo en el día!
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Interactive Answer Buttons */}
+        <View style={styles.checkInButtonsRow}>
+          <TouchableOpacity
+            style={[
+              styles.btnCheckInOption,
+              currentResponse === 'seen' && styles.btnCheckInOptionSelectedSeen,
+            ]}
+            onPress={() => handleAnswerCheckIn('seen')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.btnCheckInEmoji}>❤️</Text>
+            <Text style={[styles.btnCheckInLabel, currentResponse === 'seen' && styles.btnCheckInLabelSelected]}>
+              Sí, nos vimos
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.btnCheckInOption,
+              currentResponse === 'not_seen' && styles.btnCheckInOptionSelected,
+            ]}
+            onPress={() => handleAnswerCheckIn('not_seen')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.btnCheckInEmoji}>🌧️</Text>
+            <Text style={[styles.btnCheckInLabel, currentResponse === 'not_seen' && styles.btnCheckInLabelSelected]}>
+              No nos vimos
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.btnCheckInOption,
+              currentResponse === 'wont_see' && styles.btnCheckInOptionSelected,
+            ]}
+            onPress={() => handleAnswerCheckIn('wont_see')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.btnCheckInEmoji}>⏳</Text>
+            <Text style={[styles.btnCheckInLabel, currentResponse === 'wont_see' && styles.btnCheckInLabelSelected]}>
+              No nos vemos
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </Card>
+
+      {/* ── WEEKLY PHOTO RITUAL: JUNTOS Y SEPARADOS ── */}
+      <Card style={[styles.ritualCard, { marginBottom: 28 }]} variant="glass">
+        <View style={styles.ritualCardHeader}>
+          <View style={styles.ritualTitleGroup}>
+            <Badge variant="butter">ÁLBUM SEMANAL</Badge>
+            <Text style={styles.ritualCardTitle}>Semana en Fotos</Text>
+          </View>
+          <Text style={styles.ritualCardSubtitle}>
+            Una vez a la semana: 1 foto juntos y 1 foto de cada uno por separado ({currentWeekData.weekRangeLabel}).
+          </Text>
+        </View>
+
+        <View style={styles.weeklyPhotosGrid}>
+          {/* Photo Together */}
+          <View style={styles.weeklyPhotoBox}>
+            <Text style={styles.weeklyPhotoLabel}>📸 Foto Juntos</Text>
+            <PhotoUploadField
+              imageUri={currentWeekData.photoTogether}
+              onImageChange={(uri) => recordWeeklyPhoto(currentWeekId, 'together', uri || '')}
+              label="Foto Juntos"
+              placeholderText="+ Subir foto juntos"
+            />
+          </View>
+
+          {/* Photo Tonet */}
+          <View style={styles.weeklyPhotoBox}>
+            <Text style={styles.weeklyPhotoLabel}>🤳 Tonet (Separados)</Text>
+            <PhotoUploadField
+              imageUri={currentWeekData.photoTonet}
+              onImageChange={(uri) => recordWeeklyPhoto(currentWeekId, 'tonet', uri || '')}
+              label="Foto Tonet"
+              placeholderText="+ Subir foto"
+            />
+          </View>
+
+          {/* Photo Andrea */}
+          <View style={styles.weeklyPhotoBox}>
+            <Text style={styles.weeklyPhotoLabel}>🤳 Andrea (Separados)</Text>
+            <PhotoUploadField
+              imageUri={currentWeekData.photoAndrea}
+              onImageChange={(uri) => recordWeeklyPhoto(currentWeekId, 'andrea', uri || '')}
+              label="Foto Andrea"
+              placeholderText="+ Subir foto"
+            />
+          </View>
         </View>
       </Card>
 
@@ -531,6 +700,118 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.light.textSecondary,
     lineHeight: 16,
+  },
+  // Check-in Meeting Styles
+  checkInStatusRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  checkInUserBadge: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAF5EE',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(43, 33, 41, 0.06)',
+    gap: 6,
+  },
+  checkInUserBadgeActiveSeen: {
+    backgroundColor: '#FFF0F2',
+    borderColor: 'rgba(224, 86, 102, 0.25)',
+  },
+  checkInUserEmoji: {
+    fontSize: 14,
+  },
+  checkInUserName: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#2B2129',
+    flexShrink: 1,
+  },
+  confirmedMetBanner: {
+    backgroundColor: '#1E1B1D',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+  confirmedMetText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  wontSeeBanner: {
+    backgroundColor: '#FAF0E6',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(180, 130, 70, 0.2)',
+  },
+  wontSeeText: {
+    color: '#8A5D18',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  checkInButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  btnCheckInOption: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderRadius: 14,
+    backgroundColor: '#FAF5EE',
+    borderWidth: 1,
+    borderColor: 'rgba(43, 33, 41, 0.08)',
+  },
+  btnCheckInOptionSelectedSeen: {
+    backgroundColor: '#FFF0F2',
+    borderColor: Colors.light.primary,
+  },
+  btnCheckInOptionSelected: {
+    backgroundColor: '#F0F6F2',
+    borderColor: '#5E9470',
+  },
+  btnCheckInEmoji: {
+    fontSize: 18,
+    marginBottom: 3,
+  },
+  btnCheckInLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#574C55',
+    textAlign: 'center',
+  },
+  btnCheckInLabelSelected: {
+    color: Colors.light.primary,
+  },
+
+  // Weekly Photos Album Styles
+  weeklyPhotosGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  weeklyPhotoBox: {
+    flex: 1,
+    minWidth: 95,
+  },
+  weeklyPhotoLabel: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#2B2129',
+    marginBottom: 6,
   },
   ritualSelectorRow: {
     flexDirection: 'row',

@@ -5,6 +5,7 @@ import { SanitizedEventItem } from '../domain/calendar.types';
 import { triggerHaptic } from '../../../utils/haptics';
 import { Radii, Shadows, Spacing, Typography } from '../../../theme/tokens';
 import { Colors } from '../../../theme/colors';
+import { useDev } from '../../../context/DevContext';
 
 interface CalendarMonthGridProps {
   year: number;
@@ -21,6 +22,7 @@ export function CalendarMonthGrid({
   onSelectDate,
   eventsByDate,
 }: CalendarMonthGridProps) {
+  const { dailyCheckIns } = useDev();
   const days = buildMonthGrid(year, monthIndex);
 
   return (
@@ -42,6 +44,10 @@ export function CalendarMonthGrid({
           const isSelected = selectedDate === item.dateString;
           const dayEvents = eventsByDate[item.dateString] || [];
           const isToday = item.isToday;
+
+          // Check Daily Meeting Check-in status
+          const checkIn = dailyCheckIns?.[item.dateString];
+          const hasMet = checkIn?.confirmedMet === true;
 
           // Categorize event types for multi-dot indicators
           const hasSurprise = dayEvents.some((e) => e.eventType === 'surprise');
@@ -65,15 +71,23 @@ export function CalendarMonthGrid({
               activeOpacity={0.7}
               accessibilityLabel={`Día ${item.dayNumber}`}
             >
-              <Text
-                style={[
-                  styles.dayNumberText,
-                  isSelected && styles.dayNumberTextSelected,
-                  isToday && !isSelected && styles.dayNumberTextToday,
-                ]}
-              >
-                {item.dayNumber}
-              </Text>
+              <View style={styles.dayHeaderRow}>
+                <Text
+                  style={[
+                    styles.dayNumberText,
+                    isSelected && styles.dayNumberTextSelected,
+                    isToday && !isSelected && styles.dayNumberTextToday,
+                  ]}
+                >
+                  {item.dayNumber}
+                </Text>
+                {/* Black Heart if they met on this day */}
+                {hasMet && (
+                  <Text style={[styles.blackHeartText, isSelected && { color: '#FFFFFF' }]}>
+                    🖤
+                  </Text>
+                )}
+              </View>
 
               {/* Semantic Multi-Dot Indicators (Max 3 visible dots or surprise spark) */}
               <View style={styles.dotsRow}>
@@ -175,6 +189,17 @@ const styles = StyleSheet.create({
   dayCellToday: {
     borderWidth: 1.5,
     borderColor: Colors.light.primary,
+  },
+  dayHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 1.5,
+  },
+  blackHeartText: {
+    fontSize: 9,
+    lineHeight: 12,
+    marginLeft: 1,
   },
   dayNumberText: {
     ...Typography.bodyMedium,

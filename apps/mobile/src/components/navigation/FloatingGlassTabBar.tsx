@@ -30,7 +30,7 @@ const TAB_CONFIG: Record<string, TabItemConfig> = {
     ),
   },
   calendar: {
-    label: 'Citas',
+    label: 'Calendario',
     renderIcon: (color, isFocused) => (
       <IconCalendar size={19} color={color} strokeWidth={isFocused ? 2.2 : 1.8} />
     ),
@@ -43,11 +43,11 @@ const TAB_CONFIG: Record<string, TabItemConfig> = {
   },
 };
 
-const PILL_WIDTH = 296;
+const PILL_WIDTH = 316;
 const PADDING_H = 6;
-const INNER_WIDTH = PILL_WIDTH - PADDING_H * 2; // 284
+const INNER_WIDTH = PILL_WIDTH - PADDING_H * 2; // 304
 const NUM_TABS = 4;
-const TAB_ITEM_WIDTH = INNER_WIDTH / NUM_TABS; // 71
+const TAB_ITEM_WIDTH = INNER_WIDTH / NUM_TABS; // 76
 
 export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   // Filter only the 4 visible main routes

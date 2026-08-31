@@ -20,6 +20,28 @@ import { CloudSyncEngine } from '../services/cloud-sync/CloudSyncEngine';
 export const AUTH_SESSION_KEY = 'andrea_auth_session_v7';
 export const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
+export interface DailyMeetingCheckIn {
+  date: string; // YYYY-MM-DD
+  tonetResponse?: 'seen' | 'not_seen' | 'wont_see';
+  andreaResponse?: 'seen' | 'not_seen' | 'wont_see';
+  confirmedMet?: boolean;
+  wontSee?: boolean;
+  notes?: string;
+  updatedAt?: string;
+}
+
+export interface WeeklyPhotoEntry {
+  weekId: string; // e.g. "2026-W35"
+  weekRangeLabel: string;
+  photoTogether?: string;
+  photoTonet?: string;
+  photoAndrea?: string;
+  captionTogether?: string;
+  captionTonet?: string;
+  captionAndrea?: string;
+  updatedAt?: string;
+}
+
 export interface DevUser {
   id: string;
   name: string;
@@ -1403,6 +1425,10 @@ export interface DevContextType {
   entries: DiaryEntryUI[];
   surprises: DiaryEntryUI[];
   ayaInsights: { id: string; title: string; description: string; date: string }[];
+  dailyCheckIns: Record<string, DailyMeetingCheckIn>;
+  weeklyPhotos: Record<string, WeeklyPhotoEntry>;
+  recordDailyMeetingCheckIn: (date: string, response: 'seen' | 'not_seen' | 'wont_see', notes?: string) => Promise<void>;
+  recordWeeklyPhoto: (weekId: string, type: 'together' | 'tonet' | 'andrea', photoUrl: string, caption?: string) => Promise<void>;
 
   // Actions
   switchRole: (role: 'user1' | 'user2') => void;
@@ -1504,6 +1530,38 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const [coupleEvents, setCoupleEvents] = useState<CoupleEvent[]>(INITIAL_COUPLE_EVENTS);
   const [ritualSeeds, setRitualSeeds] = useState<RitualSeed[]>(INITIAL_RITUAL_SEEDS);
   const [entries, setEntries] = useState<DiaryEntryUI[]>(INITIAL_ENTRIES);
+  const [dailyCheckIns, setDailyCheckIns] = useState<Record<string, DailyMeetingCheckIn>>({
+    '2026-08-31': {
+      date: '2026-08-31',
+      tonetResponse: 'seen',
+      andreaResponse: 'seen',
+      confirmedMet: true,
+    },
+    '2026-08-30': {
+      date: '2026-08-30',
+      tonetResponse: 'seen',
+      andreaResponse: 'seen',
+      confirmedMet: true,
+    },
+    '2026-08-28': {
+      date: '2026-08-28',
+      tonetResponse: 'seen',
+      andreaResponse: 'seen',
+      confirmedMet: true,
+    },
+  });
+  const [weeklyPhotos, setWeeklyPhotos] = useState<Record<string, WeeklyPhotoEntry>>({
+    '2026-W35': {
+      weekId: '2026-W35',
+      weekRangeLabel: '25 - 31 Ago 2026',
+      photoTogether: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=800&auto=format&fit=crop',
+      photoTonet: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop',
+      photoAndrea: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop',
+      captionTogether: 'Nuestra tarde paseando por el Carmen ❤️',
+      captionTonet: 'Día de trabajo productivo',
+      captionAndrea: 'Café matutino y lecturas',
+    },
+  });
   const [isLoaded, setIsLoaded] = useState(false);
 
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(CloudSyncEngine.getIsConnected());
@@ -2430,6 +2488,69 @@ export function DevProvider({ children }: { children: ReactNode }) {
     return res;
   };
 
+  const recordDailyMeetingCheckIn = async (
+    date: string,
+    response: 'seen' | 'not_seen' | 'wont_see',
+    notes?: string
+  ) => {
+    const isUser1 = activeRole === 'user1';
+    setDailyCheckIns((prev) => {
+      const existing = prev[date] || { date };
+      const tonetResponse = isUser1 ? response : (existing.tonetResponse || 'pending');
+      const andreaResponse = !isUser1 ? response : (existing.andreaResponse || 'pending');
+      const confirmedMet = tonetResponse === 'seen' && andreaResponse === 'seen';
+      const wontSee = tonetResponse === 'wont_see' || andreaResponse === 'wont_see';
+
+      const updated: Record<string, DailyMeetingCheckIn> = {
+        ...prev,
+        [date]: {
+          ...existing,
+          date,
+          tonetResponse,
+          andreaResponse,
+          confirmedMet,
+          wontSee,
+          notes: notes || existing.notes,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+
+      StorageEngine.setItem(STORAGE_KEYS.DAILY_CHECKINS, updated);
+      return updated;
+    });
+  };
+
+  const recordWeeklyPhoto = async (
+    weekId: string,
+    type: 'together' | 'tonet' | 'andrea',
+    photoUrl: string,
+    caption?: string
+  ) => {
+    setWeeklyPhotos((prev) => {
+      const existing = prev[weekId] || {
+        weekId,
+        weekRangeLabel: 'Semana Actual',
+      };
+
+      const updated: Record<string, WeeklyPhotoEntry> = {
+        ...prev,
+        [weekId]: {
+          ...existing,
+          photoTogether: type === 'together' ? photoUrl : existing.photoTogether,
+          photoTonet: type === 'tonet' ? photoUrl : existing.photoTonet,
+          photoAndrea: type === 'andrea' ? photoUrl : existing.photoAndrea,
+          captionTogether: type === 'together' ? (caption || existing.captionTogether) : existing.captionTogether,
+          captionTonet: type === 'tonet' ? (caption || existing.captionTonet) : existing.captionTonet,
+          captionAndrea: type === 'andrea' ? (caption || existing.captionAndrea) : existing.captionAndrea,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+
+      StorageEngine.setItem(STORAGE_KEYS.WEEKLY_PHOTOS, updated);
+      return updated;
+    });
+  };
+
   const getRandomAyaQuestion = () => {
     const randomIndex = Math.floor(Math.random() * SAMPLE_AYA_QUESTIONS.length);
     return SAMPLE_AYA_QUESTIONS[randomIndex];
@@ -2475,6 +2596,10 @@ export function DevProvider({ children }: { children: ReactNode }) {
         entries,
         surprises: entries.filter((e) => e.type === 'surprise'),
         ayaInsights,
+        dailyCheckIns,
+        weeklyPhotos,
+        recordDailyMeetingCheckIn,
+        recordWeeklyPhoto,
         switchRole,
         togglePremium,
         toggleUser1Consent,

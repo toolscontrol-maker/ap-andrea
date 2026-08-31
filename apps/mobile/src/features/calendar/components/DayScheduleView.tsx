@@ -6,6 +6,7 @@ import { Radii, Shadows, Spacing, Typography } from '../../../theme/tokens';
 import { Colors } from '../../../theme/colors';
 import { triggerHaptic } from '../../../utils/haptics';
 import { Badge } from '../../../components/ui/Badge';
+import { useDev } from '../../../context/DevContext';
 
 interface DayScheduleViewProps {
   selectedDate: string;
@@ -24,10 +25,12 @@ export function DayScheduleView({
   onAddNewPlan,
   onOpenRestaurants,
 }: DayScheduleViewProps) {
+  const { dailyCheckIns } = useDev();
   const isToday = selectedDate === new Date().toISOString().split('T')[0];
+  const checkIn = dailyCheckIns?.[selectedDate];
 
   // Separate timed vs all-day events
-  const timedEvents = events.filter((e) => !!e.time).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+  const timedEvents = events.filter((e) => !e.time).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
   const allDayEvents = events.filter((e) => !e.time);
 
   return (
@@ -42,6 +45,16 @@ export function DayScheduleView({
             </View>
           )}
         </View>
+
+        {checkIn?.confirmedMet ? (
+          <View style={styles.metHeroBadge}>
+            <Text style={styles.metHeroBadgeText}>🖤 Día de encuentro: Os visteis en persona este día</Text>
+          </View>
+        ) : checkIn?.wontSee ? (
+          <View style={styles.wontSeeHeroBadge}>
+            <Text style={styles.wontSeeHeroBadgeText}>⏳ Día marcado: No os visteis este día</Text>
+          </View>
+        ) : null}
 
         <Text style={styles.dayHeroQuoteText}>
           {events.length > 0
@@ -250,11 +263,40 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#FFFFFF',
   },
+  metHeroBadge: {
+    backgroundColor: '#1E1B1D',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginVertical: 6,
+  },
+  metHeroBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  wontSeeHeroBadge: {
+    backgroundColor: '#FAF0E6',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(180, 130, 70, 0.2)',
+  },
+  wontSeeHeroBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#8A5D18',
+  },
   dayHeroQuoteText: {
     ...Typography.body,
     fontSize: 13,
     fontStyle: 'italic',
     color: Colors.light.textMuted,
+    marginTop: 2,
   },
   ritualCard: {
     backgroundColor: '#FAF8F5',

@@ -348,4 +348,6 @@ export const STORAGE_KEYS = {
   MAP_PLACES: 'andrea_map_places_v5',
   BETA_NOTICE_ACCEPTED: 'andrea_beta_notice_accepted_v1',
   DEMO_MODE_FLAG: 'andrea_demo_mode_enabled_v1',
+  DAILY_CHECKINS: 'andrea_daily_checkins_v1',
+  WEEKLY_PHOTOS: 'andrea_weekly_photos_v1',
 } as const;
