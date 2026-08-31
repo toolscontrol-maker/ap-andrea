@@ -21,6 +21,7 @@ import { AndreaMapPlace, MapPlaceType, LocationPrecision, LocationSource } from 
 import { triggerHaptic } from '../../utils/haptics';
 import { PhotoUploadField } from '../ui/PhotoUploadField';
 import { GoogleMapsPlaceSearchField, SelectedPlaceItem } from './GoogleMapsPlaceSearchField';
+import { CalendarPickerModal } from '../ui/CalendarPickerModal';
 
 interface AddPlaceLocationModalProps {
   visible: boolean;
@@ -29,7 +30,7 @@ interface AddPlaceLocationModalProps {
   initialPlace?: AndreaMapPlace | null;
 }
 
-type ModalStep = 'search' | 'confirm_pin' | 'details';
+export type WizardStep = 'entity' | 'title' | 'location' | 'specifics' | 'media';
 
 export function AddPlaceLocationModal({
   visible,
@@ -37,7 +38,8 @@ export function AddPlaceLocationModal({
   onSavePlace,
   initialPlace,
 }: AddPlaceLocationModalProps) {
-  const [step, setStep] = useState<ModalStep>('search');
+  const [step, setStep] = useState<WizardStep>('entity');
+  const [calendarTarget, setCalendarTarget] = useState<'date' | 'startDate' | 'endDate' | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -138,9 +140,9 @@ export function AddPlaceLocationModal({
         setTripDateRestaurantItem(null);
         setTripDateInvitedBy('both');
 
-        setStep('confirm_pin');
+        setStep('title');
       } else {
-        setStep('search');
+        setStep('entity');
         setSearchQuery('');
         setResults([]);
         setTitle('');
@@ -196,7 +198,7 @@ export function AddPlaceLocationModal({
   }, [searchQuery, searchContext]);
 
   useEffect(() => {
-    if (step !== 'confirm_pin' || Platform.OS !== 'web' || typeof window === 'undefined') return;
+    if (step !== 'location' || Platform.OS !== 'web' || typeof window === 'undefined') return;
 
     let isMounted = true;
 
@@ -221,43 +223,17 @@ export function AddPlaceLocationModal({
         backgroundColor: '#FFF8F2',
       });
 
-      const markerColor =
-        type === 'stage'
-          ? '#5B7A62'
-          : type === 'restaurant'
-          ? '#F4C95D'
-          : type === 'date'
-          ? '#E28743'
-          : type === 'trip'
-          ? '#9E8ACD'
-          : '#EF826A';
-
-      const markerIcon =
-        type === 'stage'
-          ? '🏡'
-          : type === 'restaurant'
-          ? '🍽️'
-          : type === 'date'
-          ? '🥂'
-          : type === 'trip'
-          ? '✈️'
-          : '❤️';
-
-      const pinSvg =
-        '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="16" fill="' +
-        markerColor +
-        '" stroke="#FFFFFF" stroke-width="2.5" filter="drop-shadow(0 3px 8px rgba(58,47,56,0.16))"/><text x="20" y="24" text-anchor="middle" font-size="14">' +
-        markerIcon +
-        '</text></svg>';
-
       const marker = new googleMaps.Marker({
         position: center,
         map,
         draggable: true,
         icon: {
-          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(pinSvg),
-          scaledSize: new googleMaps.Size(40, 40),
-          anchor: new googleMaps.Point(20, 20),
+          path: googleMaps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: '#EF826A',
+          fillOpacity: 1,
+          strokeColor: '#FFFFFF',
+          strokeWeight: 3,
         },
       });
 
@@ -302,7 +278,7 @@ export function AddPlaceLocationModal({
 
     const timer = setTimeout(() => {
       initMiniMap();
-    }, 120);
+    }, 100);
 
     return () => {
       isMounted = false;
@@ -312,44 +288,56 @@ export function AddPlaceLocationModal({
         markerInstanceRef.current = null;
       }
     };
-  }, [step, selectedCoordinates[0], selectedCoordinates[1], type, locationPrecision]);
+  }, [step, selectedCoordinates[0], selectedCoordinates[1], locationPrecision]);
 
-  const handleSelectSuggestion = (res: GeocodingResult) => {
+  const handleSelectResult = (item: GeocodingResult) => {
     triggerHaptic('selection');
-    setSelectedCoordinates(res.coordinates);
-    setVerifiedName(res.name);
-    setVerifiedAddress(res.formattedAddress);
-    setVerifiedCity(res.city || 'Valencia');
-    setVerifiedCountry(res.country || 'España');
-    setTitle(res.name);
+    setSelectedCoordinates(item.coordinates);
+    setVerifiedName(item.name);
+    setVerifiedAddress(item.formattedAddress);
+    setVerifiedCity(item.city || 'Valencia');
+    setVerifiedCountry(item.country || 'España');
+    setLocationPrecision('exact');
     setLocationSource('google_places');
 
-    if (res.featureType === 'restaurant' || res.category === 'restaurant') {
-      setType('restaurant');
+    if (!title.trim() && item.name) {
+      setTitle(item.name);
     }
-
-    setStep('confirm_pin');
   };
 
-  const handleManualPin = () => {
-    triggerHaptic('medium');
-    if (!initialPlace) {
-      setSelectedCoordinates([-0.3763, 39.4699]);
-      setVerifiedName('Punto en el mapa');
-      setVerifiedAddress('Valencia, España');
-      setVerifiedCity('Valencia');
-      setTitle(searchQuery || 'Nuestro Rincón');
+  const handleNextStep = () => {
+    triggerHaptic('selection');
+    if (step === 'entity') {
+      setStep('title');
+    } else if (step === 'title') {
+      if (!title.trim()) {
+        Alert.alert('Falta el nombre', 'Por favor escribe un título o nombre para este momento.');
+        return;
+      }
+      setStep('location');
+    } else if (step === 'location') {
+      setStep('specifics');
+    } else if (step === 'specifics') {
+      setStep('media');
     }
-    setLocationSource('manual_pin');
-    setStep('confirm_pin');
   };
 
-  const handleConfirmPin = () => {
-    triggerHaptic('medium');
-    if (!title.trim() && verifiedName) {
-      setTitle(verifiedName);
+  const handlePrevStep = () => {
+    triggerHaptic('light');
+    if (step === 'title') setStep('entity');
+    else if (step === 'location') setStep('title');
+    else if (step === 'specifics') setStep('location');
+    else if (step === 'media') setStep('specifics');
+  };
+
+  const getStepNumber = () => {
+    switch (step) {
+      case 'entity': return 1;
+      case 'title': return 2;
+      case 'location': return 3;
+      case 'specifics': return 4;
+      case 'media': return 5;
     }
-    setStep('details');
   };
 
   const handleFinalSave = () => {
@@ -501,319 +489,317 @@ export function AddPlaceLocationModal({
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.sheetCard}>
+          {/* Top Progress & Navigation Bar */}
           <View style={styles.topHeader}>
-            {step !== 'search' ? (
-              <TouchableOpacity
-                onPress={() => {
-                  triggerHaptic('light');
-                  setStep(step === 'details' ? 'confirm_pin' : 'search');
-                }}
-                style={styles.headerBackBtn}
-              >
-                <Text style={styles.headerBackText}>← Volver</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={{ width: 60 }} />
-            )}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {step !== 'entity' && (
+                <TouchableOpacity onPress={handlePrevStep} style={styles.backBtn}>
+                  <Text style={styles.backBtnText}>←</Text>
+                </TouchableOpacity>
+              )}
+              <View>
+                <Text style={styles.modalTitle}>
+                  {initialPlace ? '✏️ Editar Rincón' : '📍 Guardar en el Atlas'}
+                </Text>
+                <Text style={styles.stepBadgeText}>
+                  Paso {getStepNumber()} de 5
+                </Text>
+              </View>
+            </View>
 
-            <Text style={styles.headerTitle}>
-              {initialPlace ? 'Editar Rincón' : 'Guardar Momento'}
-            </Text>
-
-            <TouchableOpacity
-              onPress={() => {
-                triggerHaptic('light');
-                onClose();
-              }}
-              style={styles.closeBtn}
-            >
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <Text style={styles.closeBtnText}>✕</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.stepperContainer}>
-            <TouchableOpacity
-              style={[styles.stepTab, step === 'search' && styles.stepTabActive]}
-              onPress={() => {
-                triggerHaptic('selection');
-                setStep('search');
-              }}
-            >
-              <Text style={[styles.stepTabText, step === 'search' && styles.stepTabTextActive]}>
-                1. Buscar
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.stepTab, step === 'confirm_pin' && styles.stepTabActive]}
-              onPress={() => {
-                triggerHaptic('selection');
-                setStep('confirm_pin');
-              }}
-            >
-              <Text style={[styles.stepTabText, step === 'confirm_pin' && styles.stepTabTextActive]}>
-                2. Ajustar Pin
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.stepTab, step === 'details' && styles.stepTabActive]}
-              onPress={() => {
-                triggerHaptic('selection');
-                setStep('details');
-              }}
-            >
-              <Text style={[styles.stepTabText, step === 'details' && styles.stepTabTextActive]}>
-                3. Detalles
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {step === 'search' && (
-            <View style={styles.contentContainer}>
-              <Text style={styles.stepSubtitle}>
-                Busca en Google Maps cualquier restaurante, cafetería, playa, plaza o rincón:
+          {/* SCREEN 1: ENTITY SELECTOR */}
+          {step === 'entity' && (
+            <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
+              <Text style={styles.screenHeading}>1. ¿Qué deseas guardar?</Text>
+              <Text style={styles.screenSubheading}>
+                Selecciona la entidad que mejor describe este momento o rincón:
               </Text>
 
-              <View style={styles.searchBarWrapper}>
+              <View style={styles.entityGrid}>
+                <TouchableOpacity
+                  style={[styles.entityCard, type === 'stage' && styles.entityCardActive]}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setType('stage');
+                    triggerHaptic('selection');
+                    setStep('title');
+                  }}
+                >
+                  <Text style={styles.entityCardIcon}>🏡</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.entityCardTitle, type === 'stage' && styles.entityCardTitleActive]}>
+                      Etapa de Vida
+                    </Text>
+                    <Text style={styles.entityCardDesc}>
+                      Gran contenedor de época: agrupa viajes, citas, hogares y restaurantes.
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.entityCard, type === 'trip' && styles.entityCardActive]}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setType('trip');
+                    triggerHaptic('selection');
+                    setStep('title');
+                  }}
+                >
+                  <Text style={styles.entityCardIcon}>✈️</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.entityCardTitle, type === 'trip' && styles.entityCardTitleActive]}>
+                      Viaje
+                    </Text>
+                    <Text style={styles.entityCardDesc}>
+                      Alojamiento, restaurantes visitados, paradas y citas del viaje.
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.entityCard, type === 'date' && styles.entityCardActive]}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setType('date');
+                    triggerHaptic('selection');
+                    setStep('title');
+                  }}
+                >
+                  <Text style={styles.entityCardIcon}>🥂</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.entityCardTitle, type === 'date' && styles.entityCardTitleActive]}>
+                      Cita / Escapada
+                    </Text>
+                    <Text style={styles.entityCardDesc}>
+                      Experiencia romántica: paradas, cena y plan juntos.
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.entityCard, type === 'restaurant' && styles.entityCardActive]}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setType('restaurant');
+                    triggerHaptic('selection');
+                    setStep('title');
+                  }}
+                >
+                  <Text style={styles.entityCardIcon}>🍽️</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.entityCardTitle, type === 'restaurant' && styles.entityCardTitleActive]}>
+                      Restaurante
+                    </Text>
+                    <Text style={styles.entityCardDesc}>
+                      Rincón culinario: comidas, cenas o meriendas especiales.
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.entityCard, (type as string) === 'hotel' && styles.entityCardActive]}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setType('hotel' as any);
+                    triggerHaptic('selection');
+                    setStep('title');
+                  }}
+                >
+                  <Text style={styles.entityCardIcon}>🏨</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.entityCardTitle, (type as string) === 'hotel' && styles.entityCardTitleActive]}>
+                      Hotel / Airbnb
+                    </Text>
+                    <Text style={styles.entityCardDesc}>
+                      Alojamiento romántico o estancia de fin de semana.
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.entityCard, type === 'memory' && styles.entityCardActive]}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setType('memory');
+                    triggerHaptic('selection');
+                    setStep('title');
+                  }}
+                >
+                  <Text style={styles.entityCardIcon}>📍</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.entityCardTitle, type === 'memory' && styles.entityCardTitleActive]}>
+                      Lugar / Rincón Familiar
+                    </Text>
+                    <Text style={styles.entityCardDesc}>
+                      Atemporal: Casa padres Andrea, casa iaios, miradores o sitios propios.
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          )}
+
+          {/* SCREEN 2: TITLE / NAME */}
+          {step === 'title' && (
+            <ScrollView style={styles.contentContainer} keyboardShouldPersistTaps="handled">
+              <Text style={styles.screenHeading}>2. ¿Cómo se llama?</Text>
+              <Text style={styles.screenSubheading}>
+                {type === 'stage' && 'Escribe el nombre de esta época o etapa juntos'}
+                {type === 'trip' && 'Escribe el destino o título del viaje'}
+                {type === 'date' && 'Escribe el nombre o plan de la cita'}
+                {type === 'restaurant' && 'Escribe el nombre del restaurante o cafetería'}
+                {(type as string) === 'hotel' && 'Escribe el nombre del hotel o Airbnb'}
+                {type === 'memory' && 'Escribe el nombre del rincón familiar o lugar'}
+              </Text>
+
+              <TextInput
+                style={styles.largeTitleInput}
+                placeholder={
+                  type === 'stage'
+                    ? 'Ej: Nuestra etapa en Canet...'
+                    : type === 'trip'
+                    ? 'Ej: Viaje a Roma...'
+                    : type === 'date'
+                    ? 'Ej: Cena romántica en Don Salvatore...'
+                    : type === 'restaurant'
+                    ? 'Ej: Latte & Farina, Honest Greens...'
+                    : (type as string) === 'hotel'
+                    ? 'Ej: Segundo Airbnb Romántico...'
+                    : 'Ej: Casa de los padres de Andrea...'
+                }
+                value={title}
+                onChangeText={setTitle}
+                autoFocus
+              />
+
+              <TouchableOpacity style={styles.wizardNextButton} activeOpacity={0.85} onPress={handleNextStep}>
+                <Text style={styles.wizardNextButtonText}>Continuar a Ubicación →</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          )}
+
+          {/* SCREEN 3: LOCATION */}
+          {step === 'location' && (
+            <ScrollView style={styles.contentContainer} keyboardShouldPersistTaps="handled">
+              <Text style={styles.screenHeading}>3. ¿Dónde se encuentra?</Text>
+              <Text style={styles.screenSubheading}>
+                Busca en Google Maps o ajusta el marcador en el mapa:
+              </Text>
+
+              <View style={styles.contextToggleRow}>
+                <TouchableOpacity
+                  style={[styles.contextToggleBtn, searchContext === 'valencia' && styles.contextToggleBtnActive]}
+                  onPress={() => setSearchContext('valencia')}
+                >
+                  <Text style={[styles.contextToggleText, searchContext === 'valencia' && styles.contextToggleTextActive]}>
+                    📍 Valencia
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.contextToggleBtn, searchContext === 'global' && styles.contextToggleBtnActive]}
+                  onPress={() => setSearchContext('global')}
+                >
+                  <Text style={[styles.contextToggleText, searchContext === 'global' && styles.contextToggleTextActive]}>
+                    🌍 Viajes / Global
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.searchBar}>
                 <Text style={styles.searchIcon}>🔍</Text>
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Ej: Casa d'Aragona, Honest Greens, Canet..."
-                  placeholderTextColor="#9E8ACD"
+                  placeholder="Buscar en Google Maps..."
                   value={searchQuery}
                   onChangeText={setSearchQuery}
-                  autoFocus
                 />
                 {isSearching && <ActivityIndicator size="small" color="#EF826A" />}
               </View>
 
-              <View style={styles.scopeChipsRow}>
-                <TouchableOpacity
-                  style={[styles.scopeChip, searchContext === 'valencia' && styles.scopeChipActive]}
-                  onPress={() => setSearchContext('valencia')}
-                >
-                  <Text style={[styles.scopeChipText, searchContext === 'valencia' && styles.scopeChipTextActive]}>
-                    📍 Valencia
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.scopeChip, searchContext === 'global' && styles.scopeChipActive]}
-                  onPress={() => setSearchContext('global')}
-                >
-                  <Text style={[styles.scopeChipText, searchContext === 'global' && styles.scopeChipTextActive]}>
-                    🌍 Toda España / Viajes
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView style={styles.resultsScrollView} keyboardShouldPersistTaps="handled">
-                {results.map((res) => (
-                  <TouchableOpacity
-                    key={res.id}
-                    style={styles.resultRow}
-                    onPress={() => handleSelectSuggestion(res)}
-                  >
-                    <View style={styles.resultIconCircle}>
-                      <Text style={styles.resultEmoji}>
-                        {res.featureType === 'restaurant' ? '🍽️' : '📍'}
-                      </Text>
-                    </View>
-                    <View style={styles.resultTextCol}>
-                      <Text style={styles.resultMainTitle} numberOfLines={1}>
-                        {res.name}
-                      </Text>
-                      <Text style={styles.resultSubAddress} numberOfLines={2}>
-                        {res.formattedAddress}
-                      </Text>
-                    </View>
-                    <Text style={styles.resultArrow}>→</Text>
-                  </TouchableOpacity>
-                ))}
-
-                <View style={styles.manualPinSection}>
-                  <TouchableOpacity style={styles.manualPinOutlineBtn} onPress={handleManualPin}>
-                    <Text style={styles.manualPinOutlineBtnText}>
-                      📌 ¿Prefieres arrastrar el pin manualmente? Pulsa aquí
-                    </Text>
-                  </TouchableOpacity>
+              {results.length > 0 && (
+                <View style={styles.searchResultsBox}>
+                  {results.slice(0, 4).map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.resultItem}
+                      onPress={() => handleSelectResult(item)}
+                    >
+                      <Text style={styles.resultTitle}>{item.name}</Text>
+                      <Text style={styles.resultAddress} numberOfLines={1}>{item.formattedAddress}</Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              </ScrollView>
-            </View>
-          )}
+              )}
 
-          {step === 'confirm_pin' && (
-            <View style={styles.contentContainer}>
-              <View style={styles.pinHeaderCard}>
-                <Text style={styles.pinHeaderTitle} numberOfLines={1}>
-                  {verifiedName || title || 'Ubicación seleccionada'}
-                </Text>
-                <Text style={styles.pinHeaderSubtitle} numberOfLines={2}>
-                  {isReverseGeocoding ? 'Detectando dirección...' : verifiedAddress || verifiedCity}
-                </Text>
-                <TouchableOpacity style={styles.reSearchPill} onPress={() => setStep('search')}>
-                  <Text style={styles.reSearchPillText}>🔍 Buscar otro sitio en Google Maps</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.miniMapContainer}>
-                <div ref={mapContainerRef} style={{ width: '100%', height: '100%', borderRadius: 16 }} />
-                <View style={styles.mapBadgeOverlay}>
-                  <Text style={styles.mapBadgeText}>👆 Toca o arrastra para ajustar la posición</Text>
+              <View style={styles.mapPreviewBox}>
+                <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
+                <View style={styles.dragHintBadge}>
+                  <Text style={styles.dragHintText}>🖐️ Arrastra el punto rojo para precisar</Text>
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.primaryActionButton} onPress={handleConfirmPin}>
-                <Text style={styles.primaryActionText}>Continuar a Detalles →</Text>
+              <View style={styles.verifiedAddressCard}>
+                <Text style={styles.verifiedCardTitle}>{verifiedName || title || 'Punto seleccionado'}</Text>
+                <Text style={styles.verifiedCardAddress}>
+                  {isReverseGeocoding ? 'Detectando dirección...' : verifiedAddress || 'Valencia'}
+                </Text>
+              </View>
+
+              <TouchableOpacity style={styles.wizardNextButton} activeOpacity={0.85} onPress={handleNextStep}>
+                <Text style={styles.wizardNextButtonText}>Continuar a Detalles →</Text>
               </TouchableOpacity>
-            </View>
+            </ScrollView>
           )}
 
-          {step === 'details' && (
+          {/* SCREEN 4: SPECIFICS & TACTILE CALENDAR */}
+          {step === 'specifics' && (
             <ScrollView style={styles.contentContainer} keyboardShouldPersistTaps="handled">
-              <Text style={styles.fieldLabel}>🏛️ ¿Qué tipo de entidad es?</Text>
-              <View style={styles.categoryRow}>
-                <TouchableOpacity
-                  style={[styles.categoryPill, type === 'stage' && styles.categoryPillActive]}
-                  onPress={() => setType('stage')}
-                >
-                  <Text style={[styles.categoryPillText, type === 'stage' && styles.categoryPillTextActive]}>
-                    🏡 Etapa de Vida
-                  </Text>
-                </TouchableOpacity>
+              <Text style={styles.screenHeading}>4. Detalles y Fechas</Text>
+              <Text style={styles.screenSubheading}>
+                Toca las fechas para abrirlas en el calendario táctil:
+              </Text>
 
-                <TouchableOpacity
-                  style={[styles.categoryPill, type === 'trip' && styles.categoryPillActive]}
-                  onPress={() => setType('trip')}
-                >
-                  <Text style={[styles.categoryPillText, type === 'trip' && styles.categoryPillTextActive]}>
-                    ✈️ Viaje
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.categoryPill, type === 'date' && styles.categoryPillActive]}
-                  onPress={() => setType('date')}
-                >
-                  <Text style={[styles.categoryPillText, type === 'date' && styles.categoryPillTextActive]}>
-                    🥂 Cita / Escapada
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.categoryPill, type === 'restaurant' && styles.categoryPillActive]}
-                  onPress={() => setType('restaurant')}
-                >
-                  <Text style={[styles.categoryPillText, type === 'restaurant' && styles.categoryPillTextActive]}>
-                    🍽️ Restaurante
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.categoryPill, (type as string) === 'hotel' && styles.categoryPillActive]}
-                  onPress={() => setType('hotel' as any)}
-                >
-                  <Text style={[styles.categoryPillText, (type as string) === 'hotel' && styles.categoryPillTextActive]}>
-                    🏨 Hotel / Airbnb
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.categoryPill, type === 'memory' && styles.categoryPillActive]}
-                  onPress={() => setType('memory')}
-                >
-                  <Text style={[styles.categoryPillText, type === 'memory' && styles.categoryPillTextActive]}>
-                    📍 Lugar / Rincón Familiar
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <Text style={styles.fieldLabel}>Nombre / Título</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder={
-                  type === 'stage'
-                    ? 'Ej: Nuestra etapa en Canet, Carrer Comte del Real...'
-                    : type === 'trip'
-                    ? 'Ej: Viaje a Roma, Escapada a Suiza...'
-                    : type === 'date'
-                    ? 'Ej: Cena en Casa d\'Aragona y paseo por la Virgen...'
-                    : type === 'restaurant'
-                    ? 'Ej: Honest Greens, Latte & Farina...'
-                    : (type as string) === 'hotel'
-                    ? 'Ej: Segundo Airbnb Romántico, Hotel Boutique...'
-                    : 'Ej: Casa de los padres de Andrea, Casa de los iaios...'
-                }
-                value={title}
-                onChangeText={setTitle}
-              />
-
-              {/* 🏡 ETAPA DE VIDA (Contenedor Temporal) */}
+              {/* 🏡 ETAPA */}
               {type === 'stage' && (
-                <View style={styles.specificFieldsBox}>
-                  <Text style={styles.specificBoxTitle}>🏡 Configuración de Etapa de Vida (Contenedor)</Text>
-                  <Text style={styles.boxHelperText}>
-                    Una etapa puede agrupar viajes, citas, hogares y restaurantes vividos en esa época.
-                  </Text>
+                <View style={styles.stepSpecificBox}>
+                  <Text style={styles.stepSpecificBoxTitle}>🏡 Configuración de Etapa</Text>
+                  
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.subFieldLabel}>Fecha Inicio (Desde)</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="YYYY-MM-DD"
-                        value={startDate}
-                        onChangeText={setStartDate}
-                      />
+                      <TouchableOpacity
+                        style={styles.calendarTriggerButton}
+                        onPress={() => setCalendarTarget('startDate')}
+                      >
+                        <Text style={styles.calendarTriggerText}>📅 {startDate || 'Seleccionar'}</Text>
+                      </TouchableOpacity>
                     </View>
+
                     <View style={{ flex: 1 }}>
                       <Text style={styles.subFieldLabel}>Fecha Fin (Hasta)</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder={isOngoing ? 'Actualidad' : 'YYYY-MM-DD'}
-                        value={endDate}
-                        onChangeText={setEndDate}
-                        editable={!isOngoing}
-                      />
+                      <TouchableOpacity
+                        style={[styles.calendarTriggerButton, isOngoing && { opacity: 0.5 }]}
+                        disabled={isOngoing}
+                        onPress={() => setCalendarTarget('endDate')}
+                      >
+                        <Text style={styles.calendarTriggerText}>
+                          📅 {isOngoing ? 'Actualidad' : endDate || 'Seleccionar'}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
 
-                  <TouchableOpacity
-                    style={styles.checkboxRow}
-                    onPress={() => setIsOngoing(!isOngoing)}
-                  >
+                  <TouchableOpacity style={styles.checkboxRow} onPress={() => setIsOngoing(!isOngoing)}>
                     <Text style={styles.checkboxEmoji}>{isOngoing ? '☑️' : '◻️'}</Text>
                     <Text style={styles.checkboxLabel}>Actualmente conviviendo aquí (Hogar actual)</Text>
                   </TouchableOpacity>
 
-                  <Text style={styles.subFieldLabel}>Resumen de la etapa</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Ej: Convivencia junto al mar, paseos al atardecer..."
-                    value={stageSummary}
-                    onChangeText={setStageSummary}
-                  />
-                </View>
-              )}
-
-              {/* ✈️ VIAJE (Constructor Interactivo con Google Maps y Cascada) */}
-              {type === 'trip' && (
-                <View style={styles.specificFieldsBox}>
-                  <Text style={styles.specificBoxTitle}>✈️ Configuración del Viaje (Contenedor)</Text>
-                  <Text style={styles.boxHelperText}>
-                    Todos los restaurantes, hoteles y citas que añadas aquí se guardarán también en el Atlas Global.
-                  </Text>
-
-                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.subFieldLabel}>Fecha Salida</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="YYYY-MM-DD"
-                        value={startDate}
-                        onChangeText={setStartDate}
-                      />
-                    </View>
-                    <View style={{ flex: 1 }}>
                       <Text style={styles.subFieldLabel}>Días de Duración</Text>
                       <TextInput
                         style={styles.textInput}
@@ -825,7 +811,6 @@ export function AddPlaceLocationModal({
                     </View>
                   </View>
 
-                  {/* Alojamiento con Maps */}
                   <Text style={styles.subFieldLabel}>🏨 ¿Dónde dormisteis? (Hotel / Airbnb)</Text>
                   {accommodationItem ? (
                     <View style={styles.selectedItemCard}>
@@ -848,23 +833,19 @@ export function AddPlaceLocationModal({
                     />
                   )}
 
-                  {/* Lista de Restaurantes y Paradas con Google Maps */}
-                  <Text style={[styles.subFieldLabel, { marginTop: 12 }]}>
+                  <Text style={[styles.subFieldLabel, { marginTop: 10 }]}>
                     🍽️ Restaurantes y paradas visitadas ({visitedPlaceItems.length})
                   </Text>
                   {visitedPlaceItems.map((item, idx) => (
                     <View key={item.id || idx} style={styles.selectedItemCard}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.selectedItemName}>
-                          {item.type?.includes('restaurant') || item.type?.includes('food') ? '🍽️ ' : '📍 '}
-                          {item.name}
+                          {item.type?.includes('restaurant') || item.type?.includes('food') ? '🍽️ ' : '📍 '}{item.name}
                         </Text>
                         <Text style={styles.selectedItemAddr} numberOfLines={1}>{item.formattedAddress}</Text>
                       </View>
                       <TouchableOpacity
-                        onPress={() => {
-                          setVisitedPlaceItems(visitedPlaceItems.filter((_, i) => i !== idx));
-                        }}
+                        onPress={() => setVisitedPlaceItems(visitedPlaceItems.filter((_, i) => i !== idx))}
                         style={styles.removeBtn}
                       >
                         <Text style={styles.removeBtnText}>✕</Text>
@@ -875,14 +856,11 @@ export function AddPlaceLocationModal({
                   <GoogleMapsPlaceSearchField
                     placeholder="Buscar restaurante o parada en Maps..."
                     buttonLabel="+ Añadir restaurante o parada visitada"
-                    onPlaceSelected={(place) => {
-                      setVisitedPlaceItems([...visitedPlaceItems, place]);
-                    }}
+                    onPlaceSelected={(place) => setVisitedPlaceItems([...visitedPlaceItems, place])}
                   />
 
-                  {/* ¿Tuvisteis alguna cita o cena romántica durante el viaje? */}
                   <TouchableOpacity
-                    style={[styles.checkboxRow, { marginTop: 12 }]}
+                    style={[styles.checkboxRow, { marginTop: 10 }]}
                     onPress={() => setHasDateInTrip(!hasDateInTrip)}
                   >
                     <Text style={styles.checkboxEmoji}>{hasDateInTrip ? '☑️' : '◻️'}</Text>
@@ -944,23 +922,20 @@ export function AddPlaceLocationModal({
                 </View>
               )}
 
-              {/* 🥂 CITA / ESCAPADA (Constructor de Paradas) */}
+              {/* 🥂 CITA / ESCAPADA */}
               {type === 'date' && (
-                <View style={styles.specificFieldsBox}>
-                  <Text style={styles.specificBoxTitle}>🥂 Configuración de la Cita / Escapada</Text>
-                  <Text style={styles.boxHelperText}>
-                    Define el conjunto de planes y sitios de esta experiencia romántica.
-                  </Text>
+                <View style={styles.stepSpecificBox}>
+                  <Text style={styles.stepSpecificBoxTitle}>🥂 Configuración de la Cita</Text>
 
                   <Text style={styles.subFieldLabel}>Fecha de la Cita</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="YYYY-MM-DD"
-                    value={date}
-                    onChangeText={setDate}
-                  />
+                  <TouchableOpacity
+                    style={styles.calendarTriggerButton}
+                    onPress={() => setCalendarTarget('date')}
+                  >
+                    <Text style={styles.calendarTriggerText}>📅 {date || 'Seleccionar fecha'}</Text>
+                  </TouchableOpacity>
 
-                  <Text style={styles.subFieldLabel}>¿Quién invitó?</Text>
+                  <Text style={[styles.subFieldLabel, { marginTop: 10 }]}>¿Quién invitó?</Text>
                   <View style={styles.invitedRow}>
                     <TouchableOpacity
                       style={[styles.invitedPill, invitedBy === 'tonet' && styles.invitedPillActive]}
@@ -983,7 +958,7 @@ export function AddPlaceLocationModal({
                   </View>
 
                   <Text style={[styles.subFieldLabel, { marginTop: 8 }]}>
-                    📍 Conjunto de planes y sitios de la cita ({datePlanItems.length})
+                    📍 Conjunto de planes y paradas de la cita ({datePlanItems.length})
                   </Text>
                   {datePlanItems.map((item, idx) => (
                     <View key={item.id || idx} style={styles.selectedItemCard}>
@@ -992,9 +967,7 @@ export function AddPlaceLocationModal({
                         <Text style={styles.selectedItemAddr} numberOfLines={1}>{item.formattedAddress}</Text>
                       </View>
                       <TouchableOpacity
-                        onPress={() => {
-                          setDatePlanItems(datePlanItems.filter((_, i) => i !== idx));
-                        }}
+                        onPress={() => setDatePlanItems(datePlanItems.filter((_, i) => i !== idx))}
                         style={styles.removeBtn}
                       >
                         <Text style={styles.removeBtnText}>✕</Text>
@@ -1005,34 +978,37 @@ export function AddPlaceLocationModal({
                   <GoogleMapsPlaceSearchField
                     placeholder="Buscar plan (Restaurante, cine, mirador...) en Maps..."
                     buttonLabel="+ Añadir parada o plan a la cita"
-                    onPlaceSelected={(place) => {
-                      setDatePlanItems([...datePlanItems, place]);
-                    }}
+                    onPlaceSelected={(place) => setDatePlanItems([...datePlanItems, place])}
                   />
                 </View>
               )}
 
-              {/* 🏨 HOTEL / AIRBNB */}
+              {/* 🏨 HOTEL */}
               {(type as string) === 'hotel' && (
-                <View style={styles.specificFieldsBox}>
-                  <Text style={styles.specificBoxTitle}>🏨 Alojamiento (Hotel / Airbnb)</Text>
-                  <Text style={styles.boxHelperText}>
-                    Alojamiento romántico o estancia de viaje.
-                  </Text>
-                  <Text style={styles.subFieldLabel}>Detalles de la estancia</Text>
+                <View style={styles.stepSpecificBox}>
+                  <Text style={styles.stepSpecificBoxTitle}>🏨 Alojamiento (Hotel / Airbnb)</Text>
+                  <Text style={styles.subFieldLabel}>Fecha de la estancia</Text>
+                  <TouchableOpacity
+                    style={styles.calendarTriggerButton}
+                    onPress={() => setCalendarTarget('date')}
+                  >
+                    <Text style={styles.calendarTriggerText}>📅 {date || 'Seleccionar fecha'}</Text>
+                  </TouchableOpacity>
+
+                  <Text style={[styles.subFieldLabel, { marginTop: 8 }]}>Detalles de la estancia</Text>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Ej: Apartamento acogedor con vistas, jacuzzi, fin de semana..."
+                    placeholder="Ej: Apartamento acogedor con vistas, jacuzzi..."
                     value={stageSummary}
                     onChangeText={setStageSummary}
                   />
                 </View>
               )}
 
-              {/* 📍 LUGAR FAMILIAR / CASA (Atemporal) */}
+              {/* 📍 LUGAR FAMILIAR (Atemporal) */}
               {type === 'memory' && (
-                <View style={styles.specificFieldsBox}>
-                  <Text style={styles.specificBoxTitle}>📍 Lugar o Rincón Familiar (Atemporal)</Text>
+                <View style={styles.stepSpecificBox}>
+                  <Text style={styles.stepSpecificBoxTitle}>📍 Lugar o Rincón Familiar (Atemporal)</Text>
                   <Text style={styles.boxHelperText}>
                     Los lugares físicos no tienen fecha principal: son atemporales en vuestro mapa.
                   </Text>
@@ -1044,7 +1020,7 @@ export function AddPlaceLocationModal({
                     onChangeText={setStageSummary}
                   />
 
-                  <Text style={styles.subFieldLabel}>Emoción o Qué tiene de especial este sitio</Text>
+                  <Text style={[styles.subFieldLabel, { marginTop: 8 }]}>Emoción o Qué tiene de especial este sitio</Text>
                   <TextInput
                     style={styles.textInput}
                     placeholder="Ej: Comidas familiares de domingo, tardes de risas..."
@@ -1054,13 +1030,10 @@ export function AddPlaceLocationModal({
                 </View>
               )}
 
-              {/* 🍽️ RESTAURANTE (Atemporal por defecto) */}
+              {/* 🍽️ RESTAURANTE */}
               {type === 'restaurant' && (
-                <View style={styles.specificFieldsBox}>
-                  <Text style={styles.specificBoxTitle}>🍽️ Restaurante / Gastronomía</Text>
-                  <Text style={styles.boxHelperText}>
-                    Rincón culinario para disfrutar juntos.
-                  </Text>
+                <View style={styles.stepSpecificBox}>
+                  <Text style={styles.stepSpecificBoxTitle}>🍽️ Restaurante / Gastronomía</Text>
                   <Text style={styles.subFieldLabel}>Plato recomendado o Tipo de cocina</Text>
                   <TextInput
                     style={styles.textInput}
@@ -1071,43 +1044,67 @@ export function AddPlaceLocationModal({
                 </View>
               )}
 
-              {type !== 'stage' && (
-                <>
-                  <Text style={styles.fieldLabel}>Fecha Principal</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="YYYY-MM-DD"
-                    value={date}
-                    onChangeText={setDate}
-                  />
-                </>
-              )}
-
-              <Text style={styles.fieldLabel}>¿Qué pasó? / Nuestra Historia</Text>
-              <TextInput
-                style={[styles.textInput, styles.textArea]}
-                placeholder="Cuenta lo que vivimos juntos, anécdotas, sensaciones..."
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={3}
-              />
-
-              <Text style={styles.fieldLabel}>Foto Principal de Portada</Text>
-              <PhotoUploadField
-                photoUrl={photoUrl}
-                onPhotoSelected={setPhotoUrl}
-                placeholderText="Toca para añadir foto desde la galería o cámara"
-              />
-
-              <TouchableOpacity style={styles.finalSaveButton} onPress={handleFinalSave}>
-                <Text style={styles.finalSaveButtonText}>
-                  💾 {initialPlace ? 'Guardar Cambios' : 'Anclar en el Mapa'}
-                </Text>
+              <TouchableOpacity style={styles.wizardNextButton} activeOpacity={0.85} onPress={handleNextStep}>
+                <Text style={styles.wizardNextButtonText}>Continuar a Foto y Recuerdos →</Text>
               </TouchableOpacity>
-              <View style={{ height: 40 }} />
             </ScrollView>
           )}
+
+          {/* SCREEN 5: MEDIA & STORY */}
+          {step === 'media' && (
+            <ScrollView style={styles.contentContainer} keyboardShouldPersistTaps="handled">
+              <Text style={styles.screenHeading}>5. Foto y Nuestra Historia</Text>
+              <Text style={styles.screenSubheading}>
+                Añade una foto especial y escribe lo que ocurrió:
+              </Text>
+
+              <Text style={styles.fieldLabel}>📸 Foto de Portada</Text>
+              <PhotoUploadField
+                photoUrl={photoUrl}
+                onPhotoUploaded={(url) => setPhotoUrl(url)}
+                onPhotoRemoved={() => setPhotoUrl(null)}
+              />
+
+              <Text style={[styles.fieldLabel, { marginTop: 14 }]}>¿Qué pasó? / Nuestra Historia</Text>
+              <TextInput
+                style={[styles.textInput, { height: 90, textAlignVertical: 'top' }]}
+                placeholder="Cuenta lo que vivimos juntos, anécdotas, sensaciones..."
+                multiline
+                value={description}
+                onChangeText={setDescription}
+              />
+
+              <TouchableOpacity style={styles.finalSaveButton} activeOpacity={0.85} onPress={handleFinalSave}>
+                <Text style={styles.finalSaveButtonText}>💾 Guardar en el Atlas</Text>
+              </TouchableOpacity>
+              <View style={{ height: 30 }} />
+            </ScrollView>
+          )}
+
+          {/* Interactive DatePicker Modal */}
+          <CalendarPickerModal
+            visible={Boolean(calendarTarget)}
+            initialDate={
+              calendarTarget === 'startDate'
+                ? startDate
+                : calendarTarget === 'endDate'
+                ? endDate
+                : date
+            }
+            title={
+              calendarTarget === 'startDate'
+                ? 'Fecha de Inicio / Salida'
+                : calendarTarget === 'endDate'
+                ? 'Fecha de Fin'
+                : 'Selecciona la fecha'
+            }
+            onSelectDate={(selected) => {
+              if (calendarTarget === 'startDate') setStartDate(selected);
+              else if (calendarTarget === 'endDate') setEndDate(selected);
+              else setDate(selected);
+            }}
+            onClose={() => setCalendarTarget(null)}
+          />
         </View>
       </View>
     </Modal>
@@ -1121,42 +1118,28 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheetCard: {
-    backgroundColor: '#FFF8F2',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingTop: 16,
-    paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     maxHeight: '92%',
-    minHeight: '65%',
-    shadowColor: '#3A2F38',
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: -6 },
-    elevation: 20,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 10,
   },
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(58, 47, 56, 0.08)',
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#3A2F38',
-    fontFamily: 'Inter, sans-serif',
-  },
-  headerBackBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  headerBackText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#EF826A',
-  },
-  closeBtn: {
+  backBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -1164,373 +1147,271 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  closeBtnText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#6A5F68',
+  backBtnText: {
+    fontSize: 16,
+    color: '#3A2F38',
+    fontWeight: '700',
   },
-  stepperContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-    backgroundColor: '#F5EFE8',
-    padding: 4,
-    borderRadius: 12,
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#3A2F38',
+    fontFamily: 'Inter, sans-serif',
   },
-  stepTab: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  stepTabActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#3A2F38',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  stepTabText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#8A7F88',
-  },
-  stepTabTextActive: {
+  stepBadgeText: {
+    fontSize: 11,
     color: '#EF826A',
+    fontWeight: '700',
+    marginTop: 1,
+  },
+  closeBtn: {
+    padding: 6,
+  },
+  closeBtnText: {
+    fontSize: 18,
+    color: '#766B72',
     fontWeight: '700',
   },
   contentContainer: {
-    flex: 1,
+    paddingHorizontal: 18,
+    paddingTop: 14,
   },
-  stepSubtitle: {
-    fontSize: 13,
-    color: '#766B72',
-    marginBottom: 12,
-  },
-  searchBarWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#EF826A',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 10,
-    shadowColor: '#EF826A',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-  },
-  searchIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
+  screenHeading: {
+    fontSize: 17,
+    fontWeight: '800',
     color: '#3A2F38',
+    fontFamily: 'Inter, sans-serif',
   },
-  scopeChipsRow: {
-    flexDirection: 'row',
+  screenSubheading: {
+    fontSize: 12,
+    color: '#766B72',
+    marginTop: 2,
+    marginBottom: 14,
+    fontFamily: 'Inter, sans-serif',
+  },
+  entityGrid: {
     gap: 8,
-    marginBottom: 12,
-  },
-  scopeChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    backgroundColor: '#F5EFE8',
-  },
-  scopeChipActive: {
-    backgroundColor: '#3A2F38',
-  },
-  scopeChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#766B72',
-  },
-  scopeChipTextActive: {
-    color: '#FFFFFF',
-  },
-  resultsScrollView: {
-    flex: 1,
-  },
-  resultRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(58, 47, 56, 0.06)',
-  },
-  resultIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#FBF8F4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  resultEmoji: {
-    fontSize: 18,
-  },
-  resultTextCol: {
-    flex: 1,
-  },
-  resultMainTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#3A2F38',
-    marginBottom: 2,
-  },
-  resultSubAddress: {
-    fontSize: 12,
-    color: '#766B72',
-  },
-  resultArrow: {
-    fontSize: 16,
-    color: '#EF826A',
-    fontWeight: 'bold',
-  },
-  manualPinSection: {
-    marginTop: 12,
     paddingBottom: 24,
   },
-  manualPinOutlineBtn: {
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#EF826A',
-    borderStyle: 'dashed',
+  entityCard: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  manualPinOutlineBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#EF826A',
-  },
-  pinHeaderCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAF8F5',
     padding: 14,
-    borderRadius: 14,
-    marginBottom: 10,
-    borderWidth: 1,
+    borderRadius: 16,
+    borderWidth: 1.5,
     borderColor: 'rgba(58, 47, 56, 0.08)',
   },
-  pinHeaderTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+  entityCardActive: {
+    backgroundColor: '#FFF5F1',
+    borderColor: '#EF826A',
+  },
+  entityCardIcon: {
+    fontSize: 26,
+    marginRight: 14,
+  },
+  entityCardTitle: {
+    fontSize: 14,
+    fontWeight: '800',
     color: '#3A2F38',
     marginBottom: 2,
   },
-  pinHeaderSubtitle: {
-    fontSize: 12,
-    color: '#766B72',
-    marginBottom: 8,
-  },
-  reSearchPill: {
-    backgroundColor: '#F5EFE8',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  reSearchPillText: {
-    fontSize: 11,
-    fontWeight: '700',
+  entityCardTitleActive: {
     color: '#EF826A',
   },
-  miniMapContainer: {
-    height: 190,
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 14,
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(58, 47, 56, 0.1)',
-  },
-  mapBadgeOverlay: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    right: 8,
-    backgroundColor: 'rgba(255, 248, 242, 0.92)',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  mapBadgeText: {
+  entityCardDesc: {
     fontSize: 11,
+    color: '#766B72',
+    lineHeight: 15,
+  },
+  largeTitleInput: {
+    backgroundColor: '#FAF8F5',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(58, 47, 56, 0.12)',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#3A2F38',
+    marginVertical: 14,
   },
-  primaryActionButton: {
+  wizardNextButton: {
     backgroundColor: '#EF826A',
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
+    marginVertical: 14,
     shadowColor: '#EF826A',
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
   },
-  primaryActionText: {
+  wizardNextButtonText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#3A2F38',
-    marginBottom: 6,
-    marginTop: 10,
+  contextToggleRow: {
+    flexDirection: 'row',
+    backgroundColor: '#F5EFE8',
+    borderRadius: 12,
+    padding: 3,
+    marginBottom: 10,
   },
-  subFieldLabel: {
-    fontSize: 11,
-    fontWeight: '700',
+  contextToggleBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  contextToggleBtnActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  contextToggleText: {
+    fontSize: 12,
+    fontWeight: '600',
     color: '#766B72',
-    marginBottom: 4,
-    marginTop: 6,
   },
-  textInput: {
+  contextToggleTextActive: {
+    color: '#3A2F38',
+    fontWeight: '700',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAF8F5',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(58, 47, 56, 0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginBottom: 10,
+  },
+  searchIcon: {
+    marginRight: 8,
+    fontSize: 15,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#3A2F38',
+  },
+  searchResultsBox: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(58, 47, 56, 0.12)',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#3A2F38',
+    borderColor: 'rgba(58, 47, 56, 0.1)',
+    marginBottom: 10,
+    overflow: 'hidden',
   },
-  textArea: {
-    height: 70,
-    textAlignVertical: 'top',
+  resultItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(58, 47, 56, 0.05)',
   },
-  categoryRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 4,
-  },
-  categoryPill: {
-    paddingVertical: 7,
-    paddingHorizontal: 11,
-    borderRadius: 10,
-    backgroundColor: '#F5EFE8',
-  },
-  categoryPillActive: {
-    backgroundColor: '#3A2F38',
-  },
-  categoryPillText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#3A2F38',
-  },
-  categoryPillTextActive: {
-    color: '#FFFFFF',
+  resultTitle: {
+    fontSize: 13,
     fontWeight: '700',
+    color: '#3A2F38',
   },
-  specificFieldsBox: {
+  resultAddress: {
+    fontSize: 11,
+    color: '#766B72',
+  },
+  mapPreviewBox: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(58, 47, 56, 0.12)',
+    position: 'relative',
+    marginBottom: 8,
+  },
+  dragHintBadge: {
+    position: 'absolute',
+    bottom: 8,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(58, 47, 56, 0.85)',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+  },
+  dragHintText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  verifiedAddressCard: {
+    backgroundColor: '#FAF8F5',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 8,
+  },
+  verifiedCardTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#3A2F38',
+  },
+  verifiedCardAddress: {
+    fontSize: 11,
+    color: '#766B72',
+    marginTop: 2,
+  },
+  stepSpecificBox: {
     backgroundColor: '#FFFDF9',
     padding: 12,
-    borderRadius: 14,
-    marginTop: 10,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(58, 47, 56, 0.1)',
+    marginBottom: 12,
   },
-  specificBoxTitle: {
-    fontSize: 12,
+  stepSpecificBoxTitle: {
+    fontSize: 13,
     fontWeight: '800',
     color: '#EF826A',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   boxHelperText: {
     fontSize: 11,
     color: '#766B72',
     marginBottom: 8,
   },
-  selectedItemCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(58, 47, 56, 0.1)',
-    marginVertical: 3,
+  subFieldLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#766B72',
+    marginBottom: 4,
   },
-  selectedItemName: {
+  calendarTriggerButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EF826A',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  calendarTriggerText: {
     fontSize: 12,
     fontWeight: '700',
     color: '#3A2F38',
   },
-  selectedItemAddr: {
-    fontSize: 10,
-    color: '#766B72',
-  },
-  removeBtn: {
-    padding: 6,
-  },
-  removeBtnText: {
-    fontSize: 13,
-    color: '#EF826A',
-    fontWeight: '700',
-  },
-  subDateBox: {
-    backgroundColor: '#FFF8F4',
-    padding: 10,
-    borderRadius: 12,
-    marginTop: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 130, 106, 0.2)',
-  },
-  memoryQualityHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  memoryQualityTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#3A2F38',
-    marginBottom: 2,
-  },
-  memoryQualityDesc: {
-    fontSize: 11,
-    color: '#766B72',
-  },
-  qualityToggle: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#D6CEC7',
-    padding: 2,
-    justifyContent: 'center',
-  },
-  qualityToggleActive: {
-    backgroundColor: '#EF826A',
-  },
-  qualityToggleCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  textInput: {
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-  },
-  qualityToggleCircleActive: {
-    alignSelf: 'flex-end',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(58, 47, 56, 0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: '#3A2F38',
   },
   checkboxRow: {
     flexDirection: 'row',
@@ -1568,6 +1449,48 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#3A2F38',
+  },
+  selectedItemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(58, 47, 56, 0.1)',
+    marginVertical: 3,
+  },
+  selectedItemName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#3A2F38',
+  },
+  selectedItemAddr: {
+    fontSize: 10,
+    color: '#766B72',
+  },
+  removeBtn: {
+    padding: 6,
+  },
+  removeBtnText: {
+    fontSize: 13,
+    color: '#EF826A',
+    fontWeight: '700',
+  },
+  subDateBox: {
+    backgroundColor: '#FFF8F4',
+    padding: 10,
+    borderRadius: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 130, 106, 0.2)',
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#3A2F38',
+    marginBottom: 6,
   },
   finalSaveButton: {
     backgroundColor: '#EF826A',
