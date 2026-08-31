@@ -46,7 +46,7 @@ const MODES: { id: CalendarViewMode; label: string; icon: string }[] = [
   { id: 'day', label: 'Hoy', icon: '☼' },
   { id: 'week', label: 'Semana', icon: '▦' },
   { id: 'month', label: 'Mes', icon: '🗓️' },
-  { id: 'history', label: 'Nuestra Historia', icon: '✦' },
+  { id: 'history', label: 'Historia', icon: '✦' },
 ];
 
 export function ExpandedCalendarModal({
@@ -97,33 +97,39 @@ export function ExpandedCalendarModal({
             <Text style={styles.navBackText}>‹ Volver</Text>
           </TouchableOpacity>
 
-          {/* Month Title with Prev/Next Controls */}
+          {/* Center Title (Month navigation for day/week/month, or History title) */}
           <View style={styles.navTitleCenter}>
-            <TouchableOpacity
-              style={styles.monthArrowMini}
-              onPress={() => {
-                triggerHaptic('light');
-                onPrevMonth();
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.arrowMiniText}>‹</Text>
-            </TouchableOpacity>
+            {activeMode !== 'history' ? (
+              <>
+                <TouchableOpacity
+                  style={styles.monthArrowMini}
+                  onPress={() => {
+                    triggerHaptic('light');
+                    onPrevMonth();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.arrowMiniText}>‹</Text>
+                </TouchableOpacity>
 
-            <Text style={styles.monthTitleText}>
-              {MONTH_NAMES_ES[monthIndex]} {year}
-            </Text>
+                <Text style={styles.monthTitleText}>
+                  {MONTH_NAMES_ES[monthIndex]} {year}
+                </Text>
 
-            <TouchableOpacity
-              style={styles.monthArrowMini}
-              onPress={() => {
-                triggerHaptic('light');
-                onNextMonth();
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.arrowMiniText}>›</Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.monthArrowMini}
+                  onPress={() => {
+                    triggerHaptic('light');
+                    onNextMonth();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.arrowMiniText}>›</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <Text style={styles.monthTitleText}>Nuestra Historia</Text>
+            )}
           </View>
 
           {/* Universal + Action Button */}
