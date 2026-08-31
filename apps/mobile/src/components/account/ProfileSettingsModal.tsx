@@ -12,6 +12,7 @@ import {
   TextInput,
   Platform
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useDev } from '../../context/DevContext';
 import { Colors, ThemePalette } from '../../theme/colors';
 import { Spacing, Radii, Shadows, Typography } from '../../theme/tokens';
@@ -47,6 +48,7 @@ interface ProfileSettingsModalProps {
 }
 
 export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalProps) {
+  const router = useRouter();
   const {
     activeRole,
     switchRole,
@@ -486,22 +488,33 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
             <View style={styles.groupCard}>
               <Text style={styles.groupHeaderTitle}>CUENTA, ACCESO & SEGURIDAD</Text>
 
-              {/* Switch Profile Action */}
+              {/* Switch Account -> Redirect to Login Page */}
               <TouchableOpacity
                 style={styles.groupRow}
                 activeOpacity={0.7}
-                onPress={handleSwitchUser}
+                onPress={async () => {
+                  triggerHaptic('medium');
+                  onClose();
+                  await logout();
+                  try {
+                    router.replace('/(auth)/login');
+                  } catch {
+                    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                      window.location.href = '/(auth)/login';
+                    }
+                  }
+                }}
               >
                 <View style={[styles.rowIconCircle, { backgroundColor: 'rgba(239, 130, 106, 0.12)' }]}>
                   <IconUser size={16} color="#EF826A" />
                 </View>
                 <View style={styles.rowContent}>
-                  <Text style={styles.rowTitle}>Cambiar a la Cuenta de {partnerDevUser.name}</Text>
+                  <Text style={styles.rowTitle}>Cambiar de Cuenta</Text>
                   <Text style={styles.rowSubtitle}>
-                    Alternar a {partnerDevUser.name} (actualmente {currentDevUser.name})
+                    Cerrar sesión actual e iniciar con la cuenta de {partnerDevUser.name}
                   </Text>
                 </View>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.light.primary }}>Cambiar</Text>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.light.primary }}>Acceder ›</Text>
               </TouchableOpacity>
 
               <View style={styles.divider} />

@@ -514,30 +514,32 @@ export default function AccountScreen() {
           subtitle="Cambiar de perfil, actualizar contraseña y cerrar sesión"
         />
         <View style={styles.settingsGroupCard}>
-          {/* Switch Profile Action */}
+          {/* Switch Account -> Redirect to Login Page */}
           <TouchableOpacity
             style={styles.settingRow}
             activeOpacity={0.7}
-            onPress={() => {
-              triggerHaptic('selection');
-              const nextRole = activeRole === 'user1' ? 'user2' : 'user1';
-              switchRole(nextRole);
-              Alert.alert(
-                '🔄 Perfil Cambiado',
-                `Ahora estás en la cuenta de ${nextRole === 'user1' ? users.user1.name : users.user2.name}.`
-              );
+            onPress={async () => {
+              triggerHaptic('medium');
+              await logout();
+              try {
+                router.replace('/(auth)/login');
+              } catch {
+                if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                  window.location.href = '/(auth)/login';
+                }
+              }
             }}
           >
             <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(239, 130, 106, 0.12)' }]}>
               <IconUser size={16} color="#EF826A" />
             </View>
             <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Cambiar a la Cuenta de {partnerDevUser.name}</Text>
+              <Text style={styles.settingTitle}>Cambiar de Cuenta</Text>
               <Text style={styles.settingDesc}>
-                Alternar a {partnerDevUser.name} (actualmente {currentDevUser.name})
+                Cerrar sesión actual e iniciar con la cuenta de {partnerDevUser.name}
               </Text>
             </View>
-            <Text style={styles.settingActionText}>Cambiar</Text>
+            <Text style={styles.settingActionText}>Acceder ›</Text>
           </TouchableOpacity>
 
           <View style={styles.settingDivider} />
