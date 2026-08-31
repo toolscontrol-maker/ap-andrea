@@ -1,9 +1,10 @@
 import React from 'react';
-import { Tabs, Redirect } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 import { useDev } from '../../src/context/DevContext';
 import { GlobalProfileAvatar } from '../../src/components/GlobalProfileAvatar';
 import { FloatingGlassTabBar } from '../../src/components/navigation/FloatingGlassTabBar';
+import LoginScreen from '../(auth)/login';
 
 export default function TabLayout() {
   const { isAuthenticated, isLoaded } = useDev();
@@ -17,7 +18,7 @@ export default function TabLayout() {
   }
 
   if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
+    return <LoginScreen />;
   }
 
   return (
