@@ -34,6 +34,158 @@ interface AddPlaceLocationModalProps {
 
 export type WizardStep = 'entity' | 'title' | 'location' | 'specifics' | 'media';
 
+export type PrimaryEntityType = 'place' | 'moment' | 'chapter';
+
+interface PrimaryEntityOption {
+  id: PrimaryEntityType;
+  title: string;
+  badge: string;
+  emoji: string;
+  desc: string;
+  color: string;
+}
+
+interface SubCategoryOption {
+  id: string;
+  mapType: MapPlaceType;
+  title: string;
+  emoji: string;
+  desc: string;
+}
+
+const PRIMARY_ENTITY_OPTIONS: PrimaryEntityOption[] = [
+  {
+    id: 'place',
+    title: 'Lugar o Rincón',
+    badge: 'Ubicación física',
+    emoji: '📍',
+    desc: 'Un sitio físico: restaurante, cafetería, bar, hogar, hotel o mirador.',
+    color: '#D4AF37',
+  },
+  {
+    id: 'moment',
+    title: 'Momento o Hito',
+    badge: 'Vivencia especial',
+    emoji: '✨',
+    desc: 'Una vivencia única: cita romántica, primer beso, anécdota o sorpresa.',
+    color: '#E05666',
+  },
+  {
+    id: 'chapter',
+    title: 'Capítulo o Viaje',
+    badge: 'Gran época o viaje',
+    desc: 'Un gran viaje, escapada de fin de semana o etapa de convivencia.',
+    color: '#5C9F9A',
+  },
+];
+
+const SUB_CATEGORIES_MAP: Record<PrimaryEntityType, SubCategoryOption[]> = {
+  place: [
+    {
+      id: 'restaurant',
+      mapType: 'restaurant',
+      title: 'Restaurante & Gastro',
+      emoji: '🍽️',
+      desc: 'Comidas, cenas románticas, tapas y gastrobares.',
+    },
+    {
+      id: 'home',
+      mapType: 'memory',
+      title: 'Hogar / Nuestro Nido',
+      emoji: '🏡',
+      desc: 'Nuestra casa, rincón familiar o espacio de convivencia.',
+    },
+    {
+      id: 'hotel',
+      mapType: 'hotel',
+      title: 'Hotel / Airbnb / Cabaña',
+      emoji: '🏨',
+      desc: 'Alojamiento romántico o estancia para dormir.',
+    },
+    {
+      id: 'cafe',
+      mapType: 'restaurant',
+      title: 'Cafetería & Brunch',
+      emoji: '☕',
+      desc: 'Desayunos, meriendas y cafeterías con encanto.',
+    },
+    {
+      id: 'outdoor',
+      mapType: 'memory',
+      title: 'Parque / Mirador / Playa',
+      emoji: '🌿',
+      desc: 'Paseos al aire libre, miradores, naturaleza o calas.',
+    },
+    {
+      id: 'shop',
+      mapType: 'memory',
+      title: 'Tienda & Rincón Especial',
+      emoji: '🛍️',
+      desc: 'Tiendas de moda, deco o lugares favoritos.',
+    },
+  ],
+  moment: [
+    {
+      id: 'date',
+      mapType: 'date',
+      title: 'Cita Romántica',
+      emoji: '🥂',
+      desc: 'Cena especial, paseo o tarde romántica para dos.',
+    },
+    {
+      id: 'first_kiss',
+      mapType: 'important_date',
+      title: 'Primer Beso / Hito Oficial',
+      emoji: '💋',
+      desc: 'El comienzo oficial de nosotros y fechas clave.',
+    },
+    {
+      id: 'first_met',
+      mapType: 'important_date',
+      title: 'Primer Encuentro',
+      emoji: '🪩',
+      desc: 'La noche o momento mágico donde nos conocimos.',
+    },
+    {
+      id: 'surprise',
+      mapType: 'surprise',
+      title: 'Sorpresa Revelada',
+      emoji: '🎁',
+      desc: 'Un plan o detalle sorpresa desvelado juntos.',
+    },
+    {
+      id: 'photo_memory',
+      mapType: 'memory',
+      title: 'Recuerdo / Foto Inolvidable',
+      emoji: '📸',
+      desc: 'Un instante, anécdota o foto grabada en el corazón.',
+    },
+  ],
+  chapter: [
+    {
+      id: 'trip',
+      mapType: 'trip',
+      title: 'Gran Viaje',
+      emoji: '✈️',
+      desc: 'Vuelos, vacaciones y estancias internacionales.',
+    },
+    {
+      id: 'getaway',
+      mapType: 'getaway',
+      title: 'Escapada de Fin de Semana',
+      emoji: '🚗',
+      desc: 'Fin de semana fuera, desconexión y naturaleza.',
+    },
+    {
+      id: 'stage',
+      mapType: 'stage',
+      title: 'Etapa de Vida',
+      emoji: '🏡',
+      desc: 'Gran época juntos: convivencia, ciudades y hogares.',
+    },
+  ],
+};
+
 export function AddPlaceLocationModal({
   visible,
   onClose,
@@ -42,6 +194,8 @@ export function AddPlaceLocationModal({
   allPlaces = [],
 }: AddPlaceLocationModalProps) {
   const [step, setStep] = useState<WizardStep>('entity');
+  const [primaryEntity, setPrimaryEntity] = useState<PrimaryEntityType>('place');
+  const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<string>('restaurant');
   const [calendarTarget, setCalendarTarget] = useState<'date' | 'startDate' | 'endDate' | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,7 +215,7 @@ export function AddPlaceLocationModal({
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
 
   const [title, setTitle] = useState('');
-  const [type, setType] = useState<MapPlaceType>('memory');
+  const [type, setType] = useState<MapPlaceType>('restaurant');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [description, setDescription] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -120,6 +274,23 @@ export function AddPlaceLocationModal({
         setSelectedCoordinates([initialPlace.longitude, initialPlace.latitude]);
         setLocationPrecision(initialPlace.precision || 'exact');
         setLocationSource(initialPlace.source || 'google_places');
+        if (initialPlace.type === 'stage' || initialPlace.type === 'trip' || initialPlace.type === 'getaway') {
+          setPrimaryEntity('chapter');
+          setSelectedSubCategoryId(initialPlace.type);
+        } else if (initialPlace.type === 'date' || initialPlace.type === 'surprise' || initialPlace.type === 'important_date') {
+          setPrimaryEntity('moment');
+          setSelectedSubCategoryId(initialPlace.type === 'date' ? 'date' : initialPlace.type === 'surprise' ? 'surprise' : 'first_kiss');
+        } else if (initialPlace.type === 'hotel') {
+          setPrimaryEntity('place');
+          setSelectedSubCategoryId('hotel');
+        } else if (initialPlace.type === 'restaurant') {
+          setPrimaryEntity('place');
+          setSelectedSubCategoryId('restaurant');
+        } else {
+          setPrimaryEntity('place');
+          setSelectedSubCategoryId('home');
+        }
+
         setType(initialPlace.type || 'memory');
         setDate(initialPlace.date || new Date().toISOString().split('T')[0]);
         setDescription(initialPlace.description || '');
@@ -540,162 +711,127 @@ export function AddPlaceLocationModal({
             </TouchableOpacity>
           </View>
 
-          {/* SCREEN 1: ENTITY SELECTOR */}
+          {/* SCREEN 1: 2-TIER ENTITY SELECTOR (LUGAR vs MOMENTO vs CAPÍTULO + CATEGORÍA) */}
           {step === 'entity' && (
             <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
-              <Text style={styles.screenHeading}>1. ¿Qué deseas guardar?</Text>
+              <Text style={styles.screenHeading}>1. ¿Qué deseas guardar o editar?</Text>
               <Text style={styles.screenSubheading}>
-                Selecciona la entidad que mejor describe este momento o rincón:
+                Paso 1 · Elige primero el tipo principal:
               </Text>
 
-              <View style={styles.entityGrid}>
-                {/* 1. Etapa */}
-                <TouchableOpacity
-                  style={[styles.entityCard, type === 'stage' && styles.entityCardActive]}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setType('stage');
-                    triggerHaptic('selection');
-                    setStep('title');
-                  }}
-                >
-                  <Text style={styles.entityCardIcon}>🏡</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.entityCardTitle, type === 'stage' && styles.entityCardTitleActive]}>
-                      Etapa de Vida
-                    </Text>
-                    <Text style={styles.entityCardDesc}>
-                      Gran contenedor de época: agrupa viajes, citas, hogares y recuerdos de convivencia.
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                {/* 2. Gran Viaje */}
-                <TouchableOpacity
-                  style={[styles.entityCard, type === 'trip' && styles.entityCardActive]}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setType('trip');
-                    triggerHaptic('selection');
-                    setStep('title');
-                  }}
-                >
-                  <Text style={styles.entityCardIcon}>✈️</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.entityCardTitle, type === 'trip' && styles.entityCardTitleActive]}>
-                      Gran Viaje
-                    </Text>
-                    <Text style={styles.entityCardDesc}>
-                      Viajes largos, vuelos, vacaciones y estancias internacionales juntos.
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                {/* 3. Escapada (Separada de Cita) */}
-                <TouchableOpacity
-                  style={[styles.entityCard, type === 'getaway' && styles.entityCardActive]}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setType('getaway');
-                    triggerHaptic('selection');
-                    setStep('title');
-                  }}
-                >
-                  <Text style={styles.entityCardIcon}>🚗</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.entityCardTitle, type === 'getaway' && styles.entityCardTitleActive]}>
-                      Escapada
-                    </Text>
-                    <Text style={styles.entityCardDesc}>
-                      Fin de semana fuera, escapadas románticas, relax o desconexión en pareja.
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                {/* 4. Cita Romántica */}
-                <TouchableOpacity
-                  style={[styles.entityCard, type === 'date' && styles.entityCardActive]}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setType('date');
-                    triggerHaptic('selection');
-                    setStep('title');
-                  }}
-                >
-                  <Text style={styles.entityCardIcon}>🥂</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.entityCardTitle, type === 'date' && styles.entityCardTitleActive]}>
-                      Cita Romántica
-                    </Text>
-                    <Text style={styles.entityCardDesc}>
-                      Cenas, paseos, tardes especiales y planes íntimos memorables.
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                {/* 5. Restaurante */}
-                <TouchableOpacity
-                  style={[styles.entityCard, type === 'restaurant' && styles.entityCardActive]}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setType('restaurant');
-                    triggerHaptic('selection');
-                    setStep('title');
-                  }}
-                >
-                  <Text style={styles.entityCardIcon}>🍽️</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.entityCardTitle, type === 'restaurant' && styles.entityCardTitleActive]}>
-                      Restaurante
-                    </Text>
-                    <Text style={styles.entityCardDesc}>
-                      Rincón culinario: comidas, cenas o meriendas especiales.
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                {/* 6. Hotel / Airbnb */}
-                <TouchableOpacity
-                  style={[styles.entityCard, (type as string) === 'hotel' && styles.entityCardActive]}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setType('hotel' as any);
-                    triggerHaptic('selection');
-                    setStep('title');
-                  }}
-                >
-                  <Text style={styles.entityCardIcon}>🏨</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.entityCardTitle, (type as string) === 'hotel' && styles.entityCardTitleActive]}>
-                      Hotel / Airbnb
-                    </Text>
-                    <Text style={styles.entityCardDesc}>
-                      Alojamiento romántico o estancia de fin de semana.
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                {/* 7. Lugar / Rincón Familiar */}
-                <TouchableOpacity
-                  style={[styles.entityCard, type === 'memory' && styles.entityCardActive]}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setType('memory');
-                    triggerHaptic('selection');
-                    setStep('title');
-                  }}
-                >
-                  <Text style={styles.entityCardIcon}>📍</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.entityCardTitle, type === 'memory' && styles.entityCardTitleActive]}>
-                      Lugar / Rincón Familiar
-                    </Text>
-                    <Text style={styles.entityCardDesc}>
-                      Atemporal: Casa padres Andrea, casa iaios, miradores o sitios propios.
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+              {/* 3 Primary Selector Cards */}
+              <View style={styles.primaryEntityRow}>
+                {PRIMARY_ENTITY_OPTIONS.map((ent) => {
+                  const isSelected = primaryEntity === ent.id;
+                  return (
+                    <TouchableOpacity
+                      key={ent.id}
+                      style={[
+                        styles.primaryEntityCard,
+                        isSelected && {
+                          backgroundColor: `${ent.color}15`,
+                          borderColor: ent.color,
+                        },
+                      ]}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        triggerHaptic('selection');
+                        setPrimaryEntity(ent.id);
+                        const defaultSub = SUB_CATEGORIES_MAP[ent.id][0];
+                        if (defaultSub) {
+                          setSelectedSubCategoryId(defaultSub.id);
+                          setType(defaultSub.mapType);
+                        }
+                      }}
+                    >
+                      <Text style={styles.primaryEntityEmoji}>{ent.emoji}</Text>
+                      <Text
+                        style={[
+                          styles.primaryEntityTitle,
+                          isSelected && { color: ent.color, fontWeight: '800' },
+                        ]}
+                      >
+                        {ent.title}
+                      </Text>
+                      <Text style={styles.primaryEntityBadge}>{ent.badge}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
+
+              {/* Step 1.2: Dependent Sub-Categories */}
+              <View style={styles.subCategorySection}>
+                <View style={styles.subCategoryHeaderRow}>
+                  <Text style={styles.subCategoryHeading}>
+                    Paso 2 · Elige la categoría de {primaryEntity === 'place' ? 'Lugar' : primaryEntity === 'moment' ? 'Momento' : 'Capítulo / Viaje'}:
+                  </Text>
+                </View>
+
+                <View style={styles.entityGrid}>
+                  {SUB_CATEGORIES_MAP[primaryEntity].map((sub) => {
+                    const isSelected = selectedSubCategoryId === sub.id;
+                    const activeColor =
+                      primaryEntity === 'place'
+                        ? '#D4AF37'
+                        : primaryEntity === 'moment'
+                        ? '#E05666'
+                        : '#5C9F9A';
+
+                    return (
+                      <TouchableOpacity
+                        key={sub.id}
+                        style={[
+                          styles.entityCard,
+                          isSelected && {
+                            backgroundColor: `${activeColor}12`,
+                            borderColor: activeColor,
+                          },
+                        ]}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          triggerHaptic('selection');
+                          setSelectedSubCategoryId(sub.id);
+                          setType(sub.mapType);
+                        }}
+                      >
+                        <Text style={styles.entityCardIcon}>{sub.emoji}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={[
+                              styles.entityCardTitle,
+                              isSelected && { color: activeColor, fontWeight: '800' },
+                            ]}
+                          >
+                            {sub.title}
+                          </Text>
+                          <Text style={styles.entityCardDesc}>{sub.desc}</Text>
+                        </View>
+                        {isSelected && (
+                          <View
+                            style={[
+                              styles.selectedCheckmark,
+                              { backgroundColor: activeColor },
+                            ]}
+                          >
+                            <Text style={styles.selectedCheckmarkText}>✓</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Continue to Step 2 */}
+              <TouchableOpacity
+                style={styles.wizardNextButton}
+                activeOpacity={0.85}
+                onPress={handleNextStep}
+              >
+                <Text style={styles.wizardNextButtonText}>
+                  Continuar con {SUB_CATEGORIES_MAP[primaryEntity].find(s => s.id === selectedSubCategoryId)?.title || 'la selección'} →
+                </Text>
+              </TouchableOpacity>
             </ScrollView>
           )}
 
@@ -1499,9 +1635,66 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     fontFamily: 'Inter, sans-serif',
   },
+  primaryEntityRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  primaryEntityCard: {
+    flex: 1,
+    backgroundColor: '#FAF8F5',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(58, 47, 56, 0.08)',
+  },
+  primaryEntityEmoji: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  primaryEntityTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#3A2F38',
+    textAlign: 'center',
+    marginBottom: 3,
+  },
+  primaryEntityBadge: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: '#766B72',
+    textAlign: 'center',
+  },
+  subCategorySection: {
+    marginBottom: 10,
+  },
+  subCategoryHeaderRow: {
+    marginBottom: 10,
+  },
+  subCategoryHeading: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#3A2F38',
+    fontFamily: 'Inter, sans-serif',
+  },
+  selectedCheckmark: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  selectedCheckmarkText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
   entityGrid: {
     gap: 8,
-    paddingBottom: 24,
+    paddingBottom: 14,
   },
   entityCard: {
     flexDirection: 'row',
