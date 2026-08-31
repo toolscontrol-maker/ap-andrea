@@ -800,6 +800,33 @@ export function AddPlaceLocationModal({
                     <Text style={styles.checkboxLabel}>Actualmente conviviendo aquí (Hogar actual)</Text>
                   </TouchableOpacity>
 
+                  <Text style={styles.subFieldLabel}>Resumen de la etapa</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Ej: Convivencia junto al mar, paseos al atardecer..."
+                    value={stageSummary}
+                    onChangeText={setStageSummary}
+                  />
+                </View>
+              )}
+
+              {/* ✈️ VIAJE */}
+              {type === 'trip' && (
+                <View style={styles.stepSpecificBox}>
+                  <Text style={styles.stepSpecificBoxTitle}>✈️ Configuración del Viaje</Text>
+
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.subFieldLabel}>Fecha de Salida</Text>
+                      <TouchableOpacity
+                        style={styles.calendarTriggerButton}
+                        onPress={() => setCalendarTarget('startDate')}
+                      >
+                        <Text style={styles.calendarTriggerText}>📅 {startDate || 'Seleccionar'}</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={{ flex: 1 }}>
                       <Text style={styles.subFieldLabel}>Días de Duración</Text>
                       <TextInput
                         style={styles.textInput}
