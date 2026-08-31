@@ -9,54 +9,43 @@ import {
   TextInput,
   Modal,
   Alert,
-  Platform,
-  Linking
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDev } from '../../../src/context/DevContext';
 import { ScreenWrapper } from '../../../src/components/ui/ScreenWrapper';
-import { Card } from '../../../src/components/ui/Card';
-import { Button } from '../../../src/components/ui/Button';
 import { Badge } from '../../../src/components/ui/Badge';
 import { SegmentedControl } from '../../../src/components/ui/SegmentedControl';
-import { TiltedCard } from '../../../src/components/ui/TiltedCard';
 import { StaggeredItem } from '../../../src/components/ui/StaggeredList';
-import { SectionHeader } from '../../../src/components/ui/SectionHeader';
 import { EmptyState } from '../../../src/components/ui/EmptyState';
 import { PhotoUploadField } from '../../../src/components/ui/PhotoUploadField';
 import { Colors } from '../../../src/theme/colors';
-import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
-import { WishlistItem, WishlistStatus, WishlistItemType, Place, DiaryEntryUI } from '@andrea/types';
+import { Spacing, Radii, Shadows } from '../../../src/theme/tokens';
+import { WishlistItem, WishlistStatus, Place } from '@andrea/types';
 import { triggerHaptic } from '../../../src/utils/haptics';
 import { AddWishWizardModal, NewWishData } from '../../../src/components/wishes/AddWishWizardModal';
 import { CreateSurpriseFlow } from '../../../src/features/calendar/components/CreateSurpriseFlow';
 import { SurpriseCreationPayload } from '../../../src/features/calendar/domain/calendar.types';
 
-type OwnerFilter = 'all' | 'partner' | 'mine';
-type LifecycleFilter = 'active' | 'fulfilled';
+type TabView = 'all' | 'partner' | 'mine' | 'fulfilled';
 type CategoryFilter = 'all' | 'restaurants' | 'fashion' | 'trips' | 'home';
 
 export default function WishesScreen() {
   const router = useRouter();
   const {
     wishes,
-    surprises,
-    savedPlaces,
     currentDevUser,
     partnerDevUser,
     addWish,
     updateWishStatus,
-    convertWishToSurprise,
     convertWishToMemory,
-    deleteWish,
     addSavedPlace,
     convertPlaceToEvent,
     addCoupleEvent,
     addSurprise,
   } = useDev();
 
-  const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>('all');
-  const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleFilter>('active');
+  const [activeTab, setActiveTab] = useState<TabView>('all');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -64,7 +53,6 @@ export default function WishesScreen() {
   const [selectedWishForFulfill, setSelectedWishForFulfill] = useState<WishlistItem | null>(null);
   const [fulfillStory, setFulfillStory] = useState('');
   const [fulfillPhotoUrl, setFulfillPhotoUrl] = useState('');
-  const [selectedRestaurantPlace, setSelectedRestaurantPlace] = useState<Place | null>(null);
 
   const [isSurpriseFlowOpen, setIsSurpriseFlowOpen] = useState(false);
   const [surpriseWishTarget, setSurpriseWishTarget] = useState<WishlistItem | null>(null);
@@ -110,15 +98,6 @@ export default function WishesScreen() {
     }
   };
 
-  // ── Helper: Wish Ownership ──
-  const isWishForPartner = (wish: WishlistItem) => {
-    return wish.ownerUserId === partnerDevUser.id || wish.createdByUserId === partnerDevUser.id;
-  };
-
-  const isWishForMine = (wish: WishlistItem) => {
-    return wish.ownerUserId === currentDevUser.id || wish.createdByUserId === currentDevUser.id;
-  };
-
   // ── Match Category Filter ──
   const matchCategory = (type?: string) => {
     if (categoryFilter === 'all') return true;
@@ -129,22 +108,39 @@ export default function WishesScreen() {
     return true;
   };
 
-  // ── Compute Counts ──
+  // ── Helper: Target Determination ──
+  const getWishTarget = (wish: WishlistItem): 'partner' | 'mine' | 'both' => {
+    if (wish.type === 'restaurant' || wish.type === 'trip' || wish.type === 'experience') {
+      return 'both';
+    }
+    if (wish.ownerUserId === partnerDevUser.id || (!wish.isForSelf && wish.createdByUserId === currentDevUser.id)) {
+      return 'partner';
+    }
+    return 'mine';
+  };
+
+  // ── Filtered Wishes ──
   const activeWishes = useMemo(() => wishes.filter((w) => w.status !== 'fulfilled' && w.status !== 'archived'), [wishes]);
   const fulfilledWishes = useMemo(() => wishes.filter((w) => w.status === 'fulfilled'), [wishes]);
 
-  const activePartnerWishes = useMemo(() => activeWishes.filter((w) => isWishForPartner(w) && matchCategory(w.type)), [activeWishes, categoryFilter]);
-  const activeMineWishes = useMemo(() => activeWishes.filter((w) => isWishForMine(w) && matchCategory(w.type)), [activeWishes, categoryFilter]);
+  const displayedWishes = useMemo(() => {
+    if (activeTab === 'fulfilled') {
+      return fulfilledWishes.filter((w) => matchCategory(w.type));
+    }
+    if (activeTab === 'partner') {
+      return activeWishes.filter((w) => (getWishTarget(w) === 'partner' || getWishTarget(w) === 'both') && matchCategory(w.type));
+    }
+    if (activeTab === 'mine') {
+      return activeWishes.filter((w) => (getWishTarget(w) === 'mine' || getWishTarget(w) === 'both') && matchCategory(w.type));
+    }
+    return activeWishes.filter((w) => matchCategory(w.type));
+  }, [wishes, activeTab, categoryFilter]);
 
-  const fulfilledAllWishes = useMemo(() => fulfilledWishes.filter((w) => matchCategory(w.type)), [fulfilledWishes, categoryFilter]);
-  const fulfilledPartnerWishes = useMemo(() => fulfilledWishes.filter((w) => isWishForPartner(w) && matchCategory(w.type)), [fulfilledWishes, categoryFilter]);
-  const fulfilledMineWishes = useMemo(() => fulfilledWishes.filter((w) => isWishForMine(w) && matchCategory(w.type)), [fulfilledWishes, categoryFilter]);
-
-  // Counts for Badges
-  const totalActive = activeWishes.length;
-  const totalFulfilled = fulfilledWishes.length;
-  const partnerActiveCount = activeWishes.filter((w) => isWishForPartner(w)).length;
-  const mineActiveCount = activeWishes.filter((w) => isWishForMine(w)).length;
+  // Tab Badge Counts
+  const totalActiveCount = activeWishes.length;
+  const partnerCount = activeWishes.filter((w) => getWishTarget(w) === 'partner' || getWishTarget(w) === 'both').length;
+  const mineCount = activeWishes.filter((w) => getWishTarget(w) === 'mine' || getWishTarget(w) === 'both').length;
+  const fulfilledCount = fulfilledWishes.length;
 
   const handleSaveWishFromWizard = async (data: NewWishData) => {
     triggerHaptic('heavy');
@@ -258,351 +254,316 @@ export default function WishesScreen() {
   const getStatusBadge = (status: WishlistStatus) => {
     switch (status) {
       case 'dreaming':
-        return <Badge variant="primary">Me hace ilusión</Badge>;
+        return <Badge variant="primary" size="sm">Ilusión</Badge>;
       case 'considering':
-        return <Badge variant="secondary">En consideración</Badge>;
+        return <Badge variant="secondary" size="sm">En mente</Badge>;
       case 'planned':
-        return <Badge variant="butter">Ocasión especial</Badge>;
+        return <Badge variant="butter" size="sm">Ocasión</Badge>;
       case 'someday':
-        return <Badge variant="mistBlue">Algún día</Badge>;
+        return <Badge variant="mistBlue" size="sm">Algún día</Badge>;
       case 'in_progress':
-        return <Badge variant="sage">En camino 🚚</Badge>;
+        return <Badge variant="sage" size="sm">En camino 🚚</Badge>;
       case 'fulfilled':
-        return <Badge variant="neutral">✨ Hecho realidad</Badge>;
+        return <Badge variant="neutral" size="sm">Cumplido ✨</Badge>;
       default:
-        return <Badge variant="neutral">Deseo</Badge>;
+        return <Badge variant="neutral" size="sm">Deseo</Badge>;
     }
-  };
-
-  // ── Render Wish Card Helper ──
-  const renderWishCard = (wish: WishlistItem, index: number) => {
-    const isMine = wish.ownerUserId === currentDevUser.id || wish.createdByUserId === currentDevUser.id;
-    const isPartner = !isMine;
-
-    return (
-      <StaggeredItem key={wish.id} index={index}>
-        <TiltedCard style={styles.wishCard} variant="elevated">
-          {/* Cover Photo or Multi-Photo Gallery */}
-          {wish.images && wish.images.length > 1 ? (
-            <View style={styles.wishGalleryWrapper}>
-              <ScrollView
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                style={styles.wishCardGalleryScroll}
-              >
-                {wish.images.map((img, i) => (
-                  <Image key={i} source={{ uri: img }} style={styles.wishCardGalleryImage} />
-                ))}
-              </ScrollView>
-              <View style={styles.galleryCountPill}>
-                <Text style={styles.galleryCountText}>✦ {wish.images.length} fotos</Text>
-              </View>
-            </View>
-          ) : (
-            (wish.externalImageUrl || (wish.images && wish.images[0])) && (
-              <Image
-                source={{ uri: wish.externalImageUrl || (wish.images && wish.images[0]) }}
-                style={styles.wishCardImage}
-              />
-            )
-          )}
-
-          <View style={styles.wishCardContent}>
-            {/* Top Row: Status + Author Pill + Price */}
-            <View style={styles.wishTopRow}>
-              <View style={styles.wishBadgeRow}>
-                {getStatusBadge(wish.status)}
-                <View
-                  style={[
-                    styles.authorPill,
-                    isPartner ? styles.authorPillPartner : styles.authorPillMine,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.authorPillText,
-                      isPartner ? styles.authorPillTextPartner : styles.authorPillTextMine,
-                    ]}
-                  >
-                    {isPartner ? `🌸 Ilusión de ${partnerDevUser.name}` : `🌿 De ${currentDevUser.name}`}
-                  </Text>
-                </View>
-              </View>
-              {wish.estimatedPrice && (
-                <Text style={styles.wishPriceTag}>{wish.estimatedPrice}€</Text>
-              )}
-            </View>
-
-            {/* Title & Description */}
-            <Text style={styles.wishTitle}>{wish.title}</Text>
-            {wish.description && (
-              <Text style={styles.wishDescription}>{wish.description}</Text>
-            )}
-
-            {/* Metadata Tags */}
-            <View style={styles.wishMetaRow}>
-              {wish.brand && <Text style={styles.wishBrandTag}>🏷️ {wish.brand}</Text>}
-              {wish.sourceDomain && (
-                <Text style={styles.wishDomainTag}>🔗 {wish.sourceDomain}</Text>
-              )}
-              {wish.occasion && (
-                <Text style={styles.wishOccasionTag}>🎉 {wish.occasion}</Text>
-              )}
-            </View>
-
-            {/* Actions Footer */}
-            <View style={styles.wishActionFooter}>
-              {wish.status !== 'fulfilled' && (
-                <>
-                  {wish.type === 'restaurant' && (
-                    <TouchableOpacity
-                      style={[
-                        styles.btnSurpriseTrigger,
-                        { backgroundColor: Colors.light.primary + '15', borderColor: Colors.light.primary + '40' }
-                      ]}
-                      activeOpacity={0.8}
-                      onPress={() => handleScheduleRestaurantDate(wish)}
-                    >
-                      <Text style={[styles.btnSurpriseTriggerText, { color: Colors.light.primary }]}>
-                        📞 Llamar & Agendar
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {/* Prepare Surprise Action */}
-                  <TouchableOpacity
-                    style={styles.btnSurpriseTrigger}
-                    activeOpacity={0.8}
-                    onPress={() => handleMakeSurprise(wish)}
-                  >
-                    <Text style={styles.btnSurpriseTriggerText}>
-                      Hacerle la sorpresa ✨
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* Mark as Fulfilled Action */}
-                  <TouchableOpacity
-                    style={styles.btnFulfillTrigger}
-                    activeOpacity={0.8}
-                    onPress={() => handleOpenFulfill(wish)}
-                  >
-                    <Text style={styles.btnFulfillTriggerText}>Se hizo realidad 🎉</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              {wish.status === 'fulfilled' && (
-                <View style={styles.fulfilledRecordBox}>
-                  <Text style={styles.fulfilledRecordText}>
-                    ✨ Este deseo se hizo realidad y está guardado en vuestra historia.
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </TiltedCard>
-      </StaggeredItem>
-    );
   };
 
   return (
     <ScreenWrapper>
-      {/* HEADER EDITORIAL */}
-      <View style={styles.headerContainer}>
-        <View style={styles.headerTextGroup}>
-          <Text style={styles.headerTitle}>Sorpresas y Deseos</Text>
-          <Text style={styles.headerSubtitle}>
-            Ilusiones, compras y secretos compartidos entre {currentDevUser.name} & {partnerDevUser.name}
+      {/* ── 1. CLEAN APPLE-GRADE HEADER ── */}
+      <View style={styles.headerRow}>
+        <View style={styles.headerTitleCol}>
+          <Text style={styles.screenTitle}>Sorpresas y Deseos</Text>
+          <Text style={styles.screenSubtitle}>
+            Ilusiones, compras y planes de {currentDevUser.name} & {partnerDevUser.name}
           </Text>
         </View>
         <TouchableOpacity
-          style={styles.btnQuickAdd}
-          activeOpacity={0.85}
-          onPress={() => setIsAddModalOpen(true)}
+          style={styles.btnAddPill}
+          activeOpacity={0.8}
+          onPress={() => {
+            triggerHaptic('selection');
+            setIsAddModalOpen(true);
+          }}
         >
-          <Text style={styles.btnQuickAddText}>+ Guardar deseo</Text>
+          <Text style={styles.btnAddPillText}>+ Deseo</Text>
         </TouchableOpacity>
       </View>
 
-      {/* ── 1. PERSONA SELECTOR (TÚ Y ELLA) ── */}
-      <SegmentedControl<OwnerFilter>
+      {/* ── 2. SINGLE-TIER APPLE SEGMENTED CONTROL ── */}
+      <SegmentedControl<TabView>
         options={[
-          { id: 'all', label: '💫 Todos', badgeCount: lifecycleFilter === 'active' ? totalActive : totalFulfilled },
-          { id: 'partner', label: `🌸 De ${partnerDevUser.name}`, badgeCount: partnerActiveCount },
-          { id: 'mine', label: `🌿 De ${currentDevUser.name}`, badgeCount: mineActiveCount },
+          { id: 'all', label: 'Todos', badgeCount: totalActiveCount },
+          { id: 'partner', label: `De ${partnerDevUser.name}`, badgeCount: partnerCount },
+          { id: 'mine', label: `De ${currentDevUser.name}`, badgeCount: mineCount },
+          { id: 'fulfilled', label: 'Cumplidos', badgeCount: fulfilledCount },
         ]}
-        selected={ownerFilter}
+        selected={activeTab}
         onSelect={(val) => {
           triggerHaptic('selection');
-          setOwnerFilter(val);
+          setActiveTab(val);
         }}
         activeColor="#FFFFFF"
         activeTextColor={Colors.light.primaryDark}
         style={{ marginBottom: Spacing.sm }}
       />
 
-      {/* ── 2. LIFECYCLE SELECTOR (ACTIVOS VS CUMPLIDOS) ── */}
-      <SegmentedControl<LifecycleFilter>
-        options={[
-          { id: 'active', label: '✨ Activos & En marcha', badgeCount: totalActive },
-          { id: 'fulfilled', label: '🎉 Hechos Realidad', badgeCount: totalFulfilled },
-        ]}
-        selected={lifecycleFilter}
-        onSelect={(val) => {
-          triggerHaptic('selection');
-          setLifecycleFilter(val);
-        }}
-        activeColor={Colors.light.surfaceElevated}
-        activeTextColor={Colors.light.primaryDark}
-        style={{ marginBottom: Spacing.md }}
-      />
-
-      {/* ── 3. CATEGORY PILLS ── */}
+      {/* ── 3. MINIMALIST HORIZONTAL CATEGORY CHIPS ── */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterScroll}
+        contentContainerStyle={styles.categoryScroll}
       >
         <TouchableOpacity
-          style={[styles.filterChip, categoryFilter === 'all' && styles.filterChipActive]}
+          style={[styles.categoryChip, categoryFilter === 'all' && styles.categoryChipActive]}
           onPress={() => {
             triggerHaptic('light');
             setCategoryFilter('all');
           }}
         >
-          <Text style={[styles.filterChipText, categoryFilter === 'all' && styles.filterChipTextActive]}>
-            ✦ Todas
+          <Text style={[styles.categoryChipText, categoryFilter === 'all' && styles.categoryChipTextActive]}>
+            Todo
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.filterChip, categoryFilter === 'restaurants' && styles.filterChipActive]}
+          style={[styles.categoryChip, categoryFilter === 'restaurants' && styles.categoryChipActive]}
           onPress={() => {
             triggerHaptic('light');
             setCategoryFilter('restaurants');
           }}
         >
-          <Text style={[styles.filterChipText, categoryFilter === 'restaurants' && styles.filterChipTextActive]}>
+          <Text style={[styles.categoryChipText, categoryFilter === 'restaurants' && styles.categoryChipTextActive]}>
             🍽️ Restaurantes
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.filterChip, categoryFilter === 'fashion' && styles.filterChipActive]}
+          style={[styles.categoryChip, categoryFilter === 'fashion' && styles.categoryChipActive]}
           onPress={() => {
             triggerHaptic('light');
             setCategoryFilter('fashion');
           }}
         >
-          <Text style={[styles.filterChipText, categoryFilter === 'fashion' && styles.filterChipTextActive]}>
+          <Text style={[styles.categoryChipText, categoryFilter === 'fashion' && styles.categoryChipTextActive]}>
             🛍️ Moda & Regalos
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.filterChip, categoryFilter === 'trips' && styles.filterChipActive]}
+          style={[styles.categoryChip, categoryFilter === 'trips' && styles.categoryChipActive]}
           onPress={() => {
             triggerHaptic('light');
             setCategoryFilter('trips');
           }}
         >
-          <Text style={[styles.filterChipText, categoryFilter === 'trips' && styles.filterChipTextActive]}>
+          <Text style={[styles.categoryChipText, categoryFilter === 'trips' && styles.categoryChipTextActive]}>
             ✈️ Viajes & Citas
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.filterChip, categoryFilter === 'home' && styles.filterChipActive]}
+          style={[styles.categoryChip, categoryFilter === 'home' && styles.categoryChipActive]}
           onPress={() => {
             triggerHaptic('light');
             setCategoryFilter('home');
           }}
         >
-          <Text style={[styles.filterChipText, categoryFilter === 'home' && styles.filterChipTextActive]}>
+          <Text style={[styles.categoryChipText, categoryFilter === 'home' && styles.categoryChipTextActive]}>
             🏡 Hogar
           </Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* ── 4. CONTENT SECTIONS ── */}
-
-      {/* CASE A: ACTIVE WISHES */}
-      {lifecycleFilter === 'active' && (
-        <View style={styles.sectionBlock}>
-          {/* SECTION A1: ANDREA'S ACTIVE WISHES */}
-          {(ownerFilter === 'all' || ownerFilter === 'partner') && (
-            <View style={{ marginBottom: Spacing.xl }}>
-              <SectionHeader
-                title={`🌸 Ilusiones de ${partnerDevUser.name} (${activePartnerWishes.length})`}
-                subtitle={`Caprichos, detalles y planes que le hacen ilusión a ${partnerDevUser.name}`}
-              />
-              {activePartnerWishes.length === 0 ? (
-                <EmptyState
-                  emoji="🌸"
-                  title={`Sin ilusiones de ${partnerDevUser.name} en esta categoría`}
-                  subtitle={`Añade un detalle o regalo que le gustaría tener a ${partnerDevUser.name}.`}
-                  actionText="+ Guardar ilusión"
-                  onAction={() => setIsAddModalOpen(true)}
-                />
-              ) : (
-                <View style={styles.wishesGrid}>
-                  {activePartnerWishes.map((w, idx) => renderWishCard(w, idx))}
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* SECTION A2: MY ACTIVE WISHES */}
-          {(ownerFilter === 'all' || ownerFilter === 'mine') && (
-            <View style={{ marginBottom: Spacing.xl }}>
-              <SectionHeader
-                title={`🌿 Mis Deseos & Planes (${activeMineWishes.length})`}
-                subtitle={`Ideas, compras y rincones guardados por ${currentDevUser.name}`}
-              />
-              {activeMineWishes.length === 0 ? (
-                <EmptyState
-                  emoji="🌿"
-                  title="Sin deseos propios en esta categoría"
-                  subtitle="Anota una prenda, un restaurante o un plan que te haga ilusión."
-                  actionText="+ Guardar deseo"
-                  onAction={() => setIsAddModalOpen(true)}
-                />
-              ) : (
-                <View style={styles.wishesGrid}>
-                  {activeMineWishes.map((w, idx) => renderWishCard(w, idx))}
-                </View>
-              )}
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* CASE B: FULFILLED WISHES */}
-      {lifecycleFilter === 'fulfilled' && (
-        <View style={styles.sectionBlock}>
-          <SectionHeader
-            title={`🎉 Deseos Hechos Realidad (${fulfilledAllWishes.length})`}
-            subtitle="Regalos, compras y momentos cumplidos para la eternidad"
+      {/* ── 4. CONTENT LIST ── */}
+      <View style={styles.listContainer}>
+        {displayedWishes.length === 0 ? (
+          <EmptyState
+            emoji={activeTab === 'fulfilled' ? '✨' : '🎁'}
+            title={
+              activeTab === 'fulfilled'
+                ? 'Sin deseos cumplidos en esta categoría'
+                : 'Catálogo de ilusiones listo'
+            }
+            subtitle={
+              activeTab === 'fulfilled'
+                ? 'Cuando sorprendas a tu pareja o disfrutéis de un momento juntos, márcalo como hecho realidad para guardarlo en la historia.'
+                : 'Guarda una prenda, un restaurante o un viaje que os haga ilusión disfrutar.'
+            }
+            actionText={activeTab !== 'fulfilled' ? '+ Guardar primer deseo' : undefined}
+            onAction={activeTab !== 'fulfilled' ? () => setIsAddModalOpen(true) : undefined}
           />
-          {fulfilledAllWishes.length === 0 ? (
-            <EmptyState
-              emoji="✨"
-              title="Aún no hay deseos marcados como cumplidos"
-              subtitle="Cuando sorprendas a tu pareja o disfrutéis de un deseo juntos, márcalo como hecho realidad para guardarlo aquí."
-            />
-          ) : (
-            <View style={styles.wishesGrid}>
-              {(ownerFilter === 'all'
-                ? fulfilledAllWishes
-                : ownerFilter === 'partner'
-                ? fulfilledPartnerWishes
-                : fulfilledMineWishes
-              ).map((w, idx) => renderWishCard(w, idx))}
-            </View>
-          )}
-        </View>
-      )}
+        ) : (
+          <View style={styles.cardsGrid}>
+            {displayedWishes.map((wish, index) => {
+              const target = getWishTarget(wish);
+              const isPartnerWish = target === 'partner';
+              const isBothWish = target === 'both';
+
+              return (
+                <StaggeredItem key={wish.id} index={index}>
+                  <View style={styles.appleCard}>
+                    {/* Visual Cover Header */}
+                    {wish.images && wish.images.length > 1 ? (
+                      <View style={styles.photoWrap}>
+                        <ScrollView
+                          horizontal
+                          pagingEnabled
+                          showsHorizontalScrollIndicator={false}
+                          style={styles.photoScroll}
+                        >
+                          {wish.images.map((img, i) => (
+                            <Image key={i} source={{ uri: img }} style={styles.photoImg} />
+                          ))}
+                        </ScrollView>
+                        <View style={styles.photoCountBadge}>
+                          <Text style={styles.photoCountText}>✦ {wish.images.length} fotos</Text>
+                        </View>
+                      </View>
+                    ) : (
+                      (wish.externalImageUrl || (wish.images && wish.images[0])) && (
+                        <Image
+                          source={{ uri: wish.externalImageUrl || (wish.images && wish.images[0]) }}
+                          style={styles.photoImg}
+                        />
+                      )
+                    )}
+
+                    <View style={styles.cardInner}>
+                      {/* Top Ribbon: Badges + Price */}
+                      <View style={styles.cardRibbon}>
+                        <View style={styles.badgeCluster}>
+                          {getStatusBadge(wish.status)}
+
+                          {/* Persona Tag */}
+                          <View
+                            style={[
+                              styles.targetPill,
+                              isPartnerWish
+                                ? styles.targetPillPartner
+                                : isBothWish
+                                ? styles.targetPillBoth
+                                : styles.targetPillMine,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.targetPillText,
+                                isPartnerWish
+                                  ? styles.targetPillTextPartner
+                                  : isBothWish
+                                  ? styles.targetPillTextBoth
+                                  : styles.targetPillTextMine,
+                              ]}
+                            >
+                              {isPartnerWish
+                                ? `🌸 Para ${partnerDevUser.name}`
+                                : isBothWish
+                                ? `💫 Para los dos`
+                                : `🌿 Para ${currentDevUser.name}`}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {wish.estimatedPrice ? (
+                          <Text style={styles.priceText}>{wish.estimatedPrice}€</Text>
+                        ) : null}
+                      </View>
+
+                      {/* Title & Description */}
+                      <Text style={styles.titleText}>{wish.title}</Text>
+                      {wish.description ? (
+                        <Text style={styles.descText} numberOfLines={2}>
+                          {wish.description}
+                        </Text>
+                      ) : null}
+
+                      {/* Metadata Chips */}
+                      {(wish.brand || wish.storeName || wish.occasion || wish.size || wish.color) ? (
+                        <View style={styles.metaRow}>
+                          {wish.brand || wish.storeName ? (
+                            <View style={styles.metaPill}>
+                              <Text style={styles.metaPillText}>🏷️ {wish.brand || wish.storeName}</Text>
+                            </View>
+                          ) : null}
+                          {wish.size ? (
+                            <View style={styles.metaPill}>
+                              <Text style={styles.metaPillText}>Talla {wish.size}</Text>
+                            </View>
+                          ) : null}
+                          {wish.color ? (
+                            <View style={styles.metaPill}>
+                              <Text style={styles.metaPillText}>{wish.color}</Text>
+                            </View>
+                          ) : null}
+                          {wish.occasion ? (
+                            <View style={styles.metaPill}>
+                              <Text style={styles.metaPillText}>{wish.occasion}</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      ) : null}
+
+                      {/* Action Bar */}
+                      {wish.status !== 'fulfilled' ? (
+                        <View style={styles.actionRow}>
+                          {/* Call & Book for restaurants */}
+                          {wish.type === 'restaurant' ? (
+                            <TouchableOpacity
+                              style={styles.btnSecondaryAction}
+                              activeOpacity={0.8}
+                              onPress={() => handleScheduleRestaurantDate(wish)}
+                            >
+                              <Text style={styles.btnSecondaryActionText}>📞 Reservar</Text>
+                            </TouchableOpacity>
+                          ) : null}
+
+                          {/* External Buy Link */}
+                          {wish.sourceUrl ? (
+                            <TouchableOpacity
+                              style={styles.btnSecondaryAction}
+                              activeOpacity={0.8}
+                              onPress={() => Linking.openURL(wish.sourceUrl!)}
+                            >
+                              <Text style={styles.btnSecondaryActionText}>Ver tienda ↗</Text>
+                            </TouchableOpacity>
+                          ) : null}
+
+                          {/* Primary: Make Surprise */}
+                          <TouchableOpacity
+                            style={styles.btnPrimarySurprise}
+                            activeOpacity={0.85}
+                            onPress={() => handleMakeSurprise(wish)}
+                          >
+                            <Text style={styles.btnPrimarySurpriseText}>Hacer sorpresa ✨</Text>
+                          </TouchableOpacity>
+
+                          {/* Fulfill Option */}
+                          <TouchableOpacity
+                            style={styles.btnFulfillCheck}
+                            activeOpacity={0.8}
+                            onPress={() => handleOpenFulfill(wish)}
+                          >
+                            <Text style={styles.btnFulfillCheckText}>Hecho realidad</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <View style={styles.fulfilledNoteBox}>
+                          <Text style={styles.fulfilledNoteText}>
+                            ✨ Guardado en la memoria compartida de la pareja.
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </StaggeredItem>
+              );
+            })}
+          </View>
+        )}
+      </View>
 
       {/* MULTI-STEP WISH WIZARD MODAL */}
       <AddWishWizardModal
@@ -708,787 +669,333 @@ export default function WishesScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerContainer: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingRight: 52,
+    marginBottom: Spacing.md,
+    paddingTop: Spacing.xs,
+    paddingRight: 48,
   },
-  headerTextGroup: {
+  headerTitleCol: {
     flex: 1,
-    paddingRight: Spacing.md
+    paddingRight: Spacing.sm,
   },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: Colors.light.text,
-    letterSpacing: -0.5
+  screenTitle: {
+    fontSize: 23,
+    fontWeight: '800',
+    color: '#2B2129',
+    letterSpacing: -0.5,
   },
-  headerSubtitle: {
-    fontSize: 13,
-    color: Colors.light.textSecondary,
-    marginTop: 2
-  },
-  btnQuickAdd: {
-    backgroundColor: Colors.light.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: Radii.full,
-    ...Shadows.sm
-  },
-  btnQuickAddText: {
-    color: Colors.light.textInverse,
-    fontWeight: '600',
-    fontSize: 13
-  },
-  filterScroll: {
-    paddingBottom: Spacing.md,
-    gap: Spacing.xs
-  },
-  filterChip: {
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: Radii.full,
-    backgroundColor: Colors.light.surface,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    marginRight: Spacing.xs
-  },
-  filterChipActive: {
-    backgroundColor: Colors.light.text,
-    borderColor: Colors.light.text
-  },
-  filterChipText: {
+  screenSubtitle: {
     fontSize: 12.5,
-    fontWeight: '500',
-    color: Colors.light.textSecondary
+    color: '#766B72',
+    marginTop: 2,
+    lineHeight: 16,
   },
-  filterChipTextActive: {
-    color: Colors.light.textInverse,
-    fontWeight: '600'
+  btnAddPill: {
+    backgroundColor: Colors.light.primary,
+    paddingVertical: 7,
+    paddingHorizontal: 13,
+    borderRadius: Radii.full,
+    ...Shadows.subtle,
   },
-  sectionBlock: {
-    marginTop: Spacing.lg
-  },
-  restaurantsScroll: {
-    paddingVertical: Spacing.xs,
-    gap: Spacing.md
-  },
-  restaurantMiniCard: {
-    width: 250,
-    borderRadius: Radii.xl,
-    overflow: 'hidden',
-    padding: 0
-  },
-  restaurantMiniImg: {
-    width: '100%',
-    height: 120,
-    backgroundColor: Colors.light.surfaceSubtle
-  },
-  restaurantMiniInfo: {
-    padding: Spacing.md
-  },
-  restaurantTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  restaurantName: {
-    fontSize: 15,
+  btnAddPillText: {
+    color: '#FFFFFF',
     fontWeight: '700',
-    color: Colors.light.text,
-    flex: 1,
-    marginRight: Spacing.xs
+    fontSize: 12,
   },
-  restaurantPrice: {
+  categoryScroll: {
+    paddingVertical: 2,
+    paddingBottom: Spacing.md,
+    gap: 6,
+  },
+  categoryChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: Radii.full,
+    backgroundColor: '#FAF5EE',
+    borderWidth: 1,
+    borderColor: 'rgba(43, 33, 41, 0.08)',
+  },
+  categoryChipActive: {
+    backgroundColor: '#2B2129',
+    borderColor: '#2B2129',
+  },
+  categoryChipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.light.sage
+    color: '#766B72',
   },
-  restaurantMeta: {
-    fontSize: 11.5,
-    color: Colors.light.textSecondary,
-    marginTop: 2
+  categoryChipTextActive: {
+    color: '#FFFFFF',
   },
-  restaurantNote: {
-    fontSize: 11,
-    fontStyle: 'italic',
-    color: Colors.light.textMuted,
-    marginTop: 6,
-    lineHeight: 15
+  listContainer: {
+    paddingBottom: 110,
   },
-  restaurantActions: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    marginTop: Spacing.md
+  cardsGrid: {
+    gap: Spacing.lg,
   },
-  restaurantActionBtn: {
-    flex: 1,
-    backgroundColor: Colors.light.surfaceSubtle,
-    paddingVertical: 6,
-    borderRadius: Radii.sm,
-    alignItems: 'center'
-  },
-  restaurantActionText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.light.text
-  },
-  restaurantActionSecret: {
-    backgroundColor: Colors.light.secondaryLight
-  },
-  restaurantActionSecretText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.light.secondaryDark
-  },
-  wishesGrid: {
-    gap: Spacing.md,
-    marginTop: Spacing.sm
-  },
-  wishCard: {
-    borderRadius: Radii.xl,
+  appleCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     overflow: 'hidden',
-    padding: 0
+    borderWidth: 1,
+    borderColor: 'rgba(43, 33, 41, 0.08)',
+    ...Shadows.sm,
   },
-  wishCardImage: {
+  photoWrap: {
+    position: 'relative',
     width: '100%',
     height: 180,
-    backgroundColor: Colors.light.surfaceSubtle
+    backgroundColor: '#F5EFE8',
   },
-  wishCardContent: {
-    padding: Spacing.lg
+  photoScroll: {
+    width: '100%',
+    height: 180,
   },
-  wishTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm
+  photoImg: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F5EFE8',
   },
-  wishBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    flexWrap: 'wrap',
-  },
-  authorPill: {
+  photoCountBadge: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    backgroundColor: 'rgba(43, 33, 41, 0.65)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: Radii.full,
   },
-  authorPillPartner: {
-    backgroundColor: '#FAF0F2',
+  photoCountText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  cardInner: {
+    padding: Spacing.lg,
+  },
+  cardRibbon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xs,
+  },
+  badgeCluster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  targetPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radii.full,
+  },
+  targetPillPartner: {
+    backgroundColor: '#FFF0F2',
     borderWidth: 1,
     borderColor: 'rgba(224, 86, 102, 0.25)',
   },
-  authorPillMine: {
-    backgroundColor: '#F0F6F2',
+  targetPillMine: {
+    backgroundColor: '#EFF7F2',
     borderWidth: 1,
     borderColor: 'rgba(95, 133, 117, 0.25)',
   },
-  authorPillText: {
-    fontSize: 11,
+  targetPillBoth: {
+    backgroundColor: '#F4EFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(155, 93, 229, 0.25)',
+  },
+  targetPillText: {
+    fontSize: 10.5,
     fontWeight: '700',
   },
-  authorPillTextPartner: {
+  targetPillTextPartner: {
+    color: '#C93B57',
+  },
+  targetPillTextMine: {
+    color: '#2A7B54',
+  },
+  targetPillTextBoth: {
+    color: '#7B42BC',
+  },
+  priceText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#8A6812',
+  },
+  titleText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2B2129',
+    marginTop: 4,
+    lineHeight: 21,
+  },
+  descText: {
+    fontSize: 12.5,
+    color: '#766B72',
+    marginTop: 3,
+    lineHeight: 17,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: Spacing.sm,
+  },
+  metaPill: {
+    backgroundColor: '#FAF5EE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radii.sm,
+    borderWidth: 0.5,
+    borderColor: 'rgba(43, 33, 41, 0.06)',
+  },
+  metaPillText: {
+    fontSize: 11,
+    color: '#766B72',
+    fontWeight: '500',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(43, 33, 41, 0.06)',
+  },
+  btnPrimarySurprise: {
+    flex: 1,
+    backgroundColor: '#FAF0F2',
+    borderWidth: 1,
+    borderColor: 'rgba(224, 86, 102, 0.3)',
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnPrimarySurpriseText: {
+    fontSize: 12,
+    fontWeight: '700',
     color: '#D84A65',
   },
-  authorPillTextMine: {
-    color: '#2D6A4F',
+  btnSecondaryAction: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#F5EFE8',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  fulfilledRecordBox: {
+  btnSecondaryActionText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#3A2F38',
+  },
+  btnFulfillCheck: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#EFF7F2',
+    borderWidth: 1,
+    borderColor: 'rgba(95, 133, 117, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnFulfillCheckText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#2A7B54',
+  },
+  fulfilledNoteBox: {
     backgroundColor: '#FFF8F6',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 10,
     borderWidth: 1,
     borderColor: 'rgba(224, 86, 102, 0.2)',
-    width: '100%',
+    marginTop: Spacing.sm,
   },
-  fulfilledRecordText: {
+  fulfilledNoteText: {
     fontSize: 12,
-    color: Colors.light.primary,
+    color: '#C93B57',
     fontStyle: 'italic',
     textAlign: 'center',
   },
-  wishPriceTag: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.light.text
-  },
-  wishTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.light.text,
-    lineHeight: 22
-  },
-  wishDescription: {
-    fontSize: 13,
-    color: Colors.light.textSecondary,
-    marginTop: 4,
-    lineHeight: 18
-  },
-  wishMetaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    marginTop: Spacing.md
-  },
-  wishBrandTag: {
-    fontSize: 11.5,
-    color: Colors.light.textMuted,
-    backgroundColor: Colors.light.surfaceSubtle,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radii.sm
-  },
-  wishDomainTag: {
-    fontSize: 11.5,
-    color: Colors.light.mistBlueDark,
-    backgroundColor: Colors.light.mistBlueLight,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radii.sm
-  },
-  wishOccasionTag: {
-    fontSize: 11.5,
-    color: Colors.light.butterDark,
-    backgroundColor: Colors.light.butterLight,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radii.sm
-  },
-  wishActionFooter: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.lg,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border
-  },
-  btnSurpriseTrigger: {
-    flex: 1,
-    backgroundColor: Colors.light.secondaryLight,
-    paddingVertical: 9,
-    borderRadius: Radii.md,
-    alignItems: 'center'
-  },
-  btnSurpriseTriggerText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.light.secondaryDark
-  },
-  btnFulfillTrigger: {
-    flex: 1,
-    backgroundColor: Colors.light.sageLight,
-    paddingVertical: 9,
-    borderRadius: Radii.md,
-    alignItems: 'center'
-  },
-  btnFulfillTriggerText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.light.sageDark
-  },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(43, 33, 41, 0.45)',
-    justifyContent: 'flex-end'
+    backgroundColor: 'rgba(43, 33, 41, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
   },
   modalCard: {
-    backgroundColor: Platform.OS === 'web' ? 'rgba(253, 252, 250, 0.88)' : Colors.light.surface,
-    ...(Platform.OS === 'web'
-      ? ({
-          backdropFilter: 'blur(30px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(30px) saturate(180%)',
-        } as any)
-      : {}),
-    borderTopLeftRadius: 4, // Squared corners
-    borderTopRightRadius: 4, // Squared corners
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.75)',
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
     padding: Spacing.xl,
-    maxHeight: '90%'
+    ...Shadows.lg,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.lg
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
   },
   modalTitle: {
-    fontSize: 19,
-    fontWeight: '700',
-    color: Colors.light.text
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#2B2129',
   },
   modalSubtitle: {
-    fontSize: 12,
-    color: Colors.light.textSecondary,
-    marginTop: 2
+    fontSize: 12.5,
+    color: '#766B72',
+    marginTop: 2,
   },
   modalCloseText: {
     fontSize: 18,
-    color: Colors.light.textMuted,
-    padding: Spacing.xs
+    fontWeight: '700',
+    color: '#766B72',
   },
   modalBody: {
-    marginBottom: Spacing.lg
+    marginBottom: Spacing.lg,
+  },
+  fulfillWishName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#2B2129',
+    marginBottom: Spacing.md,
+    backgroundColor: '#FAF5EE',
+    padding: 10,
+    borderRadius: 12,
   },
   inputLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    color: Colors.light.textSecondary,
-    marginBottom: 4,
-    marginTop: Spacing.sm
+    fontWeight: '700',
+    color: '#2B2129',
+    marginBottom: 6,
   },
   textInput: {
-    backgroundColor: Colors.light.surfaceSubtle,
+    backgroundColor: '#FAF8F5',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
+    borderColor: 'rgba(43, 33, 41, 0.1)',
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 14,
-    color: Colors.light.text
+    fontSize: 13,
+    color: '#2B2129',
   },
   textArea: {
-    height: 75,
-    textAlignVertical: 'top'
-  },
-  toggleAdvancedBtn: {
-    paddingVertical: Spacing.sm,
-    marginTop: Spacing.xs
-  },
-  toggleAdvancedText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.light.primary
-  },
-  advancedSection: {
-    marginTop: Spacing.xs,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border
-  },
-  choiceChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    marginBottom: Spacing.xs
-  },
-  choiceChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: Radii.full,
-    backgroundColor: Colors.light.surfaceSubtle,
-    borderWidth: 1,
-    borderColor: Colors.light.border
-  },
-  choiceChipActive: {
-    backgroundColor: Colors.light.primaryLight,
-    borderColor: Colors.light.primary
-  },
-  choiceChipText: {
-    fontSize: 11.5,
-    color: Colors.light.textSecondary
-  },
-  choiceChipTextActive: {
-    color: Colors.light.primaryDark,
-    fontWeight: '600'
-  },
-  rowTwoInputs: {
-    flexDirection: 'row',
-    marginTop: Spacing.xs
-  },
-  extractingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 6,
-    marginBottom: 4,
-    paddingHorizontal: Spacing.xs,
-  },
-  extractingText: {
-    fontSize: 12,
-    color: Colors.light.primary,
-    fontWeight: '500',
-  },
-  autocompleteBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.light.primaryLight,
-    borderWidth: 1,
-    borderColor: 'rgba(196, 112, 137, 0.25)',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: Radii.md,
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  autocompleteBadgeText: {
-    fontSize: 11.5,
-    color: Colors.light.primaryDark,
-    fontWeight: '600',
-    flex: 1,
+    height: 80,
+    textAlignVertical: 'top',
+    marginBottom: Spacing.md,
   },
   modalFooter: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: Spacing.sm
-  },
-  fulfillWishName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.light.text,
-    marginBottom: Spacing.sm
-  },
-  wishGalleryWrapper: {
-    position: 'relative',
-    width: '100%',
-    height: 200,
-    backgroundColor: Colors.light.surfaceSubtle,
-  },
-  wishCardGalleryScroll: {
-    width: '100%',
-    height: '100%',
-  },
-  wishCardGalleryImage: {
-    width: 320,
-    height: 200,
-    resizeMode: 'cover',
-  },
-  galleryCountPill: {
-    position: 'absolute',
-    bottom: Spacing.sm,
-    right: Spacing.sm,
-    backgroundColor: 'rgba(28, 25, 23, 0.75)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radii.full,
-  },
-  galleryCountText: {
-    color: '#FFF',
-    fontSize: 10.5,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  gallerySelectorSection: {
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
-  gallerySelectorHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
-  },
-  galleryHint: {
-    fontSize: 11,
-    color: Colors.light.textMuted,
-    fontStyle: 'italic',
-  },
-  galleryScroll: {
     gap: Spacing.sm,
-    paddingVertical: 4,
-    paddingHorizontal: 2,
-  },
-  galleryThumbCard: {
-    position: 'relative',
-    width: 76,
-    height: 76,
-    borderRadius: Radii.md,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    backgroundColor: Colors.light.surfaceSubtle,
-  },
-  galleryThumbCardActive: {
-    borderColor: Colors.light.primary,
-    shadowColor: Colors.light.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  galleryThumbImg: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  coverBadge: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(196, 112, 137, 0.92)',
-    paddingVertical: 2,
-    alignItems: 'center',
-  },
-  coverBadgeText: {
-    fontSize: 8.5,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.2,
-  },
-  removeThumbBtn: {
-    position: 'absolute',
-    top: 3,
-    right: 3,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    width: 17,
-    height: 17,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  removeThumbText: {
-    color: '#FFF',
-    fontSize: 9,
-    fontWeight: '700',
-    lineHeight: 11,
-  },
-  modalCategorySection: {
-    marginBottom: Spacing.md,
-  },
-  categoryChipsScroll: {
-    gap: Spacing.xs,
-    paddingVertical: 4,
-  },
-  categoryChoiceChip: {
-    paddingVertical: 7,
-    paddingHorizontal: 13,
-    borderRadius: 4, // Squared clean chip
-    backgroundColor: Colors.light.surfaceSubtle,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  categoryChoiceChipActive: {
-    backgroundColor: Colors.light.primaryLight,
-    borderColor: Colors.light.primary,
-  },
-  categoryChoiceChipText: {
-    fontSize: 12.5,
-    fontWeight: '500',
-    color: Colors.light.textSecondary,
-  },
-  categoryChoiceChipTextActive: {
-    color: Colors.light.primaryDark,
-    fontWeight: '700',
-  },
-  visitsCountBadge: {
-    backgroundColor: 'rgba(224, 86, 102, 0.08)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radii.full,
-    alignSelf: 'flex-start',
-    marginTop: 4,
-    marginBottom: 2,
-  },
-  visitsCountText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.light.primary,
-  },
-  restaurantDetailCard: {
-    maxHeight: '90%',
-    width: '92%',
-    maxWidth: 540,
-    alignSelf: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: Radii.xl,
-    ...Shadows.lg,
-  },
-  restaurantDetailGalleryWrap: {
-    position: 'relative',
-    width: '100%',
-    height: 220,
-    borderRadius: Radii.lg,
-    overflow: 'hidden',
-    marginBottom: Spacing.md,
-    backgroundColor: '#1E2430',
-  },
-  restaurantGalleryScroll: {
-    width: '100%',
-    height: '100%',
-  },
-  restaurantGalleryPhoto: {
-    width: 340,
-    height: 220,
-    resizeMode: 'cover',
-  },
-  galleryBadgeOverlay: {
-    position: 'absolute',
-    bottom: Spacing.sm,
-    right: Spacing.sm,
-    backgroundColor: 'rgba(20, 18, 16, 0.75)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: Radii.full,
-  },
-  galleryBadgeOverlayText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  restaurantDetailCoverPhoto: {
-    width: '100%',
-    height: 200,
-    borderRadius: Radii.lg,
-    resizeMode: 'cover',
-    marginBottom: Spacing.md,
-  },
-  restaurantBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
-  ratingStarsBox: {
-    backgroundColor: 'rgba(212, 175, 55, 0.12)',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: Radii.full,
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.3)',
-  },
-  ratingStarsText: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: '#8A6D1A',
-  },
-  restaurantPriceTag: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.light.textSecondary,
-    marginLeft: 'auto',
-  },
-  externalActionsRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  btnGoogleMaps: {
-    flex: 1,
-    backgroundColor: '#1A73E8',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.subtle,
-  },
-  btnGoogleMapsText: {
-    color: '#FFFFFF',
-    fontSize: 12.5,
-    fontWeight: '700',
-  },
-  btnCallPhone: {
-    flex: 1,
-    backgroundColor: '#2E7D32',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.subtle,
-  },
-  btnCallPhoneText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  addressBox: {
-    backgroundColor: Colors.light.surfaceSubtle,
-    borderRadius: Radii.md,
-    padding: Spacing.sm,
-    marginBottom: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  addressLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.light.textMuted,
-    marginBottom: 2,
-    textTransform: 'uppercase',
-  },
-  addressText: {
-    fontSize: 13,
-    color: Colors.light.text,
-    lineHeight: 18,
-  },
-  storyBox: {
-    backgroundColor: 'rgba(224, 86, 102, 0.05)',
-    borderRadius: Radii.md,
-    padding: Spacing.sm,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(224, 86, 102, 0.15)',
-  },
-  storyLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.light.primary,
-    marginBottom: 3,
-    textTransform: 'uppercase',
-  },
-  storyText: {
-    fontSize: 13,
-    color: Colors.light.text,
-    fontStyle: 'italic',
-    lineHeight: 18,
-  },
-  visitsSection: {
-    marginTop: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
-  visitsSectionTitle: {
-    fontSize: 13.5,
-    fontWeight: '700',
-    color: Colors.light.text,
-    marginBottom: Spacing.xs,
-  },
-  visitItemCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#FAF8F5',
-    borderRadius: Radii.md,
-    padding: Spacing.sm,
-    marginBottom: Spacing.xs,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.light.primary,
-  },
-  visitDateBadge: {
-    backgroundColor: Colors.light.surface,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: Radii.sm,
-    marginRight: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  visitDateBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.light.primary,
-  },
-  visitDetailsCol: {
-    flex: 1,
-  },
-  visitItemTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.light.text,
-  },
-  visitItemNote: {
-    fontSize: 12,
-    color: Colors.light.textSecondary,
-    marginTop: 2,
-    lineHeight: 16,
   },
 });

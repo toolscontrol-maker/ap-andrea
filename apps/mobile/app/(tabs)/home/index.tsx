@@ -67,7 +67,11 @@ export default function HomeScreen() {
   const daysTogether = Math.max(1, Math.floor((now.getTime() - ANNIVERSARY_DATE.getTime()) / (1000 * 60 * 60 * 24)));
 
   const nextUpcomingEvent = coupleEvents.find((e) => e.status === 'scheduled');
-  const partnerWishes = wishes.filter((w) => w.ownerUserId === partnerDevUser.id && w.status !== 'fulfilled');
+  const partnerWishes = wishes.filter(
+    (w) =>
+      w.status !== 'fulfilled' &&
+      (w.ownerUserId === partnerDevUser.id || (!w.isForSelf && w.createdByUserId === currentDevUser.id))
+  );
 
   const handleOpenSurpriseForWish = (wish: WishlistItem) => {
     triggerHaptic('medium');
