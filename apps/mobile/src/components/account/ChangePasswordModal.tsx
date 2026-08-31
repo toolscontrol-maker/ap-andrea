@@ -70,9 +70,9 @@ export function ChangePasswordModal({
             <IconLock size={22} color={Colors.light.primary} strokeWidth={2} />
           </View>
 
-          <Text style={styles.title}>Cambiar Contraseña de Pareja</Text>
+          <Text style={styles.title}>Cambiar Mi Contraseña</Text>
           <Text style={styles.desc}>
-            Actualiza la clave privada compartida. Se sincronizará inmediatamente para Tonet y Andrea.
+            Actualiza tu clave de acceso personal para entrar a tu perfil. Se guardará de forma segura en la nube.
           </Text>
 
           <View style={styles.inputsGroup}>

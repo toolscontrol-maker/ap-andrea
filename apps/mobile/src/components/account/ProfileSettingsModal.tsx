@@ -63,7 +63,6 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
     forceCloudSync,
     logout,
     currentEmail,
-    appPassword,
     changeAppPassword,
     themePalette,
     setThemePalette,
@@ -76,42 +75,35 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
   const [isChangePasswordVisible, setIsChangePasswordVisible] = useState(false);
 
   // Settings local state
-  const [biometricsEnabled, setBiometricsEnabled] = useState(true);
-  const [secretSurpriseMode, setSecretSurpriseMode] = useState(true);
   const [hapticFeedback, setHapticFeedback] = useState(true);
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(pushNotificationService.getPreferences());
   const [pushPermission, setPushPermission] = useState<string>(pushNotificationService.getPermissionStatus());
 
   // Edit photo sub-modal
   const [isPhotoModalVisible, setIsPhotoModalVisible] = useState(false);
-  const [editingUserId, setEditingUserId] = useState(currentDevUser.id);
   const [editName, setEditName] = useState(currentDevUser.name);
   const [editPhotoUrl, setEditPhotoUrl] = useState(currentDevUser.avatarPhoto || '');
 
-  const handleOpenPhotoEditor = (userId?: string) => {
+  const isTonet = activeRole === 'user1';
+  const roleLabel = isTonet ? 'Novio & Creador' : 'Novia & Amor de mi vida';
+
+  const handleOpenPhotoEditor = () => {
     triggerHaptic('selection');
-    const targetUser = userId === users.user1.id ? users.user1 : (userId === users.user2.id ? users.user2 : currentDevUser);
-    setEditingUserId(targetUser.id);
-    setEditName(targetUser.name);
-    setEditPhotoUrl(targetUser.avatarPhoto || '');
+    setEditName(currentDevUser.name);
+    setEditPhotoUrl(currentDevUser.avatarPhoto || '');
     setIsPhotoModalVisible(true);
   };
 
   const handleSavePhotoProfile = async () => {
     triggerHaptic('success');
-    const isUser1 = editingUserId === users.user1.id;
-    const finalName = editName.trim() || (isUser1 ? 'Tonet' : 'Andrea');
-    let finalPhotoUrl: string | undefined;
-    if (typeof editPhotoUrl === 'string' && editPhotoUrl.trim()) {
-      finalPhotoUrl = editPhotoUrl.trim();
-    }
-    await updateUserProfile(editingUserId, {
+    const finalName = editName.trim() || currentDevUser.name;
+    await updateUserProfile(currentDevUser.id, {
       name: finalName,
-      avatarPhoto: finalPhotoUrl,
+      avatarPhoto: editPhotoUrl || undefined,
       avatar: finalName[0].toUpperCase(),
     });
     setIsPhotoModalVisible(false);
-    Alert.alert('✨ Perfil Actualizado', `El perfil de ${finalName} se ha guardado con éxito.`);
+    Alert.alert('✨ Perfil Actualizado', `Tu perfil de ${finalName} se ha guardado con éxito.`);
   };
 
   const handleSwitchUser = () => {
@@ -185,81 +177,32 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
-            {/* 1. User Hero Profile Card with Dual Switcher */}
+            {/* 1. SINGLE ACTIVE USER PROFILE CARD */}
             <View style={styles.userHeroCard}>
-              <View style={styles.coupleHeroRow}>
-                {/* Andrea Mini Card */}
-                <TouchableOpacity
-                  style={[styles.partnerMiniCard, activeRole === 'user2' && styles.partnerMiniCardActive]}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    triggerHaptic('selection');
-                    switchRole('user2');
-                  }}
-                >
-                  <View style={styles.miniCardAvatarWrapper}>
-                    {users.user2.avatarPhoto ? (
-                      <Image source={{ uri: users.user2.avatarPhoto }} style={styles.miniCardAvatar} />
-                    ) : (
-                      <View style={[styles.miniCardAvatar, { backgroundColor: Colors.light.primary }]}>
-                        <Text style={styles.miniCardAvatarText}>{users.user2.avatar}</Text>
-                      </View>
-                    )}
-                    {activeRole === 'user2' && (
-                      <View style={styles.activePillBadge}>
-                        <Text style={styles.activePillText}>Tú</Text>
-                      </View>
-                    )}
+              <TouchableOpacity style={styles.avatarWrapper} onPress={handleOpenPhotoEditor} activeOpacity={0.85}>
+                {currentDevUser.avatarPhoto ? (
+                  <Image source={{ uri: currentDevUser.avatarPhoto }} style={styles.avatarHeroImg} />
+                ) : (
+                  <View style={[styles.avatarHeroFallback, { backgroundColor: isTonet ? '#EF826A' : Colors.light.primary }]}>
+                    <Text style={styles.avatarHeroText}>{currentDevUser.avatar}</Text>
                   </View>
-                  <Text style={styles.miniCardName}>{users.user2.name}</Text>
-                  <Text style={styles.miniCardRole}>Novia & Creadora</Text>
-                  <TouchableOpacity
-                    style={styles.editPhotoLink}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleOpenPhotoEditor(users.user2.id);
-                    }}
-                  >
-                    <Text style={styles.editPhotoLinkText}>Editar foto ›</Text>
-                  </TouchableOpacity>
-                </TouchableOpacity>
+                )}
+                <View style={styles.avatarEditBadge}>
+                  <IconCamera size={13} color="#FFFFFF" />
+                </View>
+              </TouchableOpacity>
 
-                {/* Tonet Mini Card */}
-                <TouchableOpacity
-                  style={[styles.partnerMiniCard, activeRole === 'user1' && styles.partnerMiniCardActive]}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    triggerHaptic('selection');
-                    switchRole('user1');
-                  }}
-                >
-                  <View style={styles.miniCardAvatarWrapper}>
-                    {users.user1.avatarPhoto ? (
-                      <Image source={{ uri: users.user1.avatarPhoto }} style={styles.miniCardAvatar} />
-                    ) : (
-                      <View style={[styles.miniCardAvatar, { backgroundColor: '#EF826A' }]}>
-                        <Text style={styles.miniCardAvatarText}>{users.user1.avatar}</Text>
-                      </View>
-                    )}
-                    {activeRole === 'user1' && (
-                      <View style={[styles.activePillBadge, { backgroundColor: '#EF826A' }]}>
-                        <Text style={styles.activePillText}>Tú</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={styles.miniCardName}>{users.user1.name}</Text>
-                  <Text style={styles.miniCardRole}>Novio & Compañero</Text>
-                  <TouchableOpacity
-                    style={styles.editPhotoLink}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleOpenPhotoEditor(users.user1.id);
-                    }}
-                  >
-                    <Text style={styles.editPhotoLinkText}>Editar foto ›</Text>
-                  </TouchableOpacity>
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.userNameTitle}>{currentDevUser.name}</Text>
+              <Text style={styles.userRoleSubtitle}>{roleLabel}</Text>
+              <Text style={styles.userEmailSubtitle}>{currentEmail || (isTonet ? 'hwrtseo@gmail.com' : 'andrea@amor.com')}</Text>
+
+              <TouchableOpacity
+                style={styles.editPhotoLinkBtn}
+                onPress={handleOpenPhotoEditor}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.editPhotoLinkText}>Editar mi foto y nombre ›</Text>
+              </TouchableOpacity>
             </View>
 
             {/* 2. SECCIÓN DIRECTA: CONFIGURACIÓN DE NOTIFICACIONES EN IPHONE */}
@@ -553,9 +496,9 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
                   <IconUser size={16} color="#EF826A" />
                 </View>
                 <View style={styles.rowContent}>
-                  <Text style={styles.rowTitle}>Cambiar de Cuenta</Text>
+                  <Text style={styles.rowTitle}>Cambiar a la Cuenta de {partnerDevUser.name}</Text>
                   <Text style={styles.rowSubtitle}>
-                    Alternar a {activeRole === 'user1' ? users.user2.name : users.user1.name} (actualmente {currentDevUser.name})
+                    Alternar a {partnerDevUser.name} (actualmente {currentDevUser.name})
                   </Text>
                 </View>
                 <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.light.primary }}>Cambiar</Text>
@@ -576,8 +519,8 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
                   <IconLock size={16} color="#5E9470" />
                 </View>
                 <View style={styles.rowContent}>
-                  <Text style={styles.rowTitle}>Cambiar Contraseña de Pareja</Text>
-                  <Text style={styles.rowSubtitle}>Actualizar la clave privada sincronizada</Text>
+                  <Text style={styles.rowTitle}>Cambiar Mi Contraseña de Perfil</Text>
+                  <Text style={styles.rowSubtitle}>Actualizar mi clave personal para {currentDevUser.name}</Text>
                 </View>
                 <Text style={{ fontSize: 13, fontWeight: '700', color: '#5E9470' }}>Editar 🔑</Text>
               </TouchableOpacity>
@@ -601,7 +544,7 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
                     Cerrar Sesión
                   </Text>
                   <Text style={styles.rowSubtitle}>
-                    Salir de {currentDevUser.name} ({currentEmail || 'andrea-tonet@love.app'})
+                    Salir de {currentDevUser.name} ({currentEmail || (isTonet ? 'hwrtseo@gmail.com' : 'andrea@amor.com')})
                   </Text>
                 </View>
                 <Text style={{ fontSize: 13, fontWeight: '700', color: '#D95D5D' }}>Salir</Text>
@@ -716,14 +659,14 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
             <View style={styles.modalOverlay}>
               <View style={[styles.sheetCard, { maxHeight: '85%' }]}>
                 <View style={styles.topBar}>
-                  <Text style={styles.topBarTitle}>Editar Foto y Nombre</Text>
+                  <Text style={styles.topBarTitle}>Editar Mi Foto y Nombre</Text>
                   <TouchableOpacity style={styles.closeCircle} onPress={() => setIsPhotoModalVisible(false)}>
                     <Text style={styles.closeIcon}>✕</Text>
                   </TouchableOpacity>
                 </View>
 
                 <ScrollView contentContainerStyle={styles.photoModalBody}>
-                  <Text style={styles.inputLabel}>Tu Nombre o Apodo Cariñoso</Text>
+                  <Text style={styles.inputLabel}>Tu Nombre o Apodo</Text>
                   <TextInput
                     style={styles.nameInput}
                     value={editName}
@@ -733,7 +676,7 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
                   />
 
                   <PhotoUploadField
-                    label="Fotografía del perfil"
+                    label="Mi Fotografía de perfil"
                     placeholderText="Toca para subir una foto real"
                     photoUrl={editPhotoUrl || null}
                     imageUri={editPhotoUrl || null}
@@ -744,7 +687,7 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
                   />
 
                   <TouchableOpacity style={styles.saveBtn} onPress={handleSavePhotoProfile} activeOpacity={0.85}>
-                    <Text style={styles.saveBtnText}>Guardar Perfil ✨</Text>
+                    <Text style={styles.saveBtnText}>Guardar Mi Perfil ✨</Text>
                   </TouchableOpacity>
                 </ScrollView>
               </View>
@@ -808,82 +751,76 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing['2xl'],
   },
   userHeroCard: {
-    marginBottom: Spacing.md,
-  },
-  coupleHeroRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  partnerMiniCard: {
-    flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: Radii.xl,
-    padding: Spacing.md,
+    padding: Spacing.lg,
     alignItems: 'center',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: 'rgba(58, 47, 56, 0.08)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    marginBottom: Spacing.md,
+    ...Shadows.subtle,
   },
-  partnerMiniCardActive: {
-    borderColor: Colors.light.primary,
-    backgroundColor: 'rgba(224, 86, 102, 0.03)',
-  },
-  miniCardAvatarWrapper: {
+  avatarWrapper: {
     position: 'relative',
-    marginBottom: 6,
+    marginBottom: Spacing.sm,
   },
-  miniCardAvatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+  avatarHeroImg: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+  },
+  avatarHeroFallback: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: '#FFFFFF',
   },
-  miniCardAvatarText: {
-    fontSize: 20,
+  avatarHeroText: {
+    fontSize: 32,
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  activePillBadge: {
+  avatarEditBadge: {
     position: 'absolute',
-    bottom: -4,
+    bottom: -2,
+    right: -2,
     backgroundColor: Colors.light.primary,
-    paddingHorizontal: 7,
-    paddingVertical: 1.5,
-    borderRadius: Radii.full,
+    borderRadius: 12,
+    padding: 5,
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
   },
-  activePillText: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  miniCardName: {
-    fontSize: 14.5,
-    fontWeight: '700',
+  userNameTitle: {
+    ...Typography.h2,
+    fontSize: 19,
     color: '#1E252B',
   },
-  miniCardRole: {
-    fontSize: 11,
+  userRoleSubtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#EF826A',
+    marginTop: 2,
+  },
+  userEmailSubtitle: {
+    fontSize: 11.5,
     color: '#766B72',
     marginTop: 1,
   },
-  editPhotoLink: {
-    marginTop: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2.5,
-    borderRadius: Radii.full,
+  editPhotoLinkBtn: {
+    marginTop: Spacing.sm,
     backgroundColor: 'rgba(58, 47, 56, 0.05)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: Radii.full,
   },
   editPhotoLinkText: {
-    fontSize: 10.5,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     color: Colors.light.primary,
   },
   groupCard: {

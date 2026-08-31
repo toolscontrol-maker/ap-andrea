@@ -19,10 +19,12 @@ export interface ConnectedCoupleHeartProps {
   user1Avatar?: string;
   user1PhotoUrl?: string;
   onEditAvatar1?: () => void;
+  isSelf1?: boolean;
   user2Name: string;
   user2Avatar?: string;
   user2PhotoUrl?: string;
   onEditAvatar2?: () => void;
+  isSelf2?: boolean;
   currentUserName: string;
   daysTogether: number;
   startDateFormatted?: string;
@@ -43,10 +45,12 @@ export function ConnectedCoupleHeart({
   user1Avatar = 'T',
   user1PhotoUrl,
   onEditAvatar1,
+  isSelf1 = true,
   user2Name,
   user2Avatar = 'A',
   user2PhotoUrl,
   onEditAvatar2,
+  isSelf2 = false,
   currentUserName,
   daysTogether,
   startDateFormatted = '15 de Febrero de 2025',
@@ -365,9 +369,13 @@ export function ConnectedCoupleHeart({
             </View>
           )}
           <View style={styles.presenceBeacon} />
-          {Boolean(onEditAvatar1) && (
+          {isSelf1 ? (
             <View style={styles.editCameraBadge}>
               <IconCamera size={10} color="#FFFFFF" />
+            </View>
+          ) : (
+            <View style={[styles.editCameraBadge, { backgroundColor: '#EF826A' }]}>
+              <Text style={{ fontSize: 9 }}>💖</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -477,6 +485,16 @@ export function ConnectedCoupleHeart({
           ) : (
             <View style={[styles.avatarFallback, { backgroundColor: Colors.light.secondary }]}>
               <Text style={styles.avatarFallbackText}>{user2Avatar}</Text>
+            </View>
+          )}
+          <View style={styles.presenceBeacon} />
+          {isSelf2 ? (
+            <View style={styles.editCameraBadge}>
+              <IconCamera size={10} color="#FFFFFF" />
+            </View>
+          ) : (
+            <View style={[styles.editCameraBadge, { backgroundColor: '#EF826A' }]}>
+              <Text style={{ fontSize: 9 }}>💖</Text>
             </View>
           )}
           <View style={[styles.presenceBeacon, { backgroundColor: '#E05666' }]} />

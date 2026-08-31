@@ -21,7 +21,7 @@ const PRIVATE_ACCESS_KEY = '611171571';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { loginWithEmail, appPassword } = useDev();
+  const { loginWithEmail, getUserPassword } = useDev();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -41,15 +41,15 @@ export default function LoginScreen() {
 
     if (!targetPassword) {
       triggerHaptic('warning');
-      setErrorMessage('Introduce la contraseña privada de la app.');
+      setErrorMessage('Introduce la contraseña de tu perfil.');
       return;
     }
 
-    // Validación estricta de contraseña privada sincronizada (con fallback)
-    const validKey = appPassword || PRIVATE_ACCESS_KEY;
+    // Validación estricta de contraseña personal del perfil (con fallback)
+    const validKey = getUserPassword(targetEmail) || PRIVATE_ACCESS_KEY;
     if (targetPassword !== validKey && targetPassword !== PRIVATE_ACCESS_KEY) {
       triggerHaptic('warning');
-      setErrorMessage('Contraseña incorrecta. Introduce la clave privada correcta.');
+      setErrorMessage('Contraseña incorrecta. Introduce la clave de tu perfil.');
       return;
     }
 

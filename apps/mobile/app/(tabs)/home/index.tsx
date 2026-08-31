@@ -35,6 +35,7 @@ import { DailyRitualType, WishlistItem } from '@andrea/types';
 import { triggerHaptic } from '../../../src/utils/haptics';
 import { CreateSurpriseFlow } from '../../../src/features/calendar/components/CreateSurpriseFlow';
 import { SurpriseCreationPayload } from '../../../src/features/calendar/domain/calendar.types';
+import { PartnerProfileModal } from '../../../src/components/partner/PartnerProfileModal';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -65,6 +66,7 @@ export default function HomeScreen() {
   const [selectedFeeling, setSelectedFeeling] = useState<string | null>(null);
   const [surpriseWishTarget, setSurpriseWishTarget] = useState<WishlistItem | null>(null);
   const [isSurpriseFlowOpen, setIsSurpriseFlowOpen] = useState(false);
+  const [isPartnerProfileOpen, setIsPartnerProfileOpen] = useState(false);
 
   // Dynamic days calculation from 15 Feb 2025
   const ANNIVERSARY_DATE = new Date('2025-02-15');
@@ -254,11 +256,27 @@ export default function HomeScreen() {
           user1Name={users?.user1?.name || 'Tonet'}
           user1Avatar={users?.user1?.avatar || 'T'}
           user1PhotoUrl={users?.user1?.avatarPhoto}
-          onEditAvatar1={() => router.push('/(tabs)/account')}
+          isSelf1={isUser1}
+          onEditAvatar1={() => {
+            if (isUser1) {
+              router.push('/(tabs)/account');
+            } else {
+              triggerHaptic('selection');
+              setIsPartnerProfileOpen(true);
+            }
+          }}
           user2Name={users?.user2?.name || 'Andrea'}
           user2Avatar={users?.user2?.avatar || 'A'}
           user2PhotoUrl={users?.user2?.avatarPhoto}
-          onEditAvatar2={() => router.push('/(tabs)/account')}
+          isSelf2={!isUser1}
+          onEditAvatar2={() => {
+            if (!isUser1) {
+              router.push('/(tabs)/account');
+            } else {
+              triggerHaptic('selection');
+              setIsPartnerProfileOpen(true);
+            }
+          }}
           currentUserName={currentDevUser.name}
           daysTogether={daysTogether}
           startDateFormatted="15 de Febrero de 2025"
@@ -692,6 +710,20 @@ export default function HomeScreen() {
             ? `Enlace del deseo: ${surpriseWishTarget.sourceUrl}`
             : undefined
         }
+      />
+
+      {/* ── PARTNER PROFILE & PHOTO SUGGESTION MODAL ── */}
+      <PartnerProfileModal
+        visible={isPartnerProfileOpen}
+        onClose={() => setIsPartnerProfileOpen(false)}
+        onOpenSurpriseModal={(wishId) => {
+          if (wishId) {
+            const target = wishes.find(w => w.id === wishId);
+            if (target) handleOpenSurpriseForWish(target);
+          } else {
+            setIsSurpriseFlowOpen(true);
+          }
+        }}
       />
     </ScreenWrapper>
   );

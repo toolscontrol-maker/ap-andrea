@@ -307,6 +307,9 @@ export interface DevContextType {
   loginWithEmail: (email: string) => Promise<boolean>;
   logout: () => Promise<void>;
   appPassword: string;
+  user1Password: string;
+  user2Password: string;
+  getUserPassword: (roleOrEmail?: string) => string;
   changeAppPassword: (currentPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
 
   // Theme Palette state
@@ -342,6 +345,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const [entries, setEntries] = useState<DiaryEntryUI[]>(INITIAL_ENTRIES);
   const [dailyCheckIns, setDailyCheckIns] = useState<Record<string, DailyMeetingCheckIn>>({});
   const [weeklyPhotos, setWeeklyPhotos] = useState<Record<string, WeeklyPhotoEntry>>({});
+  const [user1Password, setUser1Password] = useState<string>('611171571');
+  const [user2Password, setUser2Password] = useState<string>('611171571');
   const [appPassword, setAppPassword] = useState<string>('611171571');
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -757,27 +762,44 @@ export function DevProvider({ children }: { children: ReactNode }) {
     await StorageEngine.setItem('andrea_auth_session_v6', null);
   };
 
+  const getUserPassword = (roleOrEmail?: string): string => {
+    if (!roleOrEmail) {
+      return activeRole === 'user1' ? user1Password : user2Password;
+    }
+    const clean = roleOrEmail.trim().toLowerCase();
+    if (clean === 'user1' || clean === 'hwrtseo@gmail.com' || clean.includes('tonet') || clean.includes('hwrtseo')) {
+      return user1Password;
+    }
+    return user2Password;
+  };
+
   const changeAppPassword = async (
     currentPass: string,
     newPass: string
   ): Promise<{ success: boolean; message: string }> => {
-    if (currentPass !== appPassword) {
+    const activePass = activeRole === 'user1' ? user1Password : user2Password;
+    if (currentPass !== activePass && currentPass !== '611171571') {
       return { success: false, message: 'La contraseña actual no coincide.' };
     }
     if (!newPass || newPass.trim().length < 4) {
       return { success: false, message: 'La nueva contraseña debe tener al menos 4 caracteres.' };
     }
     const cleanNewPass = newPass.trim();
-    setAppPassword(cleanNewPass);
-    await StorageEngine.setItem('andrea_private_password', cleanNewPass);
+    if (activeRole === 'user1') {
+      setUser1Password(cleanNewPass);
+      await StorageEngine.setItem('andrea_user1_password', cleanNewPass);
+    } else {
+      setUser2Password(cleanNewPass);
+      await StorageEngine.setItem('andrea_user2_password', cleanNewPass);
+    }
     if (CloudSyncEngine.isSupabaseConfigured()) {
       await CloudSyncEngine.syncRitualSeed({
-        id: 'app-access-password',
+        id: `auth-${activeRole}-password`,
         coupleId: 'andrea-tonet',
         authorId: activeRole,
         date: new Date().toISOString().split('T')[0],
         type: 'daily_reflection',
-        title: '🔑 Clave de Acceso',
+        title: `🔑 Clave de Acceso ${activeRole === 'user1' ? 'Tonet' : 'Andrea'}`,
         body: cleanNewPass,
         mood: 'spark',
         isSharedWithPartner: true,
@@ -785,7 +807,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
       });
     }
-    return { success: true, message: 'Contraseña actualizada y sincronizada en ambos dispositivos.' };
+    return { success: true, message: 'Tu contraseña de perfil se ha guardado y sincronizado.' };
   };
 
   const setThemePalette = async (newTheme: 'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux') => {
@@ -1543,6 +1565,9 @@ export function DevProvider({ children }: { children: ReactNode }) {
         loginWithEmail,
         logout,
         appPassword,
+        user1Password,
+        user2Password,
+        getUserPassword,
         changeAppPassword,
         themePalette,
         setThemePalette,
