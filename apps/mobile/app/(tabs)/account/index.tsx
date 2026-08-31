@@ -50,6 +50,7 @@ import { FeedbackRecommendationsSubpage } from '../../../src/components/account/
 import { SecurityDataSubpage } from '../../../src/components/account/SecurityDataSubpage';
 import { CoupleMilestonesModal } from '../../../src/components/account/CoupleMilestonesModal';
 import { LogoutConfirmModal } from '../../../src/components/account/LogoutConfirmModal';
+import { ChangePasswordModal } from '../../../src/components/account/ChangePasswordModal';
 import { SettingsSubpageContainer } from '../../../src/components/account/SettingsSubpageContainer';
 
 export default function AccountScreen() {
@@ -72,6 +73,8 @@ export default function AccountScreen() {
     forceCloudSync,
     logout,
     currentEmail,
+    appPassword,
+    changeAppPassword,
     themePalette,
     setThemePalette,
     isDemoModeEnabled,
@@ -84,6 +87,7 @@ export default function AccountScreen() {
   // Subpage navigation state
   const [activeSubpage, setActiveSubpage] = useState<'appearance' | 'notifications' | 'milestones' | 'feedback' | 'security' | null>(null);
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+  const [isChangePasswordVisible, setIsChangePasswordVisible] = useState(false);
 
   // Settings local state
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
@@ -92,6 +96,7 @@ export default function AccountScreen() {
   const [romanticReminders, setRomanticReminders] = useState(true);
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(pushNotificationService.getPreferences());
   const [pushPermission, setPushPermission] = useState<string>(pushNotificationService.getPermissionStatus());
+  const [reminderTime, setReminderTime] = useState<'20:00' | '21:00' | '22:00' | '23:00'>('21:00');
 
   // Profile edit modal state
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -104,14 +109,39 @@ export default function AccountScreen() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importJsonText, setImportJsonText] = useState('');
 
-  // Anniversary & milestones calculation
-  const ANNIVERSARY_DATE = new Date('2025-02-15');
-  const FIRST_MET_DATE = new Date('2024-11-23');
-  const FIRST_KISS_DATE = new Date('2024-12-08');
-  const now = new Date();
-  const diffDays = Math.max(1, Math.floor((now.getTime() - ANNIVERSARY_DATE.getTime()) / (1000 * 60 * 60 * 24)));
-  const daysSinceMet = Math.max(1, Math.floor((now.getTime() - FIRST_MET_DATE.getTime()) / (1000 * 60 * 60 * 24)));
-  const daysSinceKiss = Math.max(1, Math.floor((now.getTime() - FIRST_KISS_DATE.getTime()) / (1000 * 60 * 60 * 24)));
+  // Notifications handlers
+  const handleTogglePushMaster = async () => {
+    triggerHaptic('selection');
+    if (pushPermission !== 'granted') {
+      const granted = await pushNotificationService.requestPermission();
+      setPushPermission(pushNotificationService.getPermissionStatus());
+      if (granted) {
+        const updated = await pushNotificationService.savePreferences({ enabled: true });
+        setNotificationPrefs(updated);
+        Alert.alert('🔔 ¡Notificaciones Activadas!', 'Tu iPhone está listo para recibir avisos de amor en tiempo real.');
+      } else {
+        Alert.alert(
+          'Permiso de Notificación',
+          'Para recibir notificaciones en iPhone: Abre la web en Safari, pulsa Compartir (⬆️) y "Añadir a pantalla de inicio". Luego ábrela y pulsa Permitir.'
+        );
+      }
+    } else {
+      const updated = await pushNotificationService.savePreferences({ enabled: !notificationPrefs.enabled });
+      setNotificationPrefs(updated);
+    }
+  };
+
+  const handleToggleCategory = async (key: keyof Omit<NotificationPreferences, 'enabled'>) => {
+    triggerHaptic('selection');
+    const updated = await pushNotificationService.savePreferences({ [key]: !notificationPrefs[key] });
+    setNotificationPrefs(updated);
+  };
+
+  const handleTestNotification = async () => {
+    triggerHaptic('medium');
+    await pushNotificationService.triggerTestNotification();
+    Alert.alert('💓 Notificación de Prueba', 'Se ha enviado un aviso de prueba a tu iPhone.');
+  };
 
   const handleOpenEditProfile = (userId: string) => {
     triggerHaptic('selection');
@@ -180,7 +210,7 @@ export default function AccountScreen() {
             <Text style={styles.eyebrow}>ESPACIO PRIVADO</Text>
             <CloudSyncStatusBadge isConnected={isCloudConnected} statusText={cloudSyncStatus} />
           </View>
-          <Text style={styles.screenTitle}>Ajustes & Personalización</Text>
+          <Text style={styles.screenTitle}>Ajustes & Perfil</Text>
           <Text style={styles.screenSubtitle}>
             Configura el look, las notificaciones y los detalles íntimos de {users.user2.name} & {users.user1.name}
           </Text>
@@ -261,10 +291,197 @@ export default function AccountScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── 2. MAIN SETTINGS INSET GROUP: EXPERIENCIA & PERSONALIZACIÓN ── */}
+        {/* ── 2. SECCIÓN DIRECTA: CONFIGURACIÓN DE NOTIFICACIONES EN IPHONE ── */}
+        <SectionHeader
+          title="Notificaciones & Avisos en iPhone"
+          subtitle="Configura qué alertas quieres recibir y prueba el sonido"
+        />
+        <View style={styles.settingsGroupCard}>
+          {/* Master Push Switch */}
+          <View style={styles.settingRow}>
+            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(224, 86, 102, 0.12)' }]}>
+              <IconBell size={16} color={Colors.light.primary} />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Notificaciones Push en iPhone</Text>
+              <Text style={styles.settingDesc}>
+                {pushPermission === 'granted'
+                  ? (notificationPrefs.enabled
+                      ? '🟢 Avisos activados en este dispositivo'
+                      : '⏸️ Notificaciones en pausa')
+                  : '🔔 Toca para autorizar los avisos en iOS'}
+              </Text>
+            </View>
+            <Switch
+              value={notificationPrefs.enabled && pushPermission === 'granted'}
+              onValueChange={handleTogglePushMaster}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          {/* Test Action */}
+          <View style={styles.settingDivider} />
+          <TouchableOpacity
+            style={[styles.settingRow, { paddingVertical: 12 }]}
+            activeOpacity={0.7}
+            onPress={handleTestNotification}
+          >
+            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(239, 130, 106, 0.12)' }]}>
+              <IconHeart size={16} color="#EF826A" />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={[styles.settingTitle, { color: Colors.light.primary }]}>Probar Notificación en iPhone</Text>
+              <Text style={styles.settingDesc}>Envía un aviso de prueba instantáneo para comprobar sonido y banner</Text>
+            </View>
+            <Text style={[styles.settingActionText, { color: Colors.light.primary }]}>Probar 💓</Text>
+          </TouchableOpacity>
+
+          <View style={styles.settingDivider} />
+
+          {/* Category: Hearts */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingIconContainer}>
+              <Text style={{ fontSize: 14 }}>💓</Text>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Latidos y Toques de Amor</Text>
+              <Text style={styles.settingDesc}>Avisar cuando tu pareja pulse el corazón del Nido</Text>
+            </View>
+            <Switch
+              value={notificationPrefs.hearts}
+              onValueChange={() => handleToggleCategory('hearts')}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingDivider} />
+
+          {/* Category: Wishes */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingIconContainer}>
+              <Text style={{ fontSize: 14 }}>🎁</Text>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Nuevos Deseos e Ilusiones</Text>
+              <Text style={styles.settingDesc}>Avisar cuando tu pareja añada un nuevo deseo a la lista</Text>
+            </View>
+            <Switch
+              value={notificationPrefs.wishes}
+              onValueChange={() => handleToggleCategory('wishes')}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingDivider} />
+
+          {/* Category: Surprises */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingIconContainer}>
+              <Text style={{ fontSize: 14 }}>🤫</Text>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Sorpresas y Planes Secretos</Text>
+              <Text style={styles.settingDesc}>Aviso de misterio cuando hay algo en preparación (sin spoilers)</Text>
+            </View>
+            <Switch
+              value={notificationPrefs.surprises}
+              onValueChange={() => handleToggleCategory('surprises')}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingDivider} />
+
+          {/* Category: Daily Check-in */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingIconContainer}>
+              <Text style={{ fontSize: 14 }}>🖤</Text>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Check-in Diario de Encuentro</Text>
+              <Text style={styles.settingDesc}>Avisar cuando tu pareja responda a la pregunta diaria</Text>
+            </View>
+            <Switch
+              value={notificationPrefs.daily_checkin}
+              onValueChange={() => handleToggleCategory('daily_checkin')}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingDivider} />
+
+          {/* Category: Weekly Album */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingIconContainer}>
+              <Text style={{ fontSize: 14 }}>📸</Text>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Álbum Semanal de Fotos</Text>
+              <Text style={styles.settingDesc}>Avisar cuando se suban las fotos juntos o individuales</Text>
+            </View>
+            <Switch
+              value={notificationPrefs.weekly_album}
+              onValueChange={() => handleToggleCategory('weekly_album')}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingDivider} />
+
+          {/* Category: Calendar */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingIconContainer}>
+              <Text style={{ fontSize: 14 }}>🗓️</Text>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Citas y Fechas Especiales</Text>
+              <Text style={styles.settingDesc}>Recordatorios de cenas, aniversarios y momentos agendados</Text>
+            </View>
+            <Switch
+              value={notificationPrefs.calendar}
+              onValueChange={() => handleToggleCategory('calendar')}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+        </View>
+
+        {/* IPHONE INSTALLATION BANNER */}
+        <View
+          style={{
+            backgroundColor: 'rgba(224, 86, 102, 0.05)',
+            borderRadius: Radii.xl,
+            padding: Spacing.lg,
+            marginBottom: Spacing.lg,
+            borderWidth: 1,
+            borderColor: 'rgba(224, 86, 102, 0.15)',
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+            <Text style={{ fontSize: 16, marginRight: 8 }}>📱</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: Colors.light.text, fontFamily: 'Inter, sans-serif' }}>
+              Cómo recibir Notificaciones en tu iPhone
+            </Text>
+          </View>
+          <Text style={{ fontSize: 13, color: Colors.light.textSecondary, lineHeight: 18, fontFamily: 'Inter, sans-serif' }}>
+            1. Abre <Text style={{ fontWeight: '700' }}>ap-andrea.vercel.app</Text> en Safari de tu iPhone.{'
+'}
+            2. Pulsa el botón <Text style={{ fontWeight: '700' }}>Compartir (⬆️)</Text> y elige <Text style={{ fontWeight: '700' }}>"Añadir a pantalla de inicio"</Text>.{'
+'}
+            3. Abre el icono desde tu pantalla de inicio y pulsa <Text style={{ fontWeight: '700' }}>"Permitir"</Text> cuando te solicite notificaciones.
+          </Text>
+        </View>
+
+        {/* ── 3. PERSONALIZACIÓN & SUBPÁGINAS ── */}
         <SectionHeader
           title="Personalización & Experiencia"
-          subtitle="Ajusta cada rincón a vuestro estilo de pareja"
+          subtitle="Temas de diseño, hitos y sugerencias"
         />
         <View style={styles.settingsGroupCard}>
           {/* 1. Look & Appearance */}
@@ -288,30 +505,7 @@ export default function AccountScreen() {
 
           <View style={styles.settingDivider} />
 
-          {/* 2. Notifications Center */}
-          <TouchableOpacity
-            style={styles.navRow}
-            activeOpacity={0.7}
-            onPress={() => {
-              triggerHaptic('selection');
-              setActiveSubpage('notifications');
-            }}
-          >
-            <View style={[styles.navIconBox, { backgroundColor: 'rgba(224, 86, 102, 0.12)' }]}>
-              <Text style={{ fontSize: 16 }}>🔔</Text>
-            </View>
-            <View style={styles.navTextCol}>
-              <Text style={styles.navTitle}>Centro de Notificaciones en iPhone</Text>
-              <Text style={styles.navSubtitle}>
-                {pushPermission === 'granted' ? '🟢 Activadas' : '🔔 Configurar'} · Latidos, deseos, sorpresas y check-in
-              </Text>
-            </View>
-            <Text style={styles.chevronText}>›</Text>
-          </TouchableOpacity>
-
-          <View style={styles.settingDivider} />
-
-          {/* 3. Milestones & Dates */}
+          {/* 2. Milestones & Dates */}
           <TouchableOpacity
             style={styles.navRow}
             activeOpacity={0.7}
@@ -332,7 +526,7 @@ export default function AccountScreen() {
 
           <View style={styles.settingDivider} />
 
-          {/* 4. Feedback & Recommendations */}
+          {/* 3. Feedback & Recommendations */}
           <TouchableOpacity
             style={styles.navRow}
             activeOpacity={0.7}
@@ -350,15 +544,10 @@ export default function AccountScreen() {
             </View>
             <Text style={styles.chevronText}>›</Text>
           </TouchableOpacity>
-        </View>
 
-        {/* ── 3. SEGURIDAD & DATOS EN LA NUBE ── */}
-        <SectionHeader
-          title="Seguridad, Nube & Privacidad"
-          subtitle="Sincronización segura con Supabase Cloud"
-        />
-        <View style={styles.settingsGroupCard}>
-          {/* Security & Backup Subpage */}
+          <View style={styles.settingDivider} />
+
+          {/* 4. Security Subpage */}
           <TouchableOpacity
             style={styles.navRow}
             activeOpacity={0.7}
@@ -378,44 +567,6 @@ export default function AccountScreen() {
             </View>
             <Text style={styles.chevronText}>›</Text>
           </TouchableOpacity>
-
-          <View style={styles.settingDivider} />
-
-          {/* Face ID / Biometrics */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingIconContainer}>
-              <IconLock size={16} color={Colors.light.primary} />
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Bloqueo con Face ID / Huella</Text>
-              <Text style={styles.settingDesc}>Solicitar autenticación al abrir la app</Text>
-            </View>
-            <Switch
-              value={biometricsEnabled}
-              onValueChange={handleToggleBiometrics}
-              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          <View style={styles.settingDivider} />
-
-          {/* Blinded Surprises Mode */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingIconContainer}>
-              <IconSparkles size={16} color={Colors.light.primary} />
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Modo Sorpresas Blindadas</Text>
-              <Text style={styles.settingDesc}>Ocultar nombres y detalles en las alertas</Text>
-            </View>
-            <Switch
-              value={secretSurpriseMode}
-              onValueChange={handleToggleSurpriseMode}
-              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
 
           <View style={styles.settingDivider} />
 
@@ -440,12 +591,62 @@ export default function AccountScreen() {
           </View>
         </View>
 
-        {/* ── 4. CERRAR SESIÓN & CUENTA ── */}
+        {/* ── 4. ABAJO DEL TODO: CUENTA, ACCESO & SEGURIDAD ── */}
         <SectionHeader
-          title="Gestión de Cuenta"
-          subtitle="Sesión activa y salida segura"
+          title="Cuenta, Acceso & Seguridad"
+          subtitle="Cambiar de perfil, actualizar contraseña y cerrar sesión"
         />
         <View style={styles.settingsGroupCard}>
+          {/* Switch Profile Action */}
+          <TouchableOpacity
+            style={styles.settingRow}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerHaptic('selection');
+              const nextRole = activeRole === 'user1' ? 'user2' : 'user1';
+              switchRole(nextRole);
+              Alert.alert(
+                '🔄 Perfil Cambiado',
+                `Ahora estás usando la aplicación como ${nextRole === 'user1' ? users.user1.name : users.user2.name}.`
+              );
+            }}
+          >
+            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(239, 130, 106, 0.12)' }]}>
+              <IconUser size={16} color="#EF826A" />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Cambiar de Cuenta</Text>
+              <Text style={styles.settingDesc}>
+                Alternar a {activeRole === 'user1' ? users.user2.name : users.user1.name} (actualmente {currentDevUser.name})
+              </Text>
+            </View>
+            <Text style={styles.settingActionText}>Cambiar</Text>
+          </TouchableOpacity>
+
+          <View style={styles.settingDivider} />
+
+          {/* Change Password Action */}
+          <TouchableOpacity
+            style={styles.settingRow}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerHaptic('selection');
+              setIsChangePasswordVisible(true);
+            }}
+          >
+            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(94, 148, 112, 0.12)' }]}>
+              <IconLock size={16} color="#5E9470" />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Cambiar Contraseña de Pareja</Text>
+              <Text style={styles.settingDesc}>Actualizar la clave privada compartida para entrar a la app</Text>
+            </View>
+            <Text style={[styles.settingActionText, { color: '#5E9470' }]}>Editar 🔑</Text>
+          </TouchableOpacity>
+
+          <View style={styles.settingDivider} />
+
+          {/* Logout Action */}
           <TouchableOpacity
             style={[styles.settingRow, { paddingVertical: 14 }]}
             activeOpacity={0.7}
@@ -462,7 +663,7 @@ export default function AccountScreen() {
                 Cerrar Sesión
               </Text>
               <Text style={styles.settingDesc}>
-                Sesión actual: {currentDevUser.name} ({currentEmail || 'andrea-tonet@love.app'})
+                Salir de {currentDevUser.name} ({currentEmail || 'andrea-tonet@love.app'})
               </Text>
             </View>
             <Text style={[styles.settingActionText, { color: '#D95D5D' }]}>Salir</Text>
@@ -471,7 +672,7 @@ export default function AccountScreen() {
 
         <View style={styles.footerNote}>
           <Text style={styles.footerNoteText}>Andrea & Tonet · Nido de Amor</Text>
-          <Text style={styles.footerNoteSub}>Versión 1.2 · Creado con amor</Text>
+          <Text style={styles.footerNoteSub}>Versión 1.3 · Protegido y Cifrado</Text>
         </View>
       </ScrollView>
 
@@ -552,7 +753,14 @@ export default function AccountScreen() {
         />
       </SettingsSubpageContainer>
 
-      {/* 6. Logout Confirmation Modal */}
+      {/* 6. Change Password Modal */}
+      <ChangePasswordModal
+        visible={isChangePasswordVisible}
+        onClose={() => setIsChangePasswordVisible(false)}
+        onChangePassword={changeAppPassword}
+      />
+
+      {/* 7. Logout Confirmation Modal */}
       <LogoutConfirmModal
         visible={isLogoutModalVisible}
         onClose={() => setIsLogoutModalVisible(false)}
@@ -563,7 +771,7 @@ export default function AccountScreen() {
         userName={currentDevUser.name}
       />
 
-      {/* 7. Edit Profile Modal */}
+      {/* 8. Edit Profile Modal */}
       <Modal visible={isEditModalVisible} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
@@ -611,7 +819,7 @@ export default function AccountScreen() {
         </View>
       </Modal>
 
-      {/* 8. Privacy Notice Modal */}
+      {/* 9. Privacy Notice Modal */}
       <PrivacyBetaNotice
         visible={isPrivacyNoticeOpen}
         onClose={() => setIsPrivacyNoticeOpen(false)}

@@ -306,6 +306,8 @@ export interface DevContextType {
   currentEmail: string | null;
   loginWithEmail: (email: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  appPassword: string;
+  changeAppPassword: (currentPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
 
   // Theme Palette state
   themePalette: 'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux';
@@ -340,6 +342,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const [entries, setEntries] = useState<DiaryEntryUI[]>(INITIAL_ENTRIES);
   const [dailyCheckIns, setDailyCheckIns] = useState<Record<string, DailyMeetingCheckIn>>({});
   const [weeklyPhotos, setWeeklyPhotos] = useState<Record<string, WeeklyPhotoEntry>>({});
+  const [appPassword, setAppPassword] = useState<string>('611171571');
   const [isLoaded, setIsLoaded] = useState(false);
 
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(CloudSyncEngine.getIsConnected());
@@ -752,6 +755,37 @@ export function DevProvider({ children }: { children: ReactNode }) {
     await StorageEngine.setItem(AUTH_SESSION_KEY, null);
     await StorageEngine.setItem('andrea_auth_session_v5', null);
     await StorageEngine.setItem('andrea_auth_session_v6', null);
+  };
+
+  const changeAppPassword = async (
+    currentPass: string,
+    newPass: string
+  ): Promise<{ success: boolean; message: string }> => {
+    if (currentPass !== appPassword) {
+      return { success: false, message: 'La contraseña actual no coincide.' };
+    }
+    if (!newPass || newPass.trim().length < 4) {
+      return { success: false, message: 'La nueva contraseña debe tener al menos 4 caracteres.' };
+    }
+    const cleanNewPass = newPass.trim();
+    setAppPassword(cleanNewPass);
+    await StorageEngine.setItem('andrea_private_password', cleanNewPass);
+    if (CloudSyncEngine.isSupabaseConfigured()) {
+      await CloudSyncEngine.syncRitualSeed({
+        id: 'app-access-password',
+        coupleId: 'andrea-tonet',
+        authorId: activeRole,
+        date: new Date().toISOString().split('T')[0],
+        type: 'daily_reflection',
+        title: '🔑 Clave de Acceso',
+        body: cleanNewPass,
+        mood: 'spark',
+        isSharedWithPartner: true,
+        partnerResponded: true,
+        createdAt: new Date().toISOString(),
+      });
+    }
+    return { success: true, message: 'Contraseña actualizada y sincronizada en ambos dispositivos.' };
   };
 
   const setThemePalette = async (newTheme: 'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux') => {
@@ -1508,6 +1542,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
         currentEmail,
         loginWithEmail,
         logout,
+        appPassword,
+        changeAppPassword,
         themePalette,
         setThemePalette,
         activeRole,
