@@ -1,9 +1,11 @@
 export type MapPlaceType =
-  | 'memory'        // Recuerdo especial
-  | 'restaurant'    // Restaurante / Cafetería
-  | 'stage'         // Etapa (Canet, Comte del Real)
-  | 'date'          // Cita con 1 o 2 destinos
-  | 'trip'          // Viaje fuera de España / Escapada
+  | 'memory'        // Recuerdo especial / Rincón familiar
+  | 'restaurant'    // Restaurante / Gastronomía
+  | 'stage'         // Etapa de vida (Canet, Comte del Real)
+  | 'date'          // Cita romántica
+  | 'getaway'       // Escapada de fin de semana
+  | 'trip'          // Gran Viaje
+  | 'hotel'         // Alojamiento / Hotel / Airbnb
   | 'future_place'  // Sueño futuro
   | 'surprise'      // Sorpresa
   | 'important_date';
@@ -69,22 +71,24 @@ export interface AndreaMapPlace {
   endDate?: string;
   isOngoing?: boolean;
   stageSummary?: string;
+  linkedPlaceIds?: string[];
 
   // ── Recuerdo ──
   hasDateRange?: boolean;
   dateRangeEnd?: string;
   emotionTag?: string;
 
-  // ── Cita ──
+  // ── Cita / Escapada / Hotel / Restaurante ──
   invitedBy?: 'tonet' | 'andrea' | 'both';
   destination1?: string;
   destination2?: string;
   restaurantId?: string;
 
-  // ── Viaje ──
+  // ── Viaje / Escapada ──
   accommodation?: string;
   tripDurationDays?: number;
   visitedPlaces?: string[];
+  parentExperienceId?: string;
 }
 
 export interface MapBounds {

@@ -20,6 +20,7 @@ interface MapBottomSheetProps {
   onClose: () => void;
   onViewDetail?: (place: AndreaMapPlace) => void;
   onEditLocation?: (place: AndreaMapPlace) => void;
+  onConvertToStage?: (place: AndreaMapPlace) => void;
   onOpenGallery?: (place: AndreaMapPlace) => void;
   onSelectPlaceFromGroup?: (place: AndreaMapPlace) => void;
 }
@@ -30,6 +31,7 @@ export function MapBottomSheet({
   onClose,
   onViewDetail,
   onEditLocation,
+  onConvertToStage,
   onOpenGallery,
   onSelectPlaceFromGroup,
 }: MapBottomSheetProps) {
@@ -70,9 +72,12 @@ export function MapBottomSheet({
               const isRest = item.type === 'restaurant';
               const isStage = item.type === 'stage';
               const isDate = item.type === 'date';
+              const isGetaway = item.type === 'getaway';
 
               const accentColor = isStage
                 ? '#5B7A62'
+                : isGetaway
+                ? '#2B72A8'
                 : isMemory
                 ? '#E05666'
                 : isRest
@@ -99,6 +104,8 @@ export function MapBottomSheet({
                   <View style={[styles.groupItemIconBox, { backgroundColor: accentColor + '18' }]}>
                     {isStage ? (
                       <Text style={{ fontSize: 13 }}>🏡</Text>
+                    ) : isGetaway ? (
+                      <Text style={{ fontSize: 13 }}>🚗</Text>
                     ) : isMemory ? (
                       <IconHeart size={14} color={accentColor} strokeWidth={2.2} />
                     ) : isRest ? (
@@ -137,16 +144,23 @@ export function MapBottomSheet({
   ).filter(Boolean).length;
 
   const getTypeBadge = () => {
-    const isHotel = (place.type as string) === 'hotel' || (place.type === 'trip' && place.accommodation && !place.tripDurationDays);
+    const isHotel = (place.type as string) === 'hotel';
     return (
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
         {place.type === 'stage' && <Badge variant="neutral">🏡 Etapa</Badge>}
-        {place.type === 'trip' && !isHotel && <Badge variant="secondary">✈️ Viaje</Badge>}
+        {place.type === 'getaway' && <Badge variant="mistBlue">🚗 Escapada</Badge>}
+        {place.type === 'trip' && <Badge variant="secondary">✈️ Gran Viaje</Badge>}
         {place.type === 'date' && <Badge variant="butter">🥂 Cita</Badge>}
         {place.type === 'restaurant' && <Badge variant="butter">🍽️ Restaurante</Badge>}
         {isHotel && <Badge variant="secondary">🏨 Hotel / Airbnb</Badge>}
         {place.type === 'memory' && <Badge variant="primary">📍 Rincón Familiar</Badge>}
         {place.type === 'future_place' && <Badge variant="mistBlue">✨ Futuro Deseo</Badge>}
+
+        {place.invitedBy && (
+          <Badge variant="neutral">
+            Invitó: {place.invitedBy === 'tonet' ? 'Tonet ❤️' : place.invitedBy === 'andrea' ? 'Andrea 💖' : 'Ambos ✨'}
+          </Badge>
+        )}
 
         {place.emotionTag ? (
           <Badge variant="primary">✨ {place.emotionTag}</Badge>
@@ -196,6 +210,13 @@ export function MapBottomSheet({
                   🏡 {place.startDate} ➔ {place.isOngoing ? 'Actualidad' : place.endDate || 'Nov 2025'}
                 </Text>
               </View>
+            ) : place.type === 'getaway' && (place.startDate || place.date) ? (
+              <View style={styles.dateRow}>
+                <IconCalendar size={12} color="#766B72" />
+                <Text style={styles.dateText}>
+                  {place.startDate || place.date} {place.endDate ? `➔ ${place.endDate}` : ''}
+                </Text>
+              </View>
             ) : place.date ? (
               <View style={styles.dateRow}>
                 <IconCalendar size={12} color="#766B72" />
@@ -231,6 +252,17 @@ export function MapBottomSheet({
               onPress={() => onEditLocation(place)}
             >
               <Text style={styles.btnEditText}>✏️</Text>
+            </TouchableOpacity>
+          )}
+
+          {place.type !== 'stage' && onConvertToStage && (
+            <TouchableOpacity
+              style={styles.btnEdit}
+              activeOpacity={0.8}
+              onPress={() => onConvertToStage(place)}
+              accessibilityLabel="Convertir en Etapa"
+            >
+              <Text style={styles.btnEditText}>🏡</Text>
             </TouchableOpacity>
           )}
 

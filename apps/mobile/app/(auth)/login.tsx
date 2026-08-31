@@ -34,20 +34,20 @@ export default function LoginScreen() {
     const targetPassword = (customPassword || password).trim();
 
     if (!targetEmail) {
-      triggerHaptic('error');
+      triggerHaptic('warning');
       setErrorMessage('Por favor, introduce tu correo electrónico.');
       return;
     }
 
     if (!targetPassword) {
-      triggerHaptic('error');
+      triggerHaptic('warning');
       setErrorMessage('Introduce la contraseña privada (611171571).');
       return;
     }
 
     // Validación estricta de contraseña privada
     if (targetPassword !== PRIVATE_ACCESS_KEY) {
-      triggerHaptic('error');
+      triggerHaptic('warning');
       setErrorMessage('Contraseña incorrecta. Introduce la clave privada (611171571).');
       return;
     }
@@ -78,15 +78,17 @@ export default function LoginScreen() {
   };
 
   const handleQuickLoginTonet = () => {
+    triggerHaptic('selection');
     setEmail('hwrtseo@gmail.com');
-    setPassword(PRIVATE_ACCESS_KEY);
-    handleLogin('hwrtseo@gmail.com', PRIVATE_ACCESS_KEY);
+    setPassword('');
+    setErrorMessage(null);
   };
 
   const handleQuickLoginAndrea = () => {
+    triggerHaptic('selection');
     setEmail('andrea@amor.com');
-    setPassword(PRIVATE_ACCESS_KEY);
-    handleLogin('andrea@amor.com', PRIVATE_ACCESS_KEY);
+    setPassword('');
+    setErrorMessage(null);
   };
 
   return (
@@ -195,7 +197,6 @@ export default function LoginScreen() {
                 <Text style={styles.quickBtnIcon}>👤</Text>
                 <View>
                   <Text style={styles.quickBtnTitle}>Tonet</Text>
-                  <Text style={styles.quickBtnSub}>hwrtseo@gmail.com</Text>
                 </View>
               </TouchableOpacity>
 
@@ -207,7 +208,6 @@ export default function LoginScreen() {
                 <Text style={styles.quickBtnIcon}>🌸</Text>
                 <View>
                   <Text style={styles.quickBtnTitle}>Andrea</Text>
-                  <Text style={styles.quickBtnSub}>Perfil Privado</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -222,7 +222,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     height: '100%',
-    minHeight: Platform.OS === 'web' ? '100vh' : '100%',
     backgroundColor: '#0F0E0D',
     position: 'relative',
   },
@@ -389,10 +388,5 @@ const styles = StyleSheet.create({
     fontFamily: Typography.family.bold,
     fontSize: 13,
     color: '#FFFFFF',
-  },
-  quickBtnSub: {
-    fontFamily: Typography.family.regular,
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.5)',
   },
 });

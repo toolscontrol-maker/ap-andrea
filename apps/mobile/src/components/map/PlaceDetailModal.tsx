@@ -20,6 +20,7 @@ interface PlaceDetailModalProps {
   onClose: () => void;
   onOpenGallery: (place: AndreaMapPlace) => void;
   onEditPlace: (place: AndreaMapPlace) => void;
+  onConvertToStage?: (place: AndreaMapPlace) => void;
   onDeletePlace?: (placeId: string) => void;
 }
 
@@ -29,6 +30,7 @@ export function PlaceDetailModal({
   onClose,
   onOpenGallery,
   onEditPlace,
+  onConvertToStage,
   onDeletePlace,
 }: PlaceDetailModalProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState<boolean>(false);
@@ -67,6 +69,12 @@ export function PlaceDetailModal({
             <Text style={[styles.typeBadgeText, { color: '#3A6B48' }]}>🏡 ETAPA DE VIDA JUNTOS</Text>
           </View>
         );
+      case 'getaway':
+        return (
+          <View style={[styles.typeBadgeBox, { backgroundColor: '#EBF4FA' }]}>
+            <Text style={[styles.typeBadgeText, { color: '#2B72A8' }]}>🚗 ESCAPADA DE FIN DE SEMANA</Text>
+          </View>
+        );
       case 'date':
         return (
           <View style={[styles.typeBadgeBox, { backgroundColor: '#FDF3E7' }]}>
@@ -76,7 +84,13 @@ export function PlaceDetailModal({
       case 'trip':
         return (
           <View style={[styles.typeBadgeBox, { backgroundColor: '#F0ECF8' }]}>
-            <Text style={[styles.typeBadgeText, { color: '#6A4DA8' }]}>✈️ VIAJE & ESCAPADA</Text>
+            <Text style={[styles.typeBadgeText, { color: '#6A4DA8' }]}>✈️ GRAN VIAJE</Text>
+          </View>
+        );
+      case 'hotel':
+        return (
+          <View style={[styles.typeBadgeBox, { backgroundColor: '#F4EDF8' }]}>
+            <Text style={[styles.typeBadgeText, { color: '#7E4F9E' }]}>🏨 ALOJAMIENTO / HOTEL</Text>
           </View>
         );
       case 'restaurant':
@@ -88,7 +102,7 @@ export function PlaceDetailModal({
       default:
         return (
           <View style={[styles.typeBadgeBox, { backgroundColor: '#FBEBEB' }]}>
-            <Text style={[styles.typeBadgeText, { color: '#D94354' }]}>❤️ RECUERDO ESPECIAL</Text>
+            <Text style={[styles.typeBadgeText, { color: '#D94354' }]}>📍 LUGAR / RINCÓN FAMILIAR</Text>
           </View>
         );
     }
@@ -146,6 +160,7 @@ export function PlaceDetailModal({
               </Text>
             </View>
 
+            {/* 🏡 Etapa */}
             {place.type === 'stage' && (
               <View style={styles.infoCard}>
                 <Text style={styles.cardSectionTitle}>📅 Período de Convivencia</Text>
@@ -165,12 +180,62 @@ export function PlaceDetailModal({
                 {place.stageSummary && (
                   <Text style={styles.stageSummaryText}>✦ {place.stageSummary}</Text>
                 )}
+                {Array.isArray(place.linkedPlaceIds) && place.linkedPlaceIds.length > 0 && (
+                  <View style={{ marginTop: 8 }}>
+                    <Text style={styles.detailLabel}>
+                      ❤️ {place.linkedPlaceIds.length} momentos y rincones vinculados a esta etapa
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
 
+            {/* 🚗 Escapada */}
+            {place.type === 'getaway' && (
+              <View style={styles.infoCard}>
+                <Text style={styles.cardSectionTitle}>🚗 Detalles de la Escapada</Text>
+                {(place.startDate || place.date) && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Fechas:</Text>
+                    <Text style={styles.detailValue}>
+                      {place.startDate || place.date} {place.endDate ? `al ${place.endDate}` : ''}
+                    </Text>
+                  </View>
+                )}
+
+                {place.invitedBy && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Invitó:</Text>
+                    <Text style={styles.detailValue}>
+                      {place.invitedBy === 'tonet'
+                        ? 'Tonet ❤️'
+                        : place.invitedBy === 'andrea'
+                        ? 'Andrea 💖'
+                        : 'Plan de los dos ✨'}
+                    </Text>
+                  </View>
+                )}
+
+                {place.accommodation && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Alojamiento / Destino:</Text>
+                    <Text style={styles.detailValue}>{place.accommodation}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* 🥂 Cita */}
             {place.type === 'date' && (
               <View style={styles.infoCard}>
                 <Text style={styles.cardSectionTitle}>🥂 Detalles de la Cita</Text>
+                {place.date && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Fecha:</Text>
+                    <Text style={styles.detailValue}>{place.date}</Text>
+                  </View>
+                )}
+
                 {place.invitedBy && (
                   <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Invitó:</Text>
@@ -200,9 +265,89 @@ export function PlaceDetailModal({
               </View>
             )}
 
+            {/* 🍽️ Restaurante */}
+            {place.type === 'restaurant' && (
+              <View style={styles.infoCard}>
+                <Text style={styles.cardSectionTitle}>🍽️ Detalles Gastronómicos</Text>
+                {place.date && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Fecha:</Text>
+                    <Text style={styles.detailValue}>{place.date}</Text>
+                  </View>
+                )}
+
+                {place.invitedBy && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Invitó:</Text>
+                    <Text style={styles.detailValue}>
+                      {place.invitedBy === 'tonet'
+                        ? 'Tonet ❤️'
+                        : place.invitedBy === 'andrea'
+                        ? 'Andrea 💖'
+                        : 'Los dos juntos ✨'}
+                    </Text>
+                  </View>
+                )}
+
+                {place.stageSummary && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Especialidad / Plato:</Text>
+                    <Text style={styles.detailValue}>{place.stageSummary}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* 🏨 Hotel */}
+            {(place.type as string) === 'hotel' && (
+              <View style={styles.infoCard}>
+                <Text style={styles.cardSectionTitle}>🏨 Alojamiento & Estancia</Text>
+                {place.date && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Fecha:</Text>
+                    <Text style={styles.detailValue}>{place.date}</Text>
+                  </View>
+                )}
+
+                {place.invitedBy && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Invitó:</Text>
+                    <Text style={styles.detailValue}>
+                      {place.invitedBy === 'tonet'
+                        ? 'Tonet ❤️'
+                        : place.invitedBy === 'andrea'
+                        ? 'Andrea 💖'
+                        : 'Los dos juntos ✨'}
+                    </Text>
+                  </View>
+                )}
+
+                {place.stageSummary && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Detalles:</Text>
+                    <Text style={styles.detailValue}>{place.stageSummary}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* ✈️ Viaje */}
             {place.type === 'trip' && (
               <View style={styles.infoCard}>
                 <Text style={styles.cardSectionTitle}>✈️ Bitácora de Viaje</Text>
+                {place.invitedBy && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Invitó / Financiado por:</Text>
+                    <Text style={styles.detailValue}>
+                      {place.invitedBy === 'tonet'
+                        ? 'Tonet ❤️'
+                        : place.invitedBy === 'andrea'
+                        ? 'Andrea 💖'
+                        : 'Ambos ✨'}
+                    </Text>
+                  </View>
+                )}
+
                 {place.accommodation && (
                   <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Alojamiento:</Text>
@@ -232,9 +377,10 @@ export function PlaceDetailModal({
               </View>
             )}
 
+            {/* 📍 Lugar / Recuerdo */}
             {place.type === 'memory' && (
               <View style={styles.infoCard}>
-                <Text style={styles.cardSectionTitle}>❤️ Momento Inolvidable</Text>
+                <Text style={styles.cardSectionTitle}>📍 Rincón Familiar & Especial</Text>
                 {place.hasDateRange && place.dateRangeEnd ? (
                   <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Fechas:</Text>
@@ -243,9 +389,18 @@ export function PlaceDetailModal({
                     </Text>
                   </View>
                 ) : (
+                  place.date && (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Fecha:</Text>
+                      <Text style={styles.detailValue}>{place.date}</Text>
+                    </View>
+                  )
+                )}
+
+                {place.stageSummary && (
                   <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Fecha:</Text>
-                    <Text style={styles.detailValue}>{place.date || 'Fecha especial'}</Text>
+                    <Text style={styles.detailLabel}>Vínculo:</Text>
+                    <Text style={styles.detailValue}>{place.stageSummary}</Text>
                   </View>
                 )}
 
@@ -284,6 +439,17 @@ export function PlaceDetailModal({
                 <Text style={styles.editBtnText}>✏️ Editar</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Convert to Stage CTA for places that are not yet a stage */}
+            {place.type !== 'stage' && onConvertToStage && (
+              <TouchableOpacity
+                style={styles.convertToStageBtn}
+                activeOpacity={0.85}
+                onPress={() => onConvertToStage(place)}
+              >
+                <Text style={styles.convertToStageBtnText}>🏡 Convertir en Etapa de Vida</Text>
+              </TouchableOpacity>
+            )}
 
             {onDeletePlace && (
               <TouchableOpacity
@@ -593,6 +759,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#3A2F38',
+  },
+  convertToStageBtn: {
+    backgroundColor: '#EAF2EB',
+    borderWidth: 1.5,
+    borderColor: '#3A6B48',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  convertToStageBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2E5B3B',
   },
   discreteDeleteBtn: {
     flexDirection: 'row',

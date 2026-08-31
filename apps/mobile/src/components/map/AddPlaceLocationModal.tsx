@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {
   searchGooglePlaces,
@@ -28,6 +29,7 @@ interface AddPlaceLocationModalProps {
   onClose: () => void;
   onSavePlace: (place: AndreaMapPlace) => void;
   initialPlace?: AndreaMapPlace | null;
+  allPlaces?: AndreaMapPlace[];
 }
 
 export type WizardStep = 'entity' | 'title' | 'location' | 'specifics' | 'media';
@@ -37,6 +39,7 @@ export function AddPlaceLocationModal({
   onClose,
   onSavePlace,
   initialPlace,
+  allPlaces = [],
 }: AddPlaceLocationModalProps) {
   const [step, setStep] = useState<WizardStep>('entity');
   const [calendarTarget, setCalendarTarget] = useState<'date' | 'startDate' | 'endDate' | null>(null);
@@ -79,6 +82,7 @@ export function AddPlaceLocationModal({
   const [accommodationItem, setAccommodationItem] = useState<SelectedPlaceItem | null>(null);
   const [tripDurationDays, setTripDurationDays] = useState('3');
   const [visitedPlaceItems, setVisitedPlaceItems] = useState<SelectedPlaceItem[]>([]);
+  const [selectedMomentIds, setSelectedMomentIds] = useState<string[]>([]);
 
   // Trip Date / Escapada within Trip
   const [hasDateInTrip, setHasDateInTrip] = useState(false);
@@ -89,6 +93,22 @@ export function AddPlaceLocationModal({
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerInstanceRef = useRef<any>(null);
+
+  // Suggested moments within the stage date range
+  const candidateMoments = useMemo(() => {
+    if (type !== 'stage' || !allPlaces || allPlaces.length === 0) return [];
+    const start = startDate ? new Date(startDate).getTime() : 0;
+    const end = isOngoing ? Infinity : (endDate ? new Date(endDate).getTime() : Infinity);
+
+    return allPlaces.filter((p) => {
+      if (initialPlace && p.id === initialPlace.id) return false;
+      if (p.type === 'stage') return false;
+      const pDate = p.date || p.startDate;
+      if (!pDate) return true;
+      const t = new Date(pDate).getTime();
+      return isNaN(t) || (t >= start && t <= end);
+    });
+  }, [type, allPlaces, startDate, endDate, isOngoing, initialPlace]);
 
   useEffect(() => {
     if (visible) {
@@ -106,10 +126,11 @@ export function AddPlaceLocationModal({
         setPhotoUrl(initialPlace.imageUrl || null);
         setSearchQuery(initialPlace.title);
 
-        setStartDate(initialPlace.startDate || initialPlace.date || '');
+        setStartDate(initialPlace.startDate || initialPlace.date || '2025-01-05');
         setEndDate(initialPlace.endDate || '');
         setIsOngoing(Boolean(initialPlace.isOngoing));
         setStageSummary(initialPlace.stageSummary || '');
+        setSelectedMomentIds(initialPlace.linkedPlaceIds || []);
         setHasDateRange(Boolean(initialPlace.hasDateRange));
         setDateRangeEnd(initialPlace.dateRangeEnd || '');
         setEmotionTag(initialPlace.emotionTag || '');
@@ -140,7 +161,8 @@ export function AddPlaceLocationModal({
         setTripDateRestaurantItem(null);
         setTripDateInvitedBy('both');
 
-        setStep('title');
+        // Always start at step 1 (entity) so user can also change the category
+        setStep('entity');
       } else {
         setStep('entity');
         setSearchQuery('');
@@ -159,6 +181,7 @@ export function AddPlaceLocationModal({
         setEndDate('');
         setIsOngoing(false);
         setStageSummary('');
+        setSelectedMomentIds([]);
         setHasDateRange(false);
         setDateRangeEnd('');
         setEmotionTag('');
@@ -348,12 +371,9 @@ export function AddPlaceLocationModal({
 
     triggerHaptic('success');
 
-    const finalType: MapPlaceType = (type as string) === 'hotel' ? 'trip' : type;
-
-    // 1. Primary Place to Save
     const primaryPlace: AndreaMapPlace = {
       id: initialPlace?.id || ('place-verified-' + Date.now()),
-      type: finalType,
+      type: type,
       title: title.trim(),
       subtitle: verifiedAddress || verifiedCity,
       description: description.trim() || undefined,
@@ -371,21 +391,22 @@ export function AddPlaceLocationModal({
       date: (type === 'stage' || type === 'memory') ? undefined : (date || new Date().toISOString().split('T')[0]),
       isRevealed: true,
 
-      startDate: type === 'stage' ? startDate : (type === 'trip' ? startDate : undefined),
-      endDate: type === 'stage' ? (isOngoing ? undefined : endDate) : (type === 'trip' ? endDate : undefined),
+      startDate: (type === 'stage' || type === 'trip' || type === 'getaway') ? startDate : undefined,
+      endDate: (type === 'stage' || type === 'trip' || type === 'getaway') ? (isOngoing ? undefined : endDate) : undefined,
       isOngoing: type === 'stage' ? isOngoing : undefined,
       stageSummary: stageSummary || undefined,
+      linkedPlaceIds: type === 'stage' && selectedMomentIds.length > 0 ? selectedMomentIds : undefined,
 
       hasDateRange: type === 'memory' ? hasDateRange : undefined,
       dateRangeEnd: type === 'memory' && hasDateRange ? dateRangeEnd : undefined,
       emotionTag: (type === 'memory' || emotionTag) ? emotionTag : undefined,
 
-      invitedBy: type === 'date' ? invitedBy : undefined,
-      destination1: type === 'date' ? (datePlanItems[0]?.name || undefined) : undefined,
-      destination2: type === 'date' ? (datePlanItems[1]?.name || undefined) : undefined,
+      invitedBy: ['date', 'getaway', 'hotel', 'restaurant', 'trip'].includes(type) ? invitedBy : undefined,
+      destination1: (type === 'date' || type === 'getaway') ? (datePlanItems[0]?.name || undefined) : undefined,
+      destination2: (type === 'date' || type === 'getaway') ? (datePlanItems[1]?.name || undefined) : undefined,
 
       accommodation: accommodationItem ? accommodationItem.name : (accommodation || (type === 'hotel' ? title.trim() : undefined)),
-      tripDurationDays: type === 'trip' ? Number(tripDurationDays) || 3 : undefined,
+      tripDurationDays: (type === 'trip' || type === 'getaway') ? Number(tripDurationDays) || 3 : undefined,
       visitedPlaces: visitedPlaceItems.length > 0
         ? visitedPlaceItems.map((p) => p.name)
         : undefined,
@@ -488,7 +509,12 @@ export function AddPlaceLocationModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={styles.sheetCard}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+          style={styles.keyboardAvoid}
+        >
+          <View style={styles.sheetCard}>
           {/* Top Progress & Navigation Bar */}
           <View style={styles.topHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -521,6 +547,7 @@ export function AddPlaceLocationModal({
               </Text>
 
               <View style={styles.entityGrid}>
+                {/* 1. Etapa */}
                 <TouchableOpacity
                   style={[styles.entityCard, type === 'stage' && styles.entityCardActive]}
                   activeOpacity={0.8}
@@ -536,11 +563,12 @@ export function AddPlaceLocationModal({
                       Etapa de Vida
                     </Text>
                     <Text style={styles.entityCardDesc}>
-                      Gran contenedor de época: agrupa viajes, citas, hogares y restaurantes.
+                      Gran contenedor de época: agrupa viajes, citas, hogares y recuerdos de convivencia.
                     </Text>
                   </View>
                 </TouchableOpacity>
 
+                {/* 2. Gran Viaje */}
                 <TouchableOpacity
                   style={[styles.entityCard, type === 'trip' && styles.entityCardActive]}
                   activeOpacity={0.8}
@@ -553,14 +581,36 @@ export function AddPlaceLocationModal({
                   <Text style={styles.entityCardIcon}>✈️</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.entityCardTitle, type === 'trip' && styles.entityCardTitleActive]}>
-                      Viaje
+                      Gran Viaje
                     </Text>
                     <Text style={styles.entityCardDesc}>
-                      Alojamiento, restaurantes visitados, paradas y citas del viaje.
+                      Viajes largos, vuelos, vacaciones y estancias internacionales juntos.
                     </Text>
                   </View>
                 </TouchableOpacity>
 
+                {/* 3. Escapada (Separada de Cita) */}
+                <TouchableOpacity
+                  style={[styles.entityCard, type === 'getaway' && styles.entityCardActive]}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setType('getaway');
+                    triggerHaptic('selection');
+                    setStep('title');
+                  }}
+                >
+                  <Text style={styles.entityCardIcon}>🚗</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.entityCardTitle, type === 'getaway' && styles.entityCardTitleActive]}>
+                      Escapada
+                    </Text>
+                    <Text style={styles.entityCardDesc}>
+                      Fin de semana fuera, escapadas románticas, relax o desconexión en pareja.
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* 4. Cita Romántica */}
                 <TouchableOpacity
                   style={[styles.entityCard, type === 'date' && styles.entityCardActive]}
                   activeOpacity={0.8}
@@ -573,14 +623,15 @@ export function AddPlaceLocationModal({
                   <Text style={styles.entityCardIcon}>🥂</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.entityCardTitle, type === 'date' && styles.entityCardTitleActive]}>
-                      Cita / Escapada
+                      Cita Romántica
                     </Text>
                     <Text style={styles.entityCardDesc}>
-                      Experiencia romántica: paradas, cena y plan juntos.
+                      Cenas, paseos, tardes especiales y planes íntimos memorables.
                     </Text>
                   </View>
                 </TouchableOpacity>
 
+                {/* 5. Restaurante */}
                 <TouchableOpacity
                   style={[styles.entityCard, type === 'restaurant' && styles.entityCardActive]}
                   activeOpacity={0.8}
@@ -601,6 +652,7 @@ export function AddPlaceLocationModal({
                   </View>
                 </TouchableOpacity>
 
+                {/* 6. Hotel / Airbnb */}
                 <TouchableOpacity
                   style={[styles.entityCard, (type as string) === 'hotel' && styles.entityCardActive]}
                   activeOpacity={0.8}
@@ -621,6 +673,7 @@ export function AddPlaceLocationModal({
                   </View>
                 </TouchableOpacity>
 
+                {/* 7. Lugar / Rincón Familiar */}
                 <TouchableOpacity
                   style={[styles.entityCard, type === 'memory' && styles.entityCardActive]}
                   activeOpacity={0.8}
@@ -768,7 +821,7 @@ export function AddPlaceLocationModal({
               {/* 🏡 ETAPA */}
               {type === 'stage' && (
                 <View style={styles.stepSpecificBox}>
-                  <Text style={styles.stepSpecificBoxTitle}>🏡 Configuración de Etapa</Text>
+                  <Text style={styles.stepSpecificBoxTitle}>🏡 Configuración de Etapa de Vida</Text>
                   
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
                     <View style={{ flex: 1 }}>
@@ -807,13 +860,76 @@ export function AddPlaceLocationModal({
                     value={stageSummary}
                     onChangeText={setStageSummary}
                   />
+
+                  {/* Momentos y Recuerdos de esta Etapa */}
+                  <View style={{ marginTop: 14 }}>
+                    <Text style={[styles.subFieldLabel, { color: '#EF826A', fontWeight: '800' }]}>
+                      ✨ Momentos y Rincones de esta Etapa ({selectedMomentIds.length} seleccionados)
+                    </Text>
+                    <Text style={styles.boxHelperText}>
+                      Sugeridos según el rango de fechas ({startDate || 'Inicio'} a {isOngoing ? 'hoy' : (endDate || 'fin')}):
+                    </Text>
+
+                    {candidateMoments.length === 0 ? (
+                      <View style={styles.emptyMomentsBox}>
+                        <Text style={styles.emptyMomentsText}>
+                          No hay otros recuerdos guardados en este rango de fechas aún.
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.momentsSelectList}>
+                        {candidateMoments.map((moment) => {
+                          const isChecked = selectedMomentIds.includes(moment.id);
+                          const icon =
+                            moment.type === 'restaurant'
+                              ? '🍽️'
+                              : moment.type === 'trip'
+                              ? '✈️'
+                              : moment.type === 'getaway'
+                              ? '🚗'
+                              : moment.type === 'date'
+                              ? '🥂'
+                              : moment.type === 'hotel'
+                              ? '🏨'
+                              : '❤️';
+
+                          return (
+                            <TouchableOpacity
+                              key={moment.id}
+                              style={[styles.momentSelectRow, isChecked && styles.momentSelectRowActive]}
+                              activeOpacity={0.75}
+                              onPress={() => {
+                                triggerHaptic('selection');
+                                if (isChecked) {
+                                  setSelectedMomentIds(selectedMomentIds.filter((id) => id !== moment.id));
+                                } else {
+                                  setSelectedMomentIds([...selectedMomentIds, moment.id]);
+                                }
+                              }}
+                            >
+                              <Text style={styles.momentSelectCheckbox}>{isChecked ? '☑️' : '◻️'}</Text>
+                              <Text style={styles.momentSelectIcon}>{icon}</Text>
+                              <View style={{ flex: 1 }}>
+                                <Text style={styles.momentSelectTitle} numberOfLines={1}>
+                                  {moment.title}
+                                </Text>
+                                <Text style={styles.momentSelectSub} numberOfLines={1}>
+                                  {moment.date || moment.startDate || moment.city || 'Valencia'}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
                 </View>
               )}
 
-              {/* ✈️ VIAJE */}
+              {/* ✈️ GRAN VIAJE */}
               {type === 'trip' && (
                 <View style={styles.stepSpecificBox}>
-                  <Text style={styles.stepSpecificBoxTitle}>✈️ Configuración del Viaje</Text>
+                  <Text style={styles.stepSpecificBoxTitle}>✈️ Configuración del Gran Viaje</Text>
 
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
                     <View style={{ flex: 1 }}>
@@ -838,7 +954,29 @@ export function AddPlaceLocationModal({
                     </View>
                   </View>
 
-                  <Text style={styles.subFieldLabel}>🏨 ¿Dónde dormisteis? (Hotel / Airbnb)</Text>
+                  <Text style={[styles.subFieldLabel, { marginTop: 4 }]}>¿Quién invitó o financió el plan?</Text>
+                  <View style={styles.invitedRow}>
+                    <TouchableOpacity
+                      style={[styles.invitedPill, invitedBy === 'tonet' && styles.invitedPillActive]}
+                      onPress={() => setInvitedBy('tonet')}
+                    >
+                      <Text style={styles.invitedPillText}>Tonet ❤️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.invitedPill, invitedBy === 'andrea' && styles.invitedPillActive]}
+                      onPress={() => setInvitedBy('andrea')}
+                    >
+                      <Text style={styles.invitedPillText}>Andrea 💖</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.invitedPill, invitedBy === 'both' && styles.invitedPillActive]}
+                      onPress={() => setInvitedBy('both')}
+                    >
+                      <Text style={styles.invitedPillText}>Ambos ✨</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={[styles.subFieldLabel, { marginTop: 8 }]}>🏨 ¿Dónde dormisteis? (Hotel / Airbnb)</Text>
                   {accommodationItem ? (
                     <View style={styles.selectedItemCard}>
                       <View style={{ flex: 1 }}>
@@ -896,7 +1034,7 @@ export function AddPlaceLocationModal({
 
                   {hasDateInTrip && (
                     <View style={styles.subDateBox}>
-                      <Text style={styles.subFieldLabel}>¿Quién invitó?</Text>
+                      <Text style={styles.subFieldLabel}>¿Quién invitó a la cita?</Text>
                       <View style={styles.invitedRow}>
                         <TouchableOpacity
                           style={[styles.invitedPill, tripDateInvitedBy === 'tonet' && styles.invitedPillActive]}
@@ -949,10 +1087,93 @@ export function AddPlaceLocationModal({
                 </View>
               )}
 
-              {/* 🥂 CITA / ESCAPADA */}
+              {/* 🚗 ESCAPADA (Categoría independiente de Cita) */}
+              {type === 'getaway' && (
+                <View style={styles.stepSpecificBox}>
+                  <Text style={styles.stepSpecificBoxTitle}>🚗 Configuración de la Escapada</Text>
+
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.subFieldLabel}>Fecha de Inicio</Text>
+                      <TouchableOpacity
+                        style={styles.calendarTriggerButton}
+                        onPress={() => setCalendarTarget('startDate')}
+                      >
+                        <Text style={styles.calendarTriggerText}>📅 {startDate || 'Seleccionar'}</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.subFieldLabel}>Fecha de Regreso</Text>
+                      <TouchableOpacity
+                        style={styles.calendarTriggerButton}
+                        onPress={() => setCalendarTarget('endDate')}
+                      >
+                        <Text style={styles.calendarTriggerText}>📅 {endDate || 'Seleccionar'}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <Text style={[styles.subFieldLabel, { marginTop: 6 }]}>¿Quién invitó?</Text>
+                  <View style={styles.invitedRow}>
+                    <TouchableOpacity
+                      style={[styles.invitedPill, invitedBy === 'tonet' && styles.invitedPillActive]}
+                      onPress={() => setInvitedBy('tonet')}
+                    >
+                      <Text style={styles.invitedPillText}>Tonet ❤️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.invitedPill, invitedBy === 'andrea' && styles.invitedPillActive]}
+                      onPress={() => setInvitedBy('andrea')}
+                    >
+                      <Text style={styles.invitedPillText}>Andrea 💖</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.invitedPill, invitedBy === 'both' && styles.invitedPillActive]}
+                      onPress={() => setInvitedBy('both')}
+                    >
+                      <Text style={styles.invitedPillText}>Ambos ✨</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={[styles.subFieldLabel, { marginTop: 8 }]}>🏨 Hotel / Casa Rural / Destino</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Ej: Hotel Spa Rural, Cabaña en la montaña..."
+                    value={accommodation}
+                    onChangeText={setAccommodation}
+                  />
+
+                  <Text style={[styles.subFieldLabel, { marginTop: 8 }]}>
+                    📍 Paradas y planes de la escapada ({datePlanItems.length})
+                  </Text>
+                  {datePlanItems.map((item, idx) => (
+                    <View key={item.id || idx} style={styles.selectedItemCard}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.selectedItemName}>📍 {item.name}</Text>
+                        <Text style={styles.selectedItemAddr} numberOfLines={1}>{item.formattedAddress}</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => setDatePlanItems(datePlanItems.filter((_, i) => i !== idx))}
+                        style={styles.removeBtn}
+                      >
+                        <Text style={styles.removeBtnText}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+
+                  <GoogleMapsPlaceSearchField
+                    placeholder="Buscar parada o plan en Google Maps..."
+                    buttonLabel="+ Añadir parada o plan a la escapada"
+                    onPlaceSelected={(place) => setDatePlanItems([...datePlanItems, place])}
+                  />
+                </View>
+              )}
+
+              {/* 🥂 CITA ROMÁNTICA */}
               {type === 'date' && (
                 <View style={styles.stepSpecificBox}>
-                  <Text style={styles.stepSpecificBoxTitle}>🥂 Configuración de la Cita</Text>
+                  <Text style={styles.stepSpecificBoxTitle}>🥂 Configuración de la Cita Romántica</Text>
 
                   <Text style={styles.subFieldLabel}>Fecha de la Cita</Text>
                   <TouchableOpacity
@@ -1029,6 +1250,28 @@ export function AddPlaceLocationModal({
                     value={stageSummary}
                     onChangeText={setStageSummary}
                   />
+
+                  <Text style={[styles.subFieldLabel, { marginTop: 10 }]}>¿Quién invitó?</Text>
+                  <View style={styles.invitedRow}>
+                    <TouchableOpacity
+                      style={[styles.invitedPill, invitedBy === 'tonet' && styles.invitedPillActive]}
+                      onPress={() => setInvitedBy('tonet')}
+                    >
+                      <Text style={styles.invitedPillText}>Tonet ❤️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.invitedPill, invitedBy === 'andrea' && styles.invitedPillActive]}
+                      onPress={() => setInvitedBy('andrea')}
+                    >
+                      <Text style={styles.invitedPillText}>Andrea 💖</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.invitedPill, invitedBy === 'both' && styles.invitedPillActive]}
+                      onPress={() => setInvitedBy('both')}
+                    >
+                      <Text style={styles.invitedPillText}>Ambos ✨</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
 
@@ -1061,13 +1304,44 @@ export function AddPlaceLocationModal({
               {type === 'restaurant' && (
                 <View style={styles.stepSpecificBox}>
                   <Text style={styles.stepSpecificBoxTitle}>🍽️ Restaurante / Gastronomía</Text>
-                  <Text style={styles.subFieldLabel}>Plato recomendado o Tipo de cocina</Text>
+                  
+                  <Text style={styles.subFieldLabel}>Fecha de la visita</Text>
+                  <TouchableOpacity
+                    style={styles.calendarTriggerButton}
+                    onPress={() => setCalendarTarget('date')}
+                  >
+                    <Text style={styles.calendarTriggerText}>📅 {date || 'Seleccionar fecha'}</Text>
+                  </TouchableOpacity>
+
+                  <Text style={[styles.subFieldLabel, { marginTop: 8 }]}>Plato recomendado o Tipo de cocina</Text>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Ej: Pasta fresca al pesto, Brunch saludable, Tartar..."
+                    placeholder="Ej: Pasta fresca al pesto, Brunch saludable, Arroz del senyoret..."
                     value={stageSummary}
                     onChangeText={setStageSummary}
                   />
+
+                  <Text style={[styles.subFieldLabel, { marginTop: 10 }]}>¿Quién invitó?</Text>
+                  <View style={styles.invitedRow}>
+                    <TouchableOpacity
+                      style={[styles.invitedPill, invitedBy === 'tonet' && styles.invitedPillActive]}
+                      onPress={() => setInvitedBy('tonet')}
+                    >
+                      <Text style={styles.invitedPillText}>Tonet ❤️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.invitedPill, invitedBy === 'andrea' && styles.invitedPillActive]}
+                      onPress={() => setInvitedBy('andrea')}
+                    >
+                      <Text style={styles.invitedPillText}>Andrea 💖</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.invitedPill, invitedBy === 'both' && styles.invitedPillActive]}
+                      onPress={() => setInvitedBy('both')}
+                    >
+                      <Text style={styles.invitedPillText}>Ambos ✨</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
 
@@ -1132,7 +1406,8 @@ export function AddPlaceLocationModal({
             }}
             onClose={() => setCalendarTarget(null)}
           />
-        </View>
+          </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -1144,11 +1419,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(58, 47, 56, 0.65)',
     justifyContent: 'flex-end',
   },
+  keyboardAvoid: {
+    width: '100%',
+    maxHeight: '94%',
+    justifyContent: 'flex-end',
+  },
   sheetCard: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '92%',
+    height: '100%',
+    maxHeight: '100%',
     paddingBottom: Platform.OS === 'ios' ? 34 : 20,
     shadowColor: '#000',
     shadowOpacity: 0.2,
@@ -1436,9 +1717,56 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(58, 47, 56, 0.12)',
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 13,
+    paddingVertical: 10,
+    fontSize: 16,
     color: '#3A2F38',
+  },
+  emptyMomentsBox: {
+    padding: 12,
+    backgroundColor: '#FAF8F5',
+    borderRadius: 12,
+    alignItems: 'center',
+    marginVertical: 6,
+  },
+  emptyMomentsText: {
+    fontSize: 12,
+    color: '#766B72',
+    textAlign: 'center',
+  },
+  momentsSelectList: {
+    gap: 4,
+    marginTop: 4,
+  },
+  momentSelectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(58, 47, 56, 0.1)',
+    gap: 8,
+  },
+  momentSelectRowActive: {
+    backgroundColor: '#FFF5F2',
+    borderColor: '#EF826A',
+  },
+  momentSelectCheckbox: {
+    fontSize: 14,
+  },
+  momentSelectIcon: {
+    fontSize: 14,
+  },
+  momentSelectTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#3A2F38',
+  },
+  momentSelectSub: {
+    fontSize: 11,
+    color: '#766B72',
+    marginTop: 1,
   },
   checkboxRow: {
     flexDirection: 'row',

@@ -43,7 +43,7 @@ export default function MapScreen() {
   useEffect(() => {
     async function loadPlaces() {
       // 1. Load locally saved places (user edits override base constants)
-      const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v7', null);
+      const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v7', []);
       let currentBase = DEMO_MAP_PLACES;
       if (saved && saved.length > 0) {
         const placeMap = new Map(DEMO_MAP_PLACES.map((p) => [p.id, p]));
@@ -183,7 +183,8 @@ export default function MapScreen() {
 
   const filteredPlaces = useMemo(() => {
     return mapMarkers.map((m) => {
-      const existing = allPlaces.find((p) => p.id === m.entityId);
+      const existing = allPlaces.find((p) => p.id === m.entityId) ||
+        allPlaces.find((p) => p.id === m.entityId.replace(/^(chap_|exp_|mem_|marker_[a-z]_)/, ''));
       if (existing) return existing;
       return {
         id: m.entityId,
@@ -216,8 +217,26 @@ export default function MapScreen() {
 
   const selectedPlace = useMemo(() => {
     if (!selectedPlaceId) return null;
-    return allPlaces.find((p) => p.id === selectedPlaceId) || null;
-  }, [allPlaces, selectedPlaceId]);
+    // Direct match first
+    const direct = allPlaces.find((p) => p.id === selectedPlaceId);
+    if (direct) return direct;
+
+    // Fully strip any combined prefixes: marker_c_, marker_p_, marker_e_, marker_m_, chap_, exp_, mem_
+    let cleanId = selectedPlaceId;
+    while (/^(marker_[a-z]_|chap_|exp_|mem_|ei_|ci_|ml_)/.test(cleanId)) {
+      cleanId = cleanId.replace(/^(marker_[a-z]_|chap_|exp_|mem_|ei_|ci_|ml_)/, '');
+    }
+
+    const byClean = allPlaces.find(
+      (p) => p.id === cleanId || cleanId.includes(p.id) || p.id.includes(cleanId)
+    );
+    if (byClean) return byClean;
+
+    // Fallback to filteredPlaces synthetic entries
+    return (
+      filteredPlaces.find((p) => p.id === selectedPlaceId || p.id === cleanId) || null
+    );
+  }, [allPlaces, filteredPlaces, selectedPlaceId]);
 
   const selectedGroup = useMemo(() => {
     if (!selectedGroupId) return null;
@@ -412,6 +431,23 @@ export default function MapScreen() {
     setIsAddModalOpen(true);
   };
 
+  const handleConvertToStage = useCallback((place: AndreaMapPlace) => {
+    triggerHaptic('medium');
+    const updatedStagePlace: AndreaMapPlace = {
+      ...place,
+      type: 'stage',
+      startDate: place.startDate || place.date || '2025-01-05',
+      endDate: place.endDate || '',
+      isOngoing: place.isOngoing !== undefined ? place.isOngoing : false,
+      stageSummary: place.stageSummary || place.description || 'Etapa de vida juntos',
+    };
+    setSelectedPlaceId(null);
+    setSelectedGroupId(null);
+    setIsDetailModalOpen(false);
+    setEditingPlace(updatedStagePlace);
+    setIsAddModalOpen(true);
+  }, []);
+
   const handleSaveVerifiedPlace = async (place: AndreaMapPlace) => {
     let updatedPlace = { ...place };
     if (place.imageUrl && (place.imageUrl.startsWith('data:') || place.imageUrl.startsWith('blob:'))) {
@@ -420,26 +456,24 @@ export default function MapScreen() {
         updatedPlace.imageUrl = uploaded;
         updatedPlace.photos = Array.from(new Set([uploaded, ...(place.photos?.filter(p => !p.startsWith('data:') && !p.startsWith('blob:')) || [])]));
       } catch (e) {
-        console.warn('[Map] Error uploading cover photo:', e);
+        console.warn('[Map] Cover upload error:', e);
       }
     }
 
     setAllPlaces((prev) => {
-      const existingIdx = prev.findIndex((p) => p.id === updatedPlace.id);
+      const idx = prev.findIndex((p) => p.id === updatedPlace.id);
       let next: AndreaMapPlace[];
-      if (existingIdx >= 0) {
+      if (idx >= 0) {
         next = [...prev];
-        next[existingIdx] = updatedPlace;
+        next[idx] = updatedPlace;
       } else {
         next = [updatedPlace, ...prev];
       }
       StorageEngine.setItem('andrea_map_places_v7', next);
+      CloudSyncEngine.syncMapPlace(updatedPlace);
       return next;
     });
-    setSelectedGroupId(null);
-    setSelectedPlaceId(updatedPlace.id);
     setEditingPlace(null);
-    await CloudSyncEngine.syncMapPlace(updatedPlace);
   };
 
   const handleRecenter = () => {
@@ -459,6 +493,7 @@ export default function MapScreen() {
         selectedGroupId={selectedGroupId}
         onPlacePress={handlePlacePress}
         onGroupPress={handleGroupPress}
+        onAddPlacePress={handleOpenAddModal}
       />
 
       <MapFilters
@@ -511,6 +546,7 @@ export default function MapScreen() {
         onClose={handleCloseSheet}
         onViewDetail={handleViewDetail}
         onEditLocation={handleEditLocation}
+        onConvertToStage={handleConvertToStage}
         onOpenGallery={handleOpenGallery}
         onSelectPlaceFromGroup={handleSelectPlaceFromGroup}
       />
@@ -521,6 +557,7 @@ export default function MapScreen() {
         onClose={() => setIsDetailModalOpen(false)}
         onOpenGallery={handleOpenGallery}
         onEditPlace={handleEditLocation}
+        onConvertToStage={handleConvertToStage}
         onDeletePlace={handleDeletePlace}
       />
 
@@ -542,6 +579,7 @@ export default function MapScreen() {
         }}
         onSavePlace={handleSaveVerifiedPlace}
         initialPlace={editingPlace}
+        allPlaces={allPlaces}
       />
     </View>
   );

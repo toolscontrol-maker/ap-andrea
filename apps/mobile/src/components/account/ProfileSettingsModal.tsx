@@ -65,9 +65,19 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
   const handleSavePhotoProfile = async () => {
     triggerHaptic('success');
     const finalName = editName.trim() || currentDevUser.name;
+    // Guard: preset photos return a number (Metro asset ID), not a string
+    let finalPhotoUrl: string | undefined;
+    if (typeof editPhotoUrl === 'number') {
+      // It's a require() asset ID - resolve to URI for React Native Image
+      const { Image: RNImage } = require('react-native');
+      const resolved = RNImage.resolveAssetSource(editPhotoUrl);
+      finalPhotoUrl = resolved?.uri || undefined;
+    } else if (typeof editPhotoUrl === 'string' && editPhotoUrl.trim()) {
+      finalPhotoUrl = editPhotoUrl.trim();
+    }
     await updateUserProfile(currentDevUser.id, {
       name: finalName,
-      avatarPhoto: editPhotoUrl.trim() || undefined,
+      avatarPhoto: finalPhotoUrl,
       avatar: finalName[0].toUpperCase(),
     });
     setIsPhotoModalVisible(false);

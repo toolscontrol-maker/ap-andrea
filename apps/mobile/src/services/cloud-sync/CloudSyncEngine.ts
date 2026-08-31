@@ -648,20 +648,41 @@ class CloudSyncEngineService {
    */
   public async uploadMediaImage(fileBase64OrUri: string, fileName: string): Promise<string> {
     try {
+      if (!fileBase64OrUri || typeof fileBase64OrUri !== 'string') return fileBase64OrUri;
+
+      // If it's already an uploaded HTTP URL from supabase storage, return directly
+      if (fileBase64OrUri.startsWith('http://') || fileBase64OrUri.startsWith('https://')) {
+        if (!fileBase64OrUri.includes('localhost') && !fileBase64OrUri.includes('127.0.0.1')) {
+          return fileBase64OrUri;
+        }
+      }
+
       if (this.isSupabaseConfigured()) {
-        const filePath = `${COUPLE_ID}/${Date.now()}_${fileName}`;
+        const cleanName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const filePath = `${COUPLE_ID}/${Date.now()}_${cleanName}`;
         
-        // If web data url
-        if (fileBase64OrUri.startsWith('data:') || fileBase64OrUri.startsWith('blob:')) {
+        // Handle data URI, blob URI, file URI, content URI, or ph URI
+        if (
+          fileBase64OrUri.startsWith('data:') ||
+          fileBase64OrUri.startsWith('blob:') ||
+          fileBase64OrUri.startsWith('file:') ||
+          fileBase64OrUri.startsWith('content:') ||
+          fileBase64OrUri.startsWith('ph:')
+        ) {
           const res = await fetch(fileBase64OrUri);
           const blob = await res.blob();
+          const contentType = blob.type || 'image/jpeg';
           const { error } = await supabase.storage.from('andrea-media').upload(filePath, blob, {
-            contentType: blob.type || 'image/jpeg',
+            contentType,
             upsert: true,
           });
           if (!error) {
             const { data } = supabase.storage.from('andrea-media').getPublicUrl(filePath);
-            return data.publicUrl;
+            if (data?.publicUrl) {
+              return data.publicUrl;
+            }
+          } else {
+            console.warn('[CloudSync] Upload to storage failed:', error);
           }
         }
       }

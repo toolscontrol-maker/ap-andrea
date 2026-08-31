@@ -1710,7 +1710,14 @@ export function DevProvider({ children }: { children: ReactNode }) {
     const targetUserId = isUser1 ? DEV_USERS.user1.id : DEV_USERS.user2.id;
 
     let finalPhoto = updates.avatarPhoto;
-    if (finalPhoto && (finalPhoto.startsWith('data:') || finalPhoto.startsWith('blob:'))) {
+    if (
+      finalPhoto &&
+      (finalPhoto.startsWith('data:') ||
+        finalPhoto.startsWith('blob:') ||
+        finalPhoto.startsWith('file:') ||
+        finalPhoto.startsWith('content:') ||
+        finalPhoto.startsWith('ph:'))
+    ) {
       try {
         finalPhoto = await CloudSyncEngine.uploadMediaImage(finalPhoto, `avatar_${roleKey}_${Date.now()}.jpg`);
       } catch (e) {
