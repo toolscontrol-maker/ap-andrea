@@ -76,10 +76,44 @@ export default function HomeScreen() {
   const isUser1 = currentDevUser.name.toLowerCase().includes('tonet');
   const currentResponse = isUser1 ? todayCheckIn?.tonetResponse : todayCheckIn?.andreaResponse;
 
-  const currentWeekId = '2026-W35';
+  // Dynamic weekly countdown and range calculation
+  const getWeeklyAlbumInfo = () => {
+    const today = new Date();
+    const day = today.getDay();
+    const diffToMonday = today.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(new Date().setDate(diffToMonday));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const nowActual = new Date();
+    const currentDayOfWeek = (nowActual.getDay() + 6) % 7; // 0 for Mon, 6 for Sun
+    const daysRemaining = 6 - currentDayOfWeek;
+
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const rangeLabel = `${monday.getDate()} ${monthNames[monday.getMonth()]} - ${sunday.getDate()} ${monthNames[sunday.getMonth()]}`;
+
+    const startOfYear = new Date(nowActual.getFullYear(), 0, 1);
+    const pastDaysOfYear = (nowActual.getTime() - startOfYear.getTime()) / 86400000;
+    const weekNum = Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+    const weekId = `${nowActual.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+
+    let countdownText = '';
+    if (daysRemaining === 0) {
+      countdownText = '⏳ Se renueva hoy a medianoche a la siguiente semana';
+    } else if (daysRemaining === 1) {
+      countdownText = '⏳ Queda 1 día para que se renueve a la siguiente semana';
+    } else {
+      countdownText = `⏳ Quedan ${daysRemaining} días para que se renueve a la siguiente semana`;
+    }
+
+    return { weekId, rangeLabel, daysRemaining, countdownText };
+  };
+
+  const weeklyAlbumInfo = getWeeklyAlbumInfo();
+  const currentWeekId = weeklyAlbumInfo.weekId;
   const currentWeekData = weeklyPhotos?.[currentWeekId] || {
     weekId: currentWeekId,
-    weekRangeLabel: '25 - 31 Ago 2026',
+    weekRangeLabel: weeklyAlbumInfo.rangeLabel,
   };
 
   const handleAnswerCheckIn = (response: 'seen' | 'not_seen' | 'wont_see') => {
@@ -426,6 +460,13 @@ export default function HomeScreen() {
               partnerName="Andrea"
             />
           </View>
+        </View>
+
+        {/* Small countdown reset footer line */}
+        <View style={styles.weeklyResetFooter}>
+          <Text style={styles.weeklyResetText}>
+            {weeklyAlbumInfo.countdownText}
+          </Text>
         </View>
       </Card>
 
@@ -820,6 +861,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2B2129',
     marginBottom: 6,
+  },
+  weeklyResetFooter: {
+    marginTop: 12,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(58, 47, 56, 0.06)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weeklyResetText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#766B72',
+    fontFamily: 'Inter, sans-serif',
+    textAlign: 'center',
   },
   ritualSelectorRow: {
     flexDirection: 'row',
