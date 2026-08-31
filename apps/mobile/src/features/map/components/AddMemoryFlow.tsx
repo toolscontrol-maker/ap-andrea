@@ -21,14 +21,6 @@ const MOODS = [
   { id: 'grateful', label: '🙏 Gratitud' },
 ] as const;
 
-const SAMPLE_CURATED_PHOTOS = [
-  'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=600&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=600&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1568084680786-a84f91d1153c?w=600&auto=format&fit=crop',
-];
-
 export function AddMemoryFlow() {
   const router = useRouter();
   const { addPlace, partnerDevUser } = useDev();
@@ -42,13 +34,6 @@ export function AddMemoryFlow() {
   const [moodTag, setMoodTag] = useState<'love' | 'grateful' | 'happy' | 'calm' | 'excited'>('love');
   const [precision, setPrecision] = useState<LocationPrecision>('exact');
   const [photos, setPhotos] = useState<string[]>([]);
-
-  const handleAddSamplePhoto = () => {
-    const randomPhoto = SAMPLE_CURATED_PHOTOS[Math.floor(Math.random() * SAMPLE_CURATED_PHOTOS.length)];
-    if (!photos.includes(randomPhoto)) {
-      setPhotos((prev) => [...prev, randomPhoto]);
-    }
-  };
 
   const handleRemovePhoto = (url: string) => {
     setPhotos((prev) => prev.filter((p) => p !== url));

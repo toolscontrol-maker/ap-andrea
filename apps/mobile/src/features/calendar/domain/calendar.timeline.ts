@@ -25,7 +25,7 @@ export function buildOurStoryTimeline(params: {
     emoji: '🪩',
     badgeLabel: 'Primer Encuentro',
     badgeColor: '#D4AF37',
-    imageUrl: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&auto=format&fit=crop',
+    imageUrl: undefined,
     chapterTitle: 'Capítulo I: El Comienzo',
   });
 
@@ -41,7 +41,7 @@ export function buildOurStoryTimeline(params: {
     emoji: '🍽️',
     badgeLabel: 'Primera Cita',
     badgeColor: '#E05666',
-    imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop',
+    imageUrl: undefined,
     chapterTitle: 'Capítulo I: El Comienzo',
   });
 
@@ -57,7 +57,7 @@ export function buildOurStoryTimeline(params: {
     emoji: '💋',
     badgeLabel: 'Aniversario Oficial',
     badgeColor: '#E05666',
-    imageUrl: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&auto=format&fit=crop',
+    imageUrl: undefined,
     chapterTitle: 'Capítulo II: Nosotros',
   });
 

@@ -314,19 +314,6 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
     const cleanTitle = cleanQueryToTitle(descriptiveSegment);
 
     let images: string[] = [];
-    if (lowerUrl.includes('jersey') && lowerUrl.includes('lana')) {
-      images = [
-        'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=1000&auto=format&fit=crop',
-      ];
-    } else if (lowerUrl.includes('vestido') || lowerUrl.includes('dress')) {
-      images = [
-        'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=1000&auto=format&fit=crop',
-      ];
-    } else if (lowerUrl.includes('abrigo') || lowerUrl.includes('trench') || lowerUrl.includes('chaqueta')) {
-      images = [
-        'https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=1000&auto=format&fit=crop',
-      ];
-    }
 
     return {
       title: `${cleanTitle} · ${brandName}`,
@@ -334,8 +321,8 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       type: 'fashion',
       domain: hostname,
       estimatedPrice: undefined, // No invented price
-      imageUrl: images.length > 0 ? images[0] : undefined,
-      galleryImages: images,
+      imageUrl: undefined,
+      galleryImages: [],
       description: `Prenda de colección ${brandName}`,
     };
   }
@@ -372,25 +359,14 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       brand = 'Dior · Sephora';
     }
 
-    let images: string[] = [];
-    if (lowerUrl.includes('rosa-charmosa') || lowerUrl.includes('rosa-chamosa')) {
-      images = [
-        'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=1000&auto=format&fit=crop',
-      ];
-    } else if (lowerUrl.includes('kayali') || lowerUrl.includes('marshmallow')) {
-      images = [
-        'https://images.unsplash.com/photo-1608248597359-25f0a0d4c94d?w=1000&auto=format&fit=crop',
-      ];
-    }
-
     return {
       title: `${cleanTitle}`,
       brand: brand,
       type: 'beauty',
       domain: hostname,
       estimatedPrice: undefined, // No invented price
-      imageUrl: images.length > 0 ? images[0] : undefined,
-      galleryImages: images,
+      imageUrl: undefined,
+      galleryImages: [],
       description: `Tratamiento y belleza en ${brand}`,
     };
   }
@@ -402,21 +378,14 @@ export async function extractLinkMetadata(rawUrl: string): Promise<ExtractedLink
       pathSegments[pathSegments.length - 1];
     const cleanTitle = cleanQueryToTitle(descriptiveSegment);
 
-    let images: string[] = [];
-    if (lowerUrl.includes('espejo') && lowerUrl.includes('ratan')) {
-      images = [
-        'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1000&auto=format&fit=crop',
-      ];
-    }
-
     return {
       title: `${cleanTitle} · Zara Home`,
       brand: 'Zara Home',
       type: 'home',
       domain: hostname,
       estimatedPrice: undefined, // No invented price
-      imageUrl: images.length > 0 ? images[0] : undefined,
-      galleryImages: images,
+      imageUrl: undefined,
+      galleryImages: [],
       description: `Elemento de decoración y diseño para el hogar Zara Home`,
     };
   }
