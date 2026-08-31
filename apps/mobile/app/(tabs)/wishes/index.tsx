@@ -602,8 +602,12 @@ export default function WishesScreen() {
 
               <PhotoUploadField
                 photoUrl={fulfillPhotoUrl || null}
-                onPhotoUploaded={(url) => setFulfillPhotoUrl(url)}
+                imageUri={fulfillPhotoUrl || null}
+                onPhotoUploaded={(url) => setFulfillPhotoUrl(url || '')}
+                onImageChange={(url) => setFulfillPhotoUrl(url || '')}
+                onPhotoSelected={(url) => setFulfillPhotoUrl(url || '')}
                 onPhotoRemoved={() => setFulfillPhotoUrl('')}
+                label="Fotografía del momento"
               />
             </View>
 

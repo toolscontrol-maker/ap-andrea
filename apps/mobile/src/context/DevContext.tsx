@@ -797,8 +797,16 @@ export function DevProvider({ children }: { children: ReactNode }) {
     const targetWish = wishes.find((w) => w.id === wishId);
     if (!targetWish) return;
 
-    // 1. Mark wish as fulfilled
-    updateWishStatus(wishId, 'fulfilled');
+    // 1. Mark wish as fulfilled with photo
+    const updatedWish: WishlistItem = {
+      ...targetWish,
+      status: 'fulfilled',
+      externalImageUrl: photoUrl || targetWish.externalImageUrl,
+      updatedAt: new Date().toISOString(),
+    };
+
+    setWishes((prev) => prev.map((w) => (w.id === wishId ? updatedWish : w)));
+    CloudSyncEngine.syncWish(updatedWish);
 
     // 2. Add as rich memory diary entry
     const memoryId = 'mem-' + Date.now();

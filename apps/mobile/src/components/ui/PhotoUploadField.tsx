@@ -12,6 +12,8 @@ interface PhotoUploadFieldProps {
   onImageChange?: (imageUri: string | null) => void;
   photoUrl?: string | null;
   onPhotoSelected?: (imageUri: string | null) => void;
+  onPhotoUploaded?: (imageUri: string | null) => void;
+  onPhotoRemoved?: () => void;
   label?: string;
   placeholderText?: string;
   aspect?: [number, number];
@@ -23,6 +25,8 @@ export function PhotoUploadField({
   onImageChange,
   photoUrl,
   onPhotoSelected,
+  onPhotoUploaded,
+  onPhotoRemoved,
   label = 'Fotografía del momento',
   placeholderText = 'Toca para subir una foto o hacer una captura',
   aspect = [4, 3],
@@ -34,6 +38,8 @@ export function PhotoUploadField({
   const triggerChange = (val: string | null) => {
     if (onImageChange) onImageChange(val);
     if (onPhotoSelected) onPhotoSelected(val);
+    if (onPhotoUploaded) onPhotoUploaded(val);
+    if (val === null && onPhotoRemoved) onPhotoRemoved();
   };
   const handlePress = () => {
     promptPhotoPicker({
