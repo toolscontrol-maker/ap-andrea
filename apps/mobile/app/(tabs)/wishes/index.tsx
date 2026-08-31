@@ -18,27 +18,29 @@ import { ScreenWrapper } from '../../../src/components/ui/ScreenWrapper';
 import { Card } from '../../../src/components/ui/Card';
 import { Button } from '../../../src/components/ui/Button';
 import { Badge } from '../../../src/components/ui/Badge';
+import { SegmentedControl } from '../../../src/components/ui/SegmentedControl';
 import { TiltedCard } from '../../../src/components/ui/TiltedCard';
 import { StaggeredItem } from '../../../src/components/ui/StaggeredList';
 import { SectionHeader } from '../../../src/components/ui/SectionHeader';
 import { EmptyState } from '../../../src/components/ui/EmptyState';
 import { PhotoUploadField } from '../../../src/components/ui/PhotoUploadField';
-import { IconSparkles } from '../../../src/components/ui/Icons';
 import { Colors } from '../../../src/theme/colors';
-import { Spacing, Radii, Shadows } from '../../../src/theme/tokens';
-import { WishlistItem, WishlistStatus, WishlistItemType, Place } from '@andrea/types';
-import { extractLinkMetadata } from '../../../src/utils/linkMetadata';
+import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
+import { WishlistItem, WishlistStatus, WishlistItemType, Place, DiaryEntryUI } from '@andrea/types';
 import { triggerHaptic } from '../../../src/utils/haptics';
 import { AddWishWizardModal, NewWishData } from '../../../src/components/wishes/AddWishWizardModal';
 import { CreateSurpriseFlow } from '../../../src/features/calendar/components/CreateSurpriseFlow';
 import { SurpriseCreationPayload } from '../../../src/features/calendar/domain/calendar.types';
 
-type TabFilter = 'all' | 'restaurants' | 'fashion' | 'trips' | 'home' | 'fulfilled';
+type OwnerFilter = 'all' | 'partner' | 'mine';
+type LifecycleFilter = 'active' | 'fulfilled';
+type CategoryFilter = 'all' | 'restaurants' | 'fashion' | 'trips' | 'home';
 
 export default function WishesScreen() {
   const router = useRouter();
   const {
     wishes,
+    surprises,
     savedPlaces,
     currentDevUser,
     partnerDevUser,
@@ -53,7 +55,10 @@ export default function WishesScreen() {
     addSurprise,
   } = useDev();
 
-  const [activeFilter, setActiveFilter] = useState<TabFilter>('all');
+  const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>('all');
+  const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleFilter>('active');
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isFulfillModalOpen, setIsFulfillModalOpen] = useState(false);
   const [selectedWishForFulfill, setSelectedWishForFulfill] = useState<WishlistItem | null>(null);
@@ -105,22 +110,41 @@ export default function WishesScreen() {
     }
   };
 
-  // Filtered List
-  const filteredWishes = useMemo(() => {
-    return wishes.filter((w) => {
-      if (activeFilter === 'fulfilled') return w.status === 'fulfilled';
-      if (w.status === 'fulfilled' && activeFilter !== 'all') return false;
-      if (activeFilter === 'restaurants') return w.type === 'restaurant';
-      if (activeFilter === 'fashion') return w.type === 'fashion' || w.type === 'beauty';
-      if (activeFilter === 'trips') return w.type === 'trip' || w.type === 'experience';
-      if (activeFilter === 'home') return w.type === 'home' || w.type === 'other';
-      return true;
-    });
-  }, [wishes, activeFilter]);
+  // ── Helper: Wish Ownership ──
+  const isWishForPartner = (wish: WishlistItem) => {
+    return wish.ownerUserId === partnerDevUser.id || wish.createdByUserId === partnerDevUser.id;
+  };
 
-  const restaurantPlaces = useMemo(() => {
-    return savedPlaces.filter((p) => p.category === 'restaurant' || p.category === 'cafe' || p.category === 'bar');
-  }, [savedPlaces]);
+  const isWishForMine = (wish: WishlistItem) => {
+    return wish.ownerUserId === currentDevUser.id || wish.createdByUserId === currentDevUser.id;
+  };
+
+  // ── Match Category Filter ──
+  const matchCategory = (type?: string) => {
+    if (categoryFilter === 'all') return true;
+    if (categoryFilter === 'restaurants') return type === 'restaurant' || type === 'cena';
+    if (categoryFilter === 'fashion') return type === 'fashion' || type === 'beauty' || type === 'regalo';
+    if (categoryFilter === 'trips') return type === 'trip' || type === 'experience' || type === 'escapada' || type === 'travel';
+    if (categoryFilter === 'home') return type === 'home' || type === 'other';
+    return true;
+  };
+
+  // ── Compute Counts ──
+  const activeWishes = useMemo(() => wishes.filter((w) => w.status !== 'fulfilled' && w.status !== 'archived'), [wishes]);
+  const fulfilledWishes = useMemo(() => wishes.filter((w) => w.status === 'fulfilled'), [wishes]);
+
+  const activePartnerWishes = useMemo(() => activeWishes.filter((w) => isWishForPartner(w) && matchCategory(w.type)), [activeWishes, categoryFilter]);
+  const activeMineWishes = useMemo(() => activeWishes.filter((w) => isWishForMine(w) && matchCategory(w.type)), [activeWishes, categoryFilter]);
+
+  const fulfilledAllWishes = useMemo(() => fulfilledWishes.filter((w) => matchCategory(w.type)), [fulfilledWishes, categoryFilter]);
+  const fulfilledPartnerWishes = useMemo(() => fulfilledWishes.filter((w) => isWishForPartner(w) && matchCategory(w.type)), [fulfilledWishes, categoryFilter]);
+  const fulfilledMineWishes = useMemo(() => fulfilledWishes.filter((w) => isWishForMine(w) && matchCategory(w.type)), [fulfilledWishes, categoryFilter]);
+
+  // Counts for Badges
+  const totalActive = activeWishes.length;
+  const totalFulfilled = fulfilledWishes.length;
+  const partnerActiveCount = activeWishes.filter((w) => isWishForPartner(w)).length;
+  const mineActiveCount = activeWishes.filter((w) => isWishForMine(w)).length;
 
   const handleSaveWishFromWizard = async (data: NewWishData) => {
     triggerHaptic('heavy');
@@ -142,7 +166,6 @@ export default function WishesScreen() {
       occasion: data.occasion,
     });
 
-    // If it's a restaurant, also optionally create a Place
     if (data.type === 'restaurant') {
       addSavedPlace({
         name: data.title,
@@ -182,7 +205,6 @@ export default function WishesScreen() {
   const handleSaveSurpriseFromWish = (payload: SurpriseCreationPayload) => {
     if (!surpriseWishTarget) return;
 
-    // 1. Calculate revealAt if custom_date
     let calculatedRevealAt: string | undefined = undefined;
     if (payload.revealOption === 'custom_date' && payload.revealDate) {
       calculatedRevealAt = `${payload.revealDate}T${payload.revealTime || '12:00'}:00`;
@@ -194,7 +216,6 @@ export default function WishesScreen() {
       calculatedRevealAt = `${payload.date}T${payload.time}:00`;
     }
 
-    // 2. Add couple event
     addCoupleEvent({
       eventType: 'surprise',
       date: payload.date,
@@ -210,10 +231,8 @@ export default function WishesScreen() {
       linkedWishlistId: surpriseWishTarget.id,
     });
 
-    // 3. Mark wish in progress
     updateWishStatus(surpriseWishTarget.id, 'in_progress');
 
-    // 4. Create surprise entry in diary/surprises
     addSurprise({
       date: payload.date,
       content: {
@@ -247,12 +266,144 @@ export default function WishesScreen() {
       case 'someday':
         return <Badge variant="mistBlue">Algún día</Badge>;
       case 'in_progress':
-        return <Badge variant="sage">En camino</Badge>;
+        return <Badge variant="sage">En camino 🚚</Badge>;
       case 'fulfilled':
-        return <Badge variant="neutral">Hecho realidad</Badge>;
+        return <Badge variant="neutral">✨ Hecho realidad</Badge>;
       default:
         return <Badge variant="neutral">Deseo</Badge>;
     }
+  };
+
+  // ── Render Wish Card Helper ──
+  const renderWishCard = (wish: WishlistItem, index: number) => {
+    const isMine = wish.ownerUserId === currentDevUser.id || wish.createdByUserId === currentDevUser.id;
+    const isPartner = !isMine;
+
+    return (
+      <StaggeredItem key={wish.id} index={index}>
+        <TiltedCard style={styles.wishCard} variant="elevated">
+          {/* Cover Photo or Multi-Photo Gallery */}
+          {wish.images && wish.images.length > 1 ? (
+            <View style={styles.wishGalleryWrapper}>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                style={styles.wishCardGalleryScroll}
+              >
+                {wish.images.map((img, i) => (
+                  <Image key={i} source={{ uri: img }} style={styles.wishCardGalleryImage} />
+                ))}
+              </ScrollView>
+              <View style={styles.galleryCountPill}>
+                <Text style={styles.galleryCountText}>✦ {wish.images.length} fotos</Text>
+              </View>
+            </View>
+          ) : (
+            (wish.externalImageUrl || (wish.images && wish.images[0])) && (
+              <Image
+                source={{ uri: wish.externalImageUrl || (wish.images && wish.images[0]) }}
+                style={styles.wishCardImage}
+              />
+            )
+          )}
+
+          <View style={styles.wishCardContent}>
+            {/* Top Row: Status + Author Pill + Price */}
+            <View style={styles.wishTopRow}>
+              <View style={styles.wishBadgeRow}>
+                {getStatusBadge(wish.status)}
+                <View
+                  style={[
+                    styles.authorPill,
+                    isPartner ? styles.authorPillPartner : styles.authorPillMine,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.authorPillText,
+                      isPartner ? styles.authorPillTextPartner : styles.authorPillTextMine,
+                    ]}
+                  >
+                    {isPartner ? `🌸 Ilusión de ${partnerDevUser.name}` : `🌿 De ${currentDevUser.name}`}
+                  </Text>
+                </View>
+              </View>
+              {wish.estimatedPrice && (
+                <Text style={styles.wishPriceTag}>{wish.estimatedPrice}€</Text>
+              )}
+            </View>
+
+            {/* Title & Description */}
+            <Text style={styles.wishTitle}>{wish.title}</Text>
+            {wish.description && (
+              <Text style={styles.wishDescription}>{wish.description}</Text>
+            )}
+
+            {/* Metadata Tags */}
+            <View style={styles.wishMetaRow}>
+              {wish.brand && <Text style={styles.wishBrandTag}>🏷️ {wish.brand}</Text>}
+              {wish.sourceDomain && (
+                <Text style={styles.wishDomainTag}>🔗 {wish.sourceDomain}</Text>
+              )}
+              {wish.occasion && (
+                <Text style={styles.wishOccasionTag}>🎉 {wish.occasion}</Text>
+              )}
+            </View>
+
+            {/* Actions Footer */}
+            <View style={styles.wishActionFooter}>
+              {wish.status !== 'fulfilled' && (
+                <>
+                  {wish.type === 'restaurant' && (
+                    <TouchableOpacity
+                      style={[
+                        styles.btnSurpriseTrigger,
+                        { backgroundColor: Colors.light.primary + '15', borderColor: Colors.light.primary + '40' }
+                      ]}
+                      activeOpacity={0.8}
+                      onPress={() => handleScheduleRestaurantDate(wish)}
+                    >
+                      <Text style={[styles.btnSurpriseTriggerText, { color: Colors.light.primary }]}>
+                        📞 Llamar & Agendar
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Prepare Surprise Action */}
+                  <TouchableOpacity
+                    style={styles.btnSurpriseTrigger}
+                    activeOpacity={0.8}
+                    onPress={() => handleMakeSurprise(wish)}
+                  >
+                    <Text style={styles.btnSurpriseTriggerText}>
+                      Hacerle la sorpresa ✨
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Mark as Fulfilled Action */}
+                  <TouchableOpacity
+                    style={styles.btnFulfillTrigger}
+                    activeOpacity={0.8}
+                    onPress={() => handleOpenFulfill(wish)}
+                  >
+                    <Text style={styles.btnFulfillTriggerText}>Se hizo realidad 🎉</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {wish.status === 'fulfilled' && (
+                <View style={styles.fulfilledRecordBox}>
+                  <Text style={styles.fulfilledRecordText}>
+                    ✨ Este deseo se hizo realidad y está guardado en vuestra historia.
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </TiltedCard>
+      </StaggeredItem>
+    );
   };
 
   return (
@@ -261,7 +412,9 @@ export default function WishesScreen() {
       <View style={styles.headerContainer}>
         <View style={styles.headerTextGroup}>
           <Text style={styles.headerTitle}>Sorpresas y Deseos</Text>
-          <Text style={styles.headerSubtitle}>Para ahora, para después o para algún día</Text>
+          <Text style={styles.headerSubtitle}>
+            Ilusiones, compras y secretos compartidos entre {currentDevUser.name} & {partnerDevUser.name}
+          </Text>
         </View>
         <TouchableOpacity
           style={styles.btnQuickAdd}
@@ -272,195 +425,184 @@ export default function WishesScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* FILTER PILLS */}
+      {/* ── 1. PERSONA SELECTOR (TÚ Y ELLA) ── */}
+      <SegmentedControl<OwnerFilter>
+        options={[
+          { id: 'all', label: '💫 Todos', badgeCount: lifecycleFilter === 'active' ? totalActive : totalFulfilled },
+          { id: 'partner', label: `🌸 De ${partnerDevUser.name}`, badgeCount: partnerActiveCount },
+          { id: 'mine', label: `🌿 De ${currentDevUser.name}`, badgeCount: mineActiveCount },
+        ]}
+        selected={ownerFilter}
+        onSelect={(val) => {
+          triggerHaptic('selection');
+          setOwnerFilter(val);
+        }}
+        activeColor="#FFFFFF"
+        activeTextColor={Colors.light.primaryDark}
+        style={{ marginBottom: Spacing.sm }}
+      />
+
+      {/* ── 2. LIFECYCLE SELECTOR (ACTIVOS VS CUMPLIDOS) ── */}
+      <SegmentedControl<LifecycleFilter>
+        options={[
+          { id: 'active', label: '✨ Activos & En marcha', badgeCount: totalActive },
+          { id: 'fulfilled', label: '🎉 Hechos Realidad', badgeCount: totalFulfilled },
+        ]}
+        selected={lifecycleFilter}
+        onSelect={(val) => {
+          triggerHaptic('selection');
+          setLifecycleFilter(val);
+        }}
+        activeColor={Colors.light.surfaceElevated}
+        activeTextColor={Colors.light.primaryDark}
+        style={{ marginBottom: Spacing.md }}
+      />
+
+      {/* ── 3. CATEGORY PILLS ── */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filterScroll}
       >
         <TouchableOpacity
-          style={[styles.filterChip, activeFilter === 'all' && styles.filterChipActive]}
-          onPress={() => setActiveFilter('all')}
+          style={[styles.filterChip, categoryFilter === 'all' && styles.filterChipActive]}
+          onPress={() => {
+            triggerHaptic('light');
+            setCategoryFilter('all');
+          }}
         >
-          <Text style={[styles.filterChipText, activeFilter === 'all' && styles.filterChipTextActive]}>
-            Todos ({wishes.length})
+          <Text style={[styles.filterChipText, categoryFilter === 'all' && styles.filterChipTextActive]}>
+            ✦ Todas
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.filterChip, activeFilter === 'restaurants' && styles.filterChipActive]}
-          onPress={() => setActiveFilter('restaurants')}
+          style={[styles.filterChip, categoryFilter === 'restaurants' && styles.filterChipActive]}
+          onPress={() => {
+            triggerHaptic('light');
+            setCategoryFilter('restaurants');
+          }}
         >
-          <Text style={[styles.filterChipText, activeFilter === 'restaurants' && styles.filterChipTextActive]}>
-            Restaurantes
+          <Text style={[styles.filterChipText, categoryFilter === 'restaurants' && styles.filterChipTextActive]}>
+            🍽️ Restaurantes
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.filterChip, activeFilter === 'fashion' && styles.filterChipActive]}
-          onPress={() => setActiveFilter('fashion')}
+          style={[styles.filterChip, categoryFilter === 'fashion' && styles.filterChipActive]}
+          onPress={() => {
+            triggerHaptic('light');
+            setCategoryFilter('fashion');
+          }}
         >
-          <Text style={[styles.filterChipText, activeFilter === 'fashion' && styles.filterChipTextActive]}>
-            Moda & Belleza
+          <Text style={[styles.filterChipText, categoryFilter === 'fashion' && styles.filterChipTextActive]}>
+            🛍️ Moda & Regalos
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.filterChip, activeFilter === 'trips' && styles.filterChipActive]}
-          onPress={() => setActiveFilter('trips')}
+          style={[styles.filterChip, categoryFilter === 'trips' && styles.filterChipActive]}
+          onPress={() => {
+            triggerHaptic('light');
+            setCategoryFilter('trips');
+          }}
         >
-          <Text style={[styles.filterChipText, activeFilter === 'trips' && styles.filterChipTextActive]}>
-            Viajes & Citas
+          <Text style={[styles.filterChipText, categoryFilter === 'trips' && styles.filterChipTextActive]}>
+            ✈️ Viajes & Citas
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.filterChip, activeFilter === 'home' && styles.filterChipActive]}
-          onPress={() => setActiveFilter('home')}
+          style={[styles.filterChip, categoryFilter === 'home' && styles.filterChipActive]}
+          onPress={() => {
+            triggerHaptic('light');
+            setCategoryFilter('home');
+          }}
         >
-          <Text style={[styles.filterChipText, activeFilter === 'home' && styles.filterChipTextActive]}>
-            Hogar
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.filterChip, activeFilter === 'fulfilled' && styles.filterChipActive]}
-          onPress={() => setActiveFilter('fulfilled')}
-        >
-          <Text style={[styles.filterChipText, activeFilter === 'fulfilled' && styles.filterChipTextActive]}>
-            Cumplidos
+          <Text style={[styles.filterChipText, categoryFilter === 'home' && styles.filterChipTextActive]}>
+            🏡 Hogar
           </Text>
         </TouchableOpacity>
       </ScrollView>
-      {/* WISHES LIST */}
-      <View style={styles.sectionBlock}>
-        <SectionHeader
-          title={activeFilter === 'fulfilled' ? 'Deseos Hechos Realidad' : 'Lista de Ilusiones'}
-          subtitle={
-            activeFilter === 'fulfilled'
-              ? 'Momentos y regalos que ya forman parte de vuestra memoria'
-              : 'Detalles, experiencias y caprichos que queréis vivir o regalar'
-          }
-        />
 
-        {filteredWishes.length === 0 ? (
-          <EmptyState
-            title="El rincón de los deseos está esperando"
-            subtitle="Guarda una prenda, un perfume, una cena especial o un plan soñado sin complicaciones."
-            actionText="+ Guardar primer deseo"
-            onAction={() => setIsAddModalOpen(true)}
+      {/* ── 4. CONTENT SECTIONS ── */}
+
+      {/* CASE A: ACTIVE WISHES */}
+      {lifecycleFilter === 'active' && (
+        <View style={styles.sectionBlock}>
+          {/* SECTION A1: ANDREA'S ACTIVE WISHES */}
+          {(ownerFilter === 'all' || ownerFilter === 'partner') && (
+            <View style={{ marginBottom: Spacing.xl }}>
+              <SectionHeader
+                title={`🌸 Ilusiones de ${partnerDevUser.name} (${activePartnerWishes.length})`}
+                subtitle={`Caprichos, detalles y planes que le hacen ilusión a ${partnerDevUser.name}`}
+              />
+              {activePartnerWishes.length === 0 ? (
+                <EmptyState
+                  emoji="🌸"
+                  title={`Sin ilusiones de ${partnerDevUser.name} en esta categoría`}
+                  subtitle={`Añade un detalle o regalo que le gustaría tener a ${partnerDevUser.name}.`}
+                  actionText="+ Guardar ilusión"
+                  onAction={() => setIsAddModalOpen(true)}
+                />
+              ) : (
+                <View style={styles.wishesGrid}>
+                  {activePartnerWishes.map((w, idx) => renderWishCard(w, idx))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* SECTION A2: MY ACTIVE WISHES */}
+          {(ownerFilter === 'all' || ownerFilter === 'mine') && (
+            <View style={{ marginBottom: Spacing.xl }}>
+              <SectionHeader
+                title={`🌿 Mis Deseos & Planes (${activeMineWishes.length})`}
+                subtitle={`Ideas, compras y rincones guardados por ${currentDevUser.name}`}
+              />
+              {activeMineWishes.length === 0 ? (
+                <EmptyState
+                  emoji="🌿"
+                  title="Sin deseos propios en esta categoría"
+                  subtitle="Anota una prenda, un restaurante o un plan que te haga ilusión."
+                  actionText="+ Guardar deseo"
+                  onAction={() => setIsAddModalOpen(true)}
+                />
+              ) : (
+                <View style={styles.wishesGrid}>
+                  {activeMineWishes.map((w, idx) => renderWishCard(w, idx))}
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* CASE B: FULFILLED WISHES */}
+      {lifecycleFilter === 'fulfilled' && (
+        <View style={styles.sectionBlock}>
+          <SectionHeader
+            title={`🎉 Deseos Hechos Realidad (${fulfilledAllWishes.length})`}
+            subtitle="Regalos, compras y momentos cumplidos para la eternidad"
           />
-        ) : (
-          <View style={styles.wishesGrid}>
-            {filteredWishes.map((wish, index) => {
-              const isOwner = wish.ownerUserId === currentDevUser.id;
-              const ownerName = isOwner ? 'Tú' : partnerDevUser.name;
-
-              return (
-                <StaggeredItem key={wish.id} index={index}>
-                  <TiltedCard style={styles.wishCard} variant="elevated">
-                    {/* MULTI-PHOTO GALLERY OR SINGLE IMAGE */}
-                    {wish.images && wish.images.length > 1 ? (
-                      <View style={styles.wishGalleryWrapper}>
-                        <ScrollView
-                          horizontal
-                          pagingEnabled
-                          showsHorizontalScrollIndicator={false}
-                          style={styles.wishCardGalleryScroll}
-                        >
-                          {wish.images.map((img, i) => (
-                            <Image key={i} source={{ uri: img }} style={styles.wishCardGalleryImage} />
-                          ))}
-                        </ScrollView>
-                        <View style={styles.galleryCountPill}>
-                          <Text style={styles.galleryCountText}>✦ {wish.images.length} fotos</Text>
-                        </View>
-                      </View>
-                    ) : (
-                      (wish.externalImageUrl || (wish.images && wish.images[0])) && (
-                        <Image
-                          source={{ uri: wish.externalImageUrl || (wish.images && wish.images[0]) }}
-                          style={styles.wishCardImage}
-                        />
-                      )
-                    )}
-
-                    <View style={styles.wishCardContent}>
-                      <View style={styles.wishTopRow}>
-                        <View style={styles.wishBadgeRow}>
-                          {getStatusBadge(wish.status)}
-                          <Badge
-                            variant={isOwner ? 'neutral' : 'secondary'}
-                          >
-                            {wish.isForSelf ? 'Para mí' : `De ${ownerName}`}
-                          </Badge>
-                        </View>
-                        {wish.estimatedPrice && (
-                          <Text style={styles.wishPriceTag}>{wish.estimatedPrice}€</Text>
-                        )}
-                      </View>
-
-                      <Text style={styles.wishTitle}>{wish.title}</Text>
-                      {wish.description && (
-                        <Text style={styles.wishDescription}>{wish.description}</Text>
-                      )}
-
-                      <View style={styles.wishMetaRow}>
-                        {wish.brand && <Text style={styles.wishBrandTag}>{wish.brand}</Text>}
-                        {wish.sourceDomain && (
-                          <Text style={styles.wishDomainTag}>{wish.sourceDomain}</Text>
-                        )}
-                        {wish.occasion && (
-                          <Text style={styles.wishOccasionTag}>{wish.occasion}</Text>
-                        )}
-                      </View>
-
-                      {/* ACTIONS */}
-                      {wish.status !== 'fulfilled' && (
-                        <View style={styles.wishActionFooter}>
-                          {wish.type === 'restaurant' && (
-                            <TouchableOpacity
-                              style={[
-                                styles.btnSurpriseTrigger,
-                                { backgroundColor: Colors.light.primary + '15', borderColor: Colors.light.primary + '40' }
-                              ]}
-                              activeOpacity={0.8}
-                              onPress={() => handleScheduleRestaurantDate(wish)}
-                            >
-                              <Text style={[styles.btnSurpriseTriggerText, { color: Colors.light.primary }]}>
-                                📞 Llamar & Agendar
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-
-                          {/* If it belongs to partner, option to make a surprise */}
-                          {!isOwner && (
-                            <TouchableOpacity
-                              style={styles.btnSurpriseTrigger}
-                              activeOpacity={0.8}
-                              onPress={() => handleMakeSurprise(wish)}
-                            >
-                              <Text style={styles.btnSurpriseTriggerText}>Hacerle la sorpresa</Text>
-                            </TouchableOpacity>
-                          )}
-
-                          <TouchableOpacity
-                            style={styles.btnFulfillTrigger}
-                            activeOpacity={0.8}
-                            onPress={() => handleOpenFulfill(wish)}
-                          >
-                            <Text style={styles.btnFulfillTriggerText}>Se hizo realidad</Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                    </View>
-                  </TiltedCard>
-                </StaggeredItem>
-              );
-            })}
-          </View>
-        )}
-      </View>
+          {fulfilledAllWishes.length === 0 ? (
+            <EmptyState
+              emoji="✨"
+              title="Aún no hay deseos marcados como cumplidos"
+              subtitle="Cuando sorprendas a tu pareja o disfrutéis de un deseo juntos, márcalo como hecho realidad para guardarlo aquí."
+            />
+          ) : (
+            <View style={styles.wishesGrid}>
+              {(ownerFilter === 'all'
+                ? fulfilledAllWishes
+                : ownerFilter === 'partner'
+                ? fulfilledPartnerWishes
+                : fulfilledMineWishes
+              ).map((w, idx) => renderWishCard(w, idx))}
+            </View>
+          )}
+        </View>
+      )}
 
       {/* MULTI-STEP WISH WIZARD MODAL */}
       <AddWishWizardModal
@@ -475,7 +617,7 @@ export default function WishesScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Se hizo realidad</Text>
+                <Text style={styles.modalTitle}>Se hizo realidad ✨</Text>
                 <Text style={styles.modalSubtitle}>Convierte este deseo en un recuerdo para siempre</Text>
               </View>
               <TouchableOpacity onPress={() => setIsFulfillModalOpen(false)}>
@@ -498,10 +640,9 @@ export default function WishesScreen() {
               />
 
               <PhotoUploadField
-                imageUri={fulfillPhotoUrl}
-                onImageChange={(val) => setFulfillPhotoUrl(val || '')}
-                label="Foto del recuerdo"
-                placeholderText="Toca para subir la foto de este momento cumplido"
+                photoUrl={fulfillPhotoUrl || null}
+                onPhotoUploaded={(url) => setFulfillPhotoUrl(url)}
+                onPhotoRemoved={() => setFulfillPhotoUrl('')}
               />
             </View>
 
@@ -525,7 +666,7 @@ export default function WishesScreen() {
                   paddingHorizontal: 20,
                   paddingVertical: 12,
                   borderRadius: 12,
-                  backgroundColor: Colors.light.sage || '#5F8575',
+                  backgroundColor: Colors.light.primary,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
@@ -534,182 +675,6 @@ export default function WishesScreen() {
               >
                 <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>Guardar como Recuerdo</Text>
               </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* RESTAURANT DETAIL & MEMORY HISTORY MODAL */}
-      <Modal
-        visible={!!selectedRestaurantPlace}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setSelectedRestaurantPlace(null)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, styles.restaurantDetailCard]}>
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <View style={{ flex: 1, paddingRight: Spacing.sm }}>
-                <Text style={styles.modalTitle} numberOfLines={1}>
-                  {selectedRestaurantPlace?.name}
-                </Text>
-                <Text style={styles.modalSubtitle}>
-                  {selectedRestaurantPlace?.city} · {selectedRestaurantPlace?.cuisine?.join(', ')}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setSelectedRestaurantPlace(null)}
-              >
-                <Text style={styles.modalCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              {/* Photo Carousel or Cover Image */}
-              {selectedRestaurantPlace?.photos && selectedRestaurantPlace.photos.length > 1 ? (
-                <View style={styles.restaurantDetailGalleryWrap}>
-                  <ScrollView
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.restaurantGalleryScroll}
-                  >
-                    {selectedRestaurantPlace.photos.map((photo, i) => (
-                      <Image
-                        key={i}
-                        source={{ uri: photo }}
-                        style={styles.restaurantGalleryPhoto}
-                      />
-                    ))}
-                  </ScrollView>
-                  <View style={styles.galleryBadgeOverlay}>
-                    <Text style={styles.galleryBadgeOverlayText}>
-                      ✦ {selectedRestaurantPlace.photos.length} fotos reales
-                    </Text>
-                  </View>
-                </View>
-              ) : (
-                selectedRestaurantPlace?.coverImageUrl && (
-                  <Image
-                    source={{ uri: selectedRestaurantPlace.coverImageUrl }}
-                    style={styles.restaurantDetailCoverPhoto}
-                  />
-                )
-              )}
-
-              {/* Status and Rating Badges */}
-              <View style={styles.restaurantBadgeRow}>
-                <View style={styles.ratingStarsBox}>
-                  <Text style={styles.ratingStarsText}>⭐⭐⭐⭐⭐ 5.0</Text>
-                </View>
-                <Badge variant={selectedRestaurantPlace?.status === 'favorite' ? 'butter' : 'neutral'}>
-                  {selectedRestaurantPlace?.status === 'favorite'
-                    ? '⭐ Favorito de siempre'
-                    : selectedRestaurantPlace?.status === 'want_to_go'
-                    ? '💫 Pendiente / Deseo'
-                    : '✓ Visitado'}
-                </Badge>
-                {selectedRestaurantPlace?.vibe && (
-                  <Badge variant="secondary">
-                    {selectedRestaurantPlace.vibe === 'romantico'
-                      ? '🌹 Romántico'
-                      : selectedRestaurantPlace.vibe === 'celebracion'
-                      ? '🍾 Celebración'
-                      : '🌿 Tranquilo'}
-                  </Badge>
-                )}
-                <Text style={styles.restaurantPriceTag}>
-                  {'€'.repeat(selectedRestaurantPlace?.priceLevel || 2)}
-                </Text>
-              </View>
-
-              {/* Google Maps & Action Buttons */}
-              <View style={styles.externalActionsRow}>
-                <TouchableOpacity
-                  style={styles.btnGoogleMaps}
-                  onPress={() => {
-                    triggerHaptic('medium');
-                    const url =
-                      selectedRestaurantPlace?.googleMapsUrl ||
-                      `https://maps.google.com/?q=${encodeURIComponent(
-                        `${selectedRestaurantPlace?.name} ${selectedRestaurantPlace?.address || selectedRestaurantPlace?.city || 'Valencia'}`
-                      )}`;
-                    Linking.openURL(url);
-                  }}
-                >
-                  <Text style={styles.btnGoogleMapsText}>🗺️ Abrir en Google Maps</Text>
-                </TouchableOpacity>
-
-                {selectedRestaurantPlace?.phoneNumber && (
-                  <TouchableOpacity
-                    style={styles.btnCallPhone}
-                    onPress={() => {
-                      triggerHaptic('medium');
-                      Linking.openURL(`tel:${selectedRestaurantPlace.phoneNumber}`);
-                    }}
-                  >
-                    <Text style={styles.btnCallPhoneText}>📞 Llamar ({selectedRestaurantPlace.phoneNumber})</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {/* Exact Address */}
-              {selectedRestaurantPlace?.address && (
-                <View style={styles.addressBox}>
-                  <Text style={styles.addressLabel}>📍 Dirección exacta</Text>
-                  <Text style={styles.addressText}>{selectedRestaurantPlace.address}</Text>
-                </View>
-              )}
-
-              {/* Personal Story & Note */}
-              {selectedRestaurantPlace?.note && (
-                <View style={styles.storyBox}>
-                  <Text style={styles.storyLabel}>✨ Nuestra Historia & Notas</Text>
-                  <Text style={styles.storyText}>"{selectedRestaurantPlace.note}"</Text>
-                </View>
-              )}
-
-              {/* VISITS AND SPECIAL MOMENTS HISTORY */}
-              {selectedRestaurantPlace?.visits && selectedRestaurantPlace.visits.length > 0 && (
-                <View style={styles.visitsSection}>
-                  <Text style={styles.visitsSectionTitle}>
-                    ❤️ Visitas & Momentos Compartidos ({selectedRestaurantPlace.visits.length})
-                  </Text>
-                  {selectedRestaurantPlace.visits.map((v) => (
-                    <View key={v.id} style={styles.visitItemCard}>
-                      <View style={styles.visitDateBadge}>
-                        <Text style={styles.visitDateBadgeText}>{v.date}</Text>
-                      </View>
-                      <View style={styles.visitDetailsCol}>
-                        <Text style={styles.visitItemTitle}>{v.title}</Text>
-                        {v.note && <Text style={styles.visitItemNote}>{v.note}</Text>}
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </ScrollView>
-
-            {/* Footer Actions */}
-            <View style={styles.modalFooter}>
-              <Button
-                variant="ghost"
-                onPress={() => setSelectedRestaurantPlace(null)}
-              >
-                Cerrar
-              </Button>
-              <Button
-                variant="primary"
-                onPress={() => {
-                  if (selectedRestaurantPlace) {
-                    handleScheduleRestaurantDate(selectedRestaurantPlace);
-                  }
-                  setSelectedRestaurantPlace(null);
-                }}
-              >
-                🗓️ Agendar en Calendario
-              </Button>
             </View>
           </View>
         </View>
@@ -904,7 +869,48 @@ const styles = StyleSheet.create({
   },
   wishBadgeRow: {
     flexDirection: 'row',
-    gap: Spacing.xs
+    alignItems: 'center',
+    gap: Spacing.xs,
+    flexWrap: 'wrap',
+  },
+  authorPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radii.full,
+  },
+  authorPillPartner: {
+    backgroundColor: '#FAF0F2',
+    borderWidth: 1,
+    borderColor: 'rgba(224, 86, 102, 0.25)',
+  },
+  authorPillMine: {
+    backgroundColor: '#F0F6F2',
+    borderWidth: 1,
+    borderColor: 'rgba(95, 133, 117, 0.25)',
+  },
+  authorPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  authorPillTextPartner: {
+    color: '#D84A65',
+  },
+  authorPillTextMine: {
+    color: '#2D6A4F',
+  },
+  fulfilledRecordBox: {
+    backgroundColor: '#FFF8F6',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(224, 86, 102, 0.2)',
+    width: '100%',
+  },
+  fulfilledRecordText: {
+    fontSize: 12,
+    color: Colors.light.primary,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
   wishPriceTag: {
     fontSize: 15,
