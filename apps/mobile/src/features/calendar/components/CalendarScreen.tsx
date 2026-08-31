@@ -26,6 +26,7 @@ import { FutureLetterModal } from './FutureLetterModal';
 import { EventDetailSheet } from './EventDetailSheet';
 import { PostEventMemoryModal } from './PostEventMemoryModal';
 import { UniversalCreateModal } from './UniversalCreateModal';
+import { CreateCouplePlanModal } from './CreateCouplePlanModal';
 import { ExpandedCalendarModal } from './ExpandedCalendarModal';
 import { Radii, Shadows, Spacing, Typography } from '../../../theme/tokens';
 import { Colors } from '../../../theme/colors';
@@ -58,6 +59,8 @@ export function CalendarScreen() {
   const [isExpandedModalOpen, setIsExpandedModalOpen] = useState(false);
   const [expandedMode, setExpandedMode] = useState<CalendarViewMode>('week');
   const [isUniversalCreateOpen, setIsUniversalCreateOpen] = useState(false);
+  const [isCreatePlanModalOpen, setIsCreatePlanModalOpen] = useState(false);
+  const [createPlanType, setCreatePlanType] = useState<UniversalEventType>('date');
 
   // 1. Sanitize all couple events based on the active role (Anti-Spoiler)
   const sanitizedEvents = useMemo(() => {
@@ -115,57 +118,13 @@ export function CalendarScreen() {
   const handleUniversalCreateSelect = (option: UniversalEventType) => {
     setIsUniversalCreateOpen(false);
 
-    switch (option) {
-      case 'date':
-        addCoupleEvent({
-          eventType: 'shared_plan',
-          date: store.selectedDate,
-          time: '20:30',
-          title: 'Cena romántica juntos',
-          subtitle: 'Un momento para nosotros',
-        });
-        break;
-      case 'restaurant':
-        addCoupleEvent({
-          eventType: 'shared_plan',
-          date: store.selectedDate,
-          time: '21:00',
-          title: 'Reserva Restaurante',
-          subtitle: 'Mesa guardada para una velada especial',
-          location: 'Restaurante en Valencia',
-        });
-        break;
-      case 'surprise':
-        store.setIsCreateSurpriseFlowOpen(true);
-        break;
-      case 'trip':
-        addCoupleEvent({
-          eventType: 'future_trip',
-          date: store.selectedDate,
-          title: 'Escapada de fin de semana',
-          subtitle: 'Desconexión y descubrir nuevos rincones juntos',
-        });
-        break;
-      case 'wishlist':
-        router.push('/(tabs)/wishes' as any);
-        break;
-      case 'important_date':
-        addCoupleEvent({
-          eventType: 'important_date',
-          date: store.selectedDate,
-          title: 'Fecha Especial',
-          subtitle: 'Un día inolvidable para nosotros',
-        });
-        break;
-      case 'memory':
-        addCoupleEvent({
-          eventType: 'ritual',
-          date: store.selectedDate,
-          time: '22:00',
-          title: '🌿 Recuerdo del día',
-          subtitle: 'Un momento vivido con el corazón',
-        });
-        break;
+    if (option === 'surprise') {
+      store.setIsCreateSurpriseFlowOpen(true);
+    } else if (option === 'wishlist') {
+      router.push('/(tabs)/wishes' as any);
+    } else {
+      setCreatePlanType(option);
+      setIsCreatePlanModalOpen(true);
     }
   };
 
@@ -208,6 +167,17 @@ export function CalendarScreen() {
 
   // Handler for saving surprise from flow
   const handleSaveSurprise = (payload: SurpriseCreationPayload) => {
+    let calculatedRevealAt: string | undefined = undefined;
+    if (payload.revealOption === 'custom_date' && payload.revealDate) {
+      calculatedRevealAt = `${payload.revealDate}T${payload.revealTime || '12:00'}:00`;
+    } else if (payload.revealOption === 'one_day_before') {
+      calculatedRevealAt = `${payload.date}T00:00:00`;
+    } else if (payload.revealOption === 'same_day_morning') {
+      calculatedRevealAt = `${payload.date}T09:00:00`;
+    } else if (payload.revealOption === 'specific_time') {
+      calculatedRevealAt = `${payload.date}T${payload.time}:00`;
+    }
+
     addCoupleEvent({
       eventType: 'surprise',
       surpriseCategory: payload.category,
@@ -216,10 +186,8 @@ export function CalendarScreen() {
       title: payload.title,
       location: payload.location,
       notes: payload.notes,
-      revealPolicy: payload.revealOption === 'now' ? 'immediately' : 'scheduled',
-      revealAt: payload.revealOption === 'one_day_before'
-        ? `${payload.date}T00:00:00`
-        : undefined,
+      revealPolicy: payload.revealOption === 'now' ? 'immediate' : 'scheduled',
+      revealAt: calculatedRevealAt,
       visibility: 'private_until_reveal',
       partnerTeaserTitle: payload.visibilityPreset === 'total_secret'
         ? 'Sorpresa secreta'
@@ -462,6 +430,18 @@ export function CalendarScreen() {
           store.setIsCreateSurpriseFlowOpen(true);
         }}
         partnerName={partnerDevUser.name}
+      />
+
+      {/* Universal Contextual Plan & Reservation Creation Modal */}
+      <CreateCouplePlanModal
+        visible={isCreatePlanModalOpen}
+        onClose={() => setIsCreatePlanModalOpen(false)}
+        initialType={createPlanType}
+        initialDate={store.selectedDate}
+        partnerName={partnerDevUser.name}
+        onSuccess={(eventPayload) => {
+          addCoupleEvent(eventPayload);
+        }}
       />
 
       <CreateSurpriseFlow

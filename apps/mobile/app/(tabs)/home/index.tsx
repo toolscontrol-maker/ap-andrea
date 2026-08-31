@@ -31,8 +31,10 @@ import {
 } from '../../../src/components/ui/Icons';
 import { Colors } from '../../../src/theme/colors';
 import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
-import { DailyRitualType } from '@andrea/types';
+import { DailyRitualType, WishlistItem } from '@andrea/types';
 import { triggerHaptic } from '../../../src/utils/haptics';
+import { CreateSurpriseFlow } from '../../../src/features/calendar/components/CreateSurpriseFlow';
+import { SurpriseCreationPayload } from '../../../src/features/calendar/domain/calendar.types';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -45,6 +47,7 @@ export default function HomeScreen() {
     coupleEvents,
     wishes,
     addRitualSeed,
+    addCoupleEvent,
     getRandomAyaQuestion,
     convertWishToSurprise
   } = useDev();
@@ -55,6 +58,8 @@ export default function HomeScreen() {
   const [currentQuestion, setCurrentQuestion] = useState(getRandomAyaQuestion());
   const [isSeedSubmitted, setIsSeedSubmitted] = useState(false);
   const [selectedFeeling, setSelectedFeeling] = useState<string | null>(null);
+  const [surpriseWishTarget, setSurpriseWishTarget] = useState<WishlistItem | null>(null);
+  const [isSurpriseFlowOpen, setIsSurpriseFlowOpen] = useState(false);
 
   // Dynamic days calculation from 15 Feb 2025
   const ANNIVERSARY_DATE = new Date('2025-02-15');
@@ -64,11 +69,58 @@ export default function HomeScreen() {
   const nextUpcomingEvent = coupleEvents.find((e) => e.status === 'scheduled');
   const partnerWishes = wishes.filter((w) => w.ownerUserId === partnerDevUser.id && w.status !== 'fulfilled');
 
+  const handleOpenSurpriseForWish = (wish: WishlistItem) => {
+    triggerHaptic('medium');
+    setSurpriseWishTarget(wish);
+    setIsSurpriseFlowOpen(true);
+  };
+
+  const handleSaveSurpriseFromWish = (payload: SurpriseCreationPayload) => {
+    let calculatedRevealAt: string | undefined = undefined;
+    if (payload.revealOption === 'custom_date' && payload.revealDate) {
+      calculatedRevealAt = `${payload.revealDate}T${payload.revealTime || '12:00'}:00`;
+    } else if (payload.revealOption === 'one_day_before') {
+      calculatedRevealAt = `${payload.date}T00:00:00`;
+    } else if (payload.revealOption === 'same_day_morning') {
+      calculatedRevealAt = `${payload.date}T09:00:00`;
+    } else if (payload.revealOption === 'specific_time') {
+      calculatedRevealAt = `${payload.date}T${payload.time}:00`;
+    }
+
+    addCoupleEvent({
+      eventType: 'surprise',
+      surpriseCategory: payload.category,
+      date: payload.date,
+      time: payload.time,
+      title: payload.title,
+      location: payload.location,
+      notes: payload.notes,
+      revealPolicy: payload.revealOption === 'now' ? 'immediate' : 'scheduled',
+      revealAt: calculatedRevealAt,
+      visibility: 'private_until_reveal',
+      partnerTeaserTitle: payload.visibilityPreset === 'total_secret'
+        ? 'Sorpresa secreta'
+        : 'Plan especial',
+      partnerTeaserSubtitle: payload.visibilityPreset === 'visible_plan'
+        ? `Plan el ${payload.date} preparado con cariño.`
+        : 'Prepárate para un momento bonito juntos.',
+    });
+
+    if (surpriseWishTarget) {
+      convertWishToSurprise(surpriseWishTarget.id, `Preparado desde el Nido para el ${payload.date}.`);
+    }
+
+    setSurpriseWishTarget(null);
+    Alert.alert('✨ Sorpresa Preparada', `Has organizado en secreto "${payload.title}" para ${partnerDevUser.name}.`);
+  };
+
   const handlePlantSeed = () => {
     if (!ritualInputText.trim() && !uploadedPhotoUri) {
       Alert.alert('Escribe unas palabras', 'Comparte una pequeña nota o pensamiento de hoy.');
       return;
     }
+
+    triggerHaptic('success');
 
     addRitualSeed({
       type: activeRitualType,
@@ -83,11 +135,27 @@ export default function HomeScreen() {
       mood: 'love'
     });
 
+    // Also register in couple events so it is reflected in calendar & timeline
+    const todayStr = new Date().toISOString().split('T')[0];
+    addCoupleEvent({
+      eventType: 'ritual',
+      date: todayStr,
+      time: new Date().toTimeString().slice(0, 5),
+      title:
+        activeRitualType === 'gratitude_note'
+          ? '🌿 Nota de gratitud'
+          : activeRitualType === 'question_answer'
+          ? `💬 ${currentQuestion.question}`
+          : '📷 Foto del día',
+      subtitle: ritualInputText.trim() || 'Momento guardado con amor',
+      notes: uploadedPhotoUri ? [uploadedPhotoUri] : undefined,
+    });
+
     setRitualInputText('');
     setUploadedPhotoUri(null);
     setIsSeedSubmitted(true);
     setTimeout(() => setIsSeedSubmitted(false), 3000);
-    Alert.alert('🌱 Momento Sembrado', 'Se ha guardado en vuestra memoria compartida.');
+    Alert.alert('🌱 Momento Sembrado', 'Se ha guardado en vuestra memoria compartida y en el calendario.');
   };
 
   const handleSelectFeeling = (feeling: string) => {
@@ -368,12 +436,10 @@ export default function HomeScreen() {
                   )}
                   <TouchableOpacity
                     style={styles.btnPeekSurprise}
-                    onPress={() => {
-                      convertWishToSurprise(wish.id, `Preparado desde el Nido de Inicio.`);
-                      Alert.alert('Sorpresa Agendada', `Has preparado en secreto "${wish.title}".`);
-                    }}
+                    onPress={() => handleOpenSurpriseForWish(wish)}
+                    activeOpacity={0.75}
                   >
-                    <Text style={styles.btnPeekSurpriseText}>Preparar sorpresa</Text>
+                    <Text style={styles.btnPeekSurpriseText}>Preparar sorpresa ✨</Text>
                   </TouchableOpacity>
                 </View>
               </Card>
@@ -381,6 +447,30 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
       )}
+
+      {/* Surprise Creation Flow for Wish */}
+      <CreateSurpriseFlow
+        visible={isSurpriseFlowOpen}
+        onClose={() => {
+          setIsSurpriseFlowOpen(false);
+          setSurpriseWishTarget(null);
+        }}
+        onSuccess={handleSaveSurpriseFromWish}
+        initialTitle={surpriseWishTarget ? `Sorpresa: ${surpriseWishTarget.title}` : undefined}
+        initialCategory={
+          surpriseWishTarget?.type === 'restaurant'
+            ? 'cena'
+            : surpriseWishTarget?.type === 'trip'
+            ? 'escapada'
+            : 'regalo'
+        }
+        initialLocation={surpriseWishTarget?.brand || surpriseWishTarget?.storeName}
+        initialNotes={
+          surpriseWishTarget?.sourceUrl
+            ? `Enlace del deseo: ${surpriseWishTarget.sourceUrl}`
+            : undefined
+        }
+      />
     </ScreenWrapper>
   );
 }

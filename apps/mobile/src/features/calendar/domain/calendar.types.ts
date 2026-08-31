@@ -9,7 +9,9 @@ export interface SurpriseCreationPayload {
   time: string; // HH:MM
   location?: string;
   notes: string[];
-  revealOption: 'now' | 'one_day_before' | 'same_day_morning' | 'specific_time' | 'manual';
+  revealOption: 'now' | 'one_day_before' | 'same_day_morning' | 'specific_time' | 'manual' | 'custom_date';
+  revealDate?: string;
+  revealTime?: string;
   visibilityPreset: 'total_secret' | 'gentle_hint' | 'visible_plan';
   hintText?: string;
 }
