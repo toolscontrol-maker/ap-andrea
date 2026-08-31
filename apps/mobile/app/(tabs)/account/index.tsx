@@ -47,6 +47,7 @@ import { SecurityDataSubpage } from '../../../src/components/account/SecurityDat
 import { CoupleMilestonesModal } from '../../../src/components/account/CoupleMilestonesModal';
 import { LogoutConfirmModal } from '../../../src/components/account/LogoutConfirmModal';
 import { ChangePasswordModal } from '../../../src/components/account/ChangePasswordModal';
+import { ChangeEmailModal } from '../../../src/components/account/ChangeEmailModal';
 import { SettingsSubpageContainer } from '../../../src/components/account/SettingsSubpageContainer';
 
 export default function AccountScreen() {
@@ -68,6 +69,9 @@ export default function AccountScreen() {
     logout,
     currentEmail,
     changeAppPassword,
+    user1Email,
+    user2Email,
+    changeUserEmail,
     themePalette,
     setThemePalette,
     exportAllUserData,
@@ -77,6 +81,7 @@ export default function AccountScreen() {
   const [activeSubpage, setActiveSubpage] = useState<'appearance' | 'notifications' | 'milestones' | 'feedback' | 'security' | null>(null);
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isChangePasswordVisible, setIsChangePasswordVisible] = useState(false);
+  const [isChangeEmailVisible, setIsChangeEmailVisible] = useState(false);
 
   // Settings local state
   const [hapticFeedback, setHapticFeedback] = useState(true);
@@ -544,6 +549,29 @@ export default function AccountScreen() {
 
           <View style={styles.settingDivider} />
 
+                    {/* Change Email Action */}
+          <TouchableOpacity
+            style={styles.settingRow}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerHaptic('selection');
+              setIsChangeEmailVisible(true);
+            }}
+          >
+            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(239, 130, 106, 0.12)' }]}>
+              <Text style={{ fontSize: 15 }}>✉️</Text>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Cambiar Mi Correo de Acceso</Text>
+              <Text style={styles.settingDesc}>
+                {currentEmail || (activeRole === 'user1' ? user1Email : user2Email)}
+              </Text>
+            </View>
+            <Text style={[styles.settingActionText, { color: '#EF826A' }]}>Editar ✉️</Text>
+          </TouchableOpacity>
+
+          <View style={styles.settingDivider} />
+
           {/* Change Password Action */}
           <TouchableOpacity
             style={styles.settingRow}
@@ -671,6 +699,15 @@ export default function AccountScreen() {
           onClose={() => setActiveSubpage(null)}
         />
       </SettingsSubpageContainer>
+
+            {/* Change Email Modal */}
+      <ChangeEmailModal
+        visible={isChangeEmailVisible}
+        onClose={() => setIsChangeEmailVisible(false)}
+        currentEmail={currentEmail || (activeRole === 'user1' ? user1Email : user2Email)}
+        onChangeEmail={(newEmail) => changeUserEmail(activeRole, newEmail)}
+        userName={currentDevUser.name}
+      />
 
       {/* 6. Change Password Modal */}
       <ChangePasswordModal

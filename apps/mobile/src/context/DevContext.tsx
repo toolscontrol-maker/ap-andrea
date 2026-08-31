@@ -304,6 +304,8 @@ export interface DevContextType {
   isLoaded: boolean;
   isAuthenticated: boolean;
   currentEmail: string | null;
+  user1Email: string;
+  user2Email: string;
   loginWithEmail: (email: string) => Promise<boolean>;
   logout: () => Promise<void>;
   appPassword: string;
@@ -311,6 +313,7 @@ export interface DevContextType {
   user2Password: string;
   getUserPassword: (roleOrEmail?: string) => string;
   changeAppPassword: (currentPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
+  changeUserEmail: (role: 'user1' | 'user2', newEmail: string) => Promise<{ success: boolean; message: string }>;
 
   // Theme Palette state
   themePalette: 'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux';
@@ -344,7 +347,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const [ritualSeeds, setRitualSeeds] = useState<RitualSeed[]>(INITIAL_RITUAL_SEEDS);
   const [entries, setEntries] = useState<DiaryEntryUI[]>(INITIAL_ENTRIES);
   const [dailyCheckIns, setDailyCheckIns] = useState<Record<string, DailyMeetingCheckIn>>({});
-  const [weeklyPhotos, setWeeklyPhotos] = useState<Record<string, WeeklyPhotoEntry>>({});
+  const [user1Email, setUser1Email] = useState<string>('hwrtseo@gmail.com');
+  const [user2Email, setUser2Email] = useState<string>('andrea@amor.com');
   const [user1Password, setUser1Password] = useState<string>('611171571');
   const [user2Password, setUser2Password] = useState<string>('611171571');
   const [appPassword, setAppPassword] = useState<string>('611171571');
@@ -711,7 +715,11 @@ export function DevProvider({ children }: { children: ReactNode }) {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail) return false;
 
-    const isTonet = cleanEmail === 'hwrtseo@gmail.com' || cleanEmail.includes('tonet') || cleanEmail.includes('hwrtseo');
+    const isTonet =
+      cleanEmail === user1Email.toLowerCase() ||
+      cleanEmail === 'hwrtseo@gmail.com' ||
+      cleanEmail.includes('tonet') ||
+      cleanEmail.includes('hwrtseo');
     const role: 'user1' | 'user2' = isTonet ? 'user1' : 'user2';
 
     setActiveRole(role);
@@ -767,10 +775,52 @@ export function DevProvider({ children }: { children: ReactNode }) {
       return activeRole === 'user1' ? user1Password : user2Password;
     }
     const clean = roleOrEmail.trim().toLowerCase();
-    if (clean === 'user1' || clean === 'hwrtseo@gmail.com' || clean.includes('tonet') || clean.includes('hwrtseo')) {
+    if (
+      clean === 'user1' ||
+      clean === user1Email.toLowerCase() ||
+      clean === 'hwrtseo@gmail.com' ||
+      clean.includes('tonet') ||
+      clean.includes('hwrtseo')
+    ) {
       return user1Password;
     }
     return user2Password;
+  };
+
+  const changeUserEmail = async (
+    role: 'user1' | 'user2',
+    newEmail: string
+  ): Promise<{ success: boolean; message: string }> => {
+    const clean = newEmail.trim().toLowerCase();
+    if (!clean || !clean.includes('@') || !clean.includes('.')) {
+      return { success: false, message: 'Por favor introduce un correo electrónico válido.' };
+    }
+    if (role === 'user1') {
+      setUser1Email(clean);
+      await StorageEngine.setItem('andrea_user1_email', clean);
+    } else {
+      setUser2Email(clean);
+      await StorageEngine.setItem('andrea_user2_email', clean);
+    }
+    if (activeRole === role) {
+      setCurrentEmail(clean);
+    }
+    if (CloudSyncEngine.isSupabaseConfigured()) {
+      await CloudSyncEngine.syncRitualSeed({
+        id: `auth-${role}-email`,
+        coupleId: 'andrea-tonet',
+        authorId: role,
+        date: new Date().toISOString().split('T')[0],
+        type: 'daily_reflection',
+        title: `📧 Correo de Acceso ${role === 'user1' ? 'Tonet' : 'Andrea'}`,
+        body: clean,
+        mood: 'spark',
+        isSharedWithPartner: true,
+        partnerResponded: true,
+        createdAt: new Date().toISOString(),
+      });
+    }
+    return { success: true, message: 'Tu correo de acceso se ha guardado y sincronizado.' };
   };
 
   const changeAppPassword = async (
@@ -1562,6 +1612,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
         isLoaded,
         isAuthenticated,
         currentEmail,
+        user1Email,
+        user2Email,
         loginWithEmail,
         logout,
         appPassword,
@@ -1569,6 +1621,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
         user2Password,
         getUserPassword,
         changeAppPassword,
+        changeUserEmail,
         themePalette,
         setThemePalette,
         activeRole,

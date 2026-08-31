@@ -40,6 +40,7 @@ import { SecurityDataSubpage } from './SecurityDataSubpage';
 import { CoupleMilestonesModal } from './CoupleMilestonesModal';
 import { LogoutConfirmModal } from './LogoutConfirmModal';
 import { ChangePasswordModal } from './ChangePasswordModal';
+import { ChangeEmailModal } from './ChangeEmailModal';
 import { SettingsSubpageContainer } from './SettingsSubpageContainer';
 
 interface ProfileSettingsModalProps {
@@ -66,6 +67,9 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
     logout,
     currentEmail,
     changeAppPassword,
+    user1Email,
+    user2Email,
+    changeUserEmail,
     themePalette,
     setThemePalette,
     exportAllUserData,
@@ -75,6 +79,7 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
   const [activeSubpage, setActiveSubpage] = useState<'appearance' | 'notifications' | 'milestones' | 'feedback' | 'security' | null>(null);
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isChangePasswordVisible, setIsChangePasswordVisible] = useState(false);
+  const [isChangeEmailVisible, setIsChangeEmailVisible] = useState(false);
 
   // Settings local state
   const [hapticFeedback, setHapticFeedback] = useState(true);
@@ -519,6 +524,29 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
 
               <View style={styles.divider} />
 
+                            {/* Change Email Action */}
+              <TouchableOpacity
+                style={styles.groupRow}
+                activeOpacity={0.7}
+                onPress={() => {
+                  triggerHaptic('selection');
+                  setIsChangeEmailVisible(true);
+                }}
+              >
+                <View style={[styles.rowIconCircle, { backgroundColor: 'rgba(239, 130, 106, 0.12)' }]}>
+                  <Text style={{ fontSize: 15 }}>✉️</Text>
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={styles.rowTitle}>Cambiar Mi Correo de Acceso</Text>
+                  <Text style={styles.rowSubtitle}>
+                    {currentEmail || (activeRole === 'user1' ? user1Email : user2Email)}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#EF826A' }}>Editar ✉️</Text>
+              </TouchableOpacity>
+
+              <View style={styles.divider} />
+
               {/* Change Password Action */}
               <TouchableOpacity
                 style={styles.groupRow}
@@ -647,6 +675,15 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
               onClose={() => setActiveSubpage(null)}
             />
           </SettingsSubpageContainer>
+
+                    {/* Change Email Modal */}
+          <ChangeEmailModal
+            visible={isChangeEmailVisible}
+            onClose={() => setIsChangeEmailVisible(false)}
+            currentEmail={currentEmail || (activeRole === 'user1' ? user1Email : user2Email)}
+            onChangeEmail={(newEmail) => changeUserEmail(activeRole, newEmail)}
+            userName={currentDevUser.name}
+          />
 
           {/* 6. Change Password Modal */}
           <ChangePasswordModal

@@ -3,37 +3,31 @@ import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, Alert } fro
 import { Colors } from '../../theme/colors';
 import { Spacing, Radii, Typography } from '../../theme/tokens';
 import { triggerHaptic } from '../../utils/haptics';
-import { IconLock, IconCheck, IconShield } from '../ui/Icons';
-import { Button } from '../ui/Button';
+import { IconCheck } from '../ui/Icons';
 
-interface ChangePasswordModalProps {
+interface ChangeEmailModalProps {
   visible: boolean;
   onClose: () => void;
-  onChangePassword: (currentPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
+  currentEmail: string;
+  onChangeEmail: (newEmail: string) => Promise<{ success: boolean; message: string }>;
+  userName: string;
 }
 
-export function ChangePasswordModal({
+export function ChangeEmailModal({
   visible,
   onClose,
-  onChangePassword,
-}: ChangePasswordModalProps) {
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  currentEmail,
+  onChangeEmail,
+  userName,
+}: ChangeEmailModalProps) {
+  const [newEmail, setNewEmail] = useState(currentEmail);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = async () => {
-    if (!currentPassword.trim()) {
-      Alert.alert('Falta la contraseña actual', 'Por favor introduce tu contraseña actual.');
-      return;
-    }
-    if (!newPassword.trim()) {
-      Alert.alert('Falta la nueva contraseña', 'Por favor introduce la nueva clave de acceso.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      Alert.alert('Las contraseñas no coinciden', 'La nueva contraseña y la confirmación deben ser iguales.');
+    const clean = newEmail.trim().toLowerCase();
+    if (!clean || !clean.includes('@') || !clean.includes('.')) {
+      Alert.alert('Correo inválido', 'Por favor introduce un correo electrónico válido.');
       return;
     }
 
@@ -41,22 +35,19 @@ export function ChangePasswordModal({
     triggerHaptic('medium');
 
     try {
-      const res = await onChangePassword(currentPassword.trim(), newPassword.trim());
+      const res = await onChangeEmail(clean);
       if (res.success) {
         setIsSuccess(true);
         triggerHaptic('success');
         setTimeout(() => {
           setIsSuccess(false);
-          setCurrentPassword('');
-          setNewPassword('');
-          setConfirmPassword('');
           onClose();
         }, 1600);
       } else {
-        Alert.alert('Error al cambiar contraseña', res.message);
+        Alert.alert('Error', res.message);
       }
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'No se pudo actualizar la contraseña.');
+      Alert.alert('Error', err?.message || 'No se pudo actualizar el correo.');
     } finally {
       setIsSubmitting(false);
     }
@@ -67,50 +58,32 @@ export function ChangePasswordModal({
       <View style={styles.backdrop}>
         <View style={styles.card}>
           <View style={styles.iconCircle}>
-            <IconLock size={22} color={Colors.light.primary} strokeWidth={2} />
+            <Text style={{ fontSize: 22 }}>✉️</Text>
           </View>
 
-          <Text style={styles.title}>Cambiar Mi Contraseña</Text>
+          <Text style={styles.title}>Cambiar Correo de Acceso</Text>
           <Text style={styles.desc}>
-            Actualiza tu clave de acceso personal para entrar a tu perfil. Se guardará de forma segura en la nube.
+            Actualiza el correo con el que inicias sesión en el perfil de {userName}.
           </Text>
 
           <View style={styles.inputsGroup}>
-            <Text style={styles.label}>CONTRASEÑA ACTUAL</Text>
+            <Text style={styles.label}>NUEVO CORREO ELECTRÓNICO</Text>
             <TextInput
               style={styles.input}
-              placeholder="Introduce la clave actual"
+              placeholder="ejemplo@correo.com"
               placeholderTextColor="#9E8E98"
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-              secureTextEntry
-            />
-
-            <Text style={styles.label}>NUEVA CONTRASEÑA</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Nueva clave de acceso"
-              placeholderTextColor="#9E8E98"
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry
-            />
-
-            <Text style={styles.label}>CONFIRMAR NUEVA CONTRASEÑA</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Repite la nueva clave"
-              placeholderTextColor="#9E8E98"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
+              value={newEmail}
+              onChangeText={setNewEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
             />
           </View>
 
           {isSuccess ? (
             <View style={styles.successBox}>
               <IconCheck size={18} color="#2D8A4E" strokeWidth={2.5} />
-              <Text style={styles.successText}>¡Contraseña actualizada en la nube! 🔐</Text>
+              <Text style={styles.successText}>¡Correo actualizado con éxito! ✉️</Text>
             </View>
           ) : (
             <View style={styles.actionsRow}>
@@ -132,7 +105,7 @@ export function ChangePasswordModal({
                 disabled={isSubmitting}
               >
                 <Text style={styles.confirmBtnText}>
-                  {isSubmitting ? 'Guardando...' : 'Guardar Clave ✨'}
+                  {isSubmitting ? 'Guardando...' : 'Guardar Correo ✨'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -165,7 +138,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(224, 86, 102, 0.12)',
+    backgroundColor: 'rgba(239, 130, 106, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
@@ -194,7 +167,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#766B72',
     marginBottom: 4,
-    marginTop: 8,
     letterSpacing: 0.5,
   },
   input: {

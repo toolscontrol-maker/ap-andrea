@@ -17,11 +17,9 @@ import { Typography } from '../../src/theme/tokens';
 import { triggerHaptic } from '../../src/utils/haptics';
 import { Mail, Lock, ArrowRight, KeyRound } from 'lucide-react-native';
 
-const PRIVATE_ACCESS_KEY = '611171571';
-
 export default function LoginScreen() {
   const router = useRouter();
-  const { loginWithEmail, getUserPassword } = useDev();
+  const { loginWithEmail, getUserPassword, user1Email, user2Email } = useDev();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -41,15 +39,15 @@ export default function LoginScreen() {
 
     if (!targetPassword) {
       triggerHaptic('warning');
-      setErrorMessage('Introduce la contraseña de tu perfil.');
+      setErrorMessage('Introduce la contraseña de tu cuenta.');
       return;
     }
 
-    // Validación estricta de contraseña personal del perfil (con fallback)
-    const validKey = getUserPassword(targetEmail) || PRIVATE_ACCESS_KEY;
-    if (targetPassword !== validKey && targetPassword !== PRIVATE_ACCESS_KEY) {
+    // Validación estricta de contraseña personal del perfil
+    const validKey = getUserPassword(targetEmail);
+    if (targetPassword !== validKey) {
       triggerHaptic('warning');
-      setErrorMessage('Contraseña incorrecta. Introduce la clave de tu perfil.');
+      setErrorMessage('Contraseña incorrecta. Introduce la clave de tu cuenta.');
       return;
     }
 
@@ -68,10 +66,9 @@ export default function LoginScreen() {
           }
         }
       } else {
-        setErrorMessage('No se pudo validar el acceso. Inténtalo de nuevo.');
+        setErrorMessage('Correo no reconocido.');
       }
-    } catch (e: any) {
-      console.warn('Login error:', e);
+    } catch (err: any) {
       setErrorMessage('Error al acceder. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
@@ -80,14 +77,14 @@ export default function LoginScreen() {
 
   const handleQuickLoginTonet = () => {
     triggerHaptic('selection');
-    setEmail('hwrtseo@gmail.com');
+    setEmail(user1Email || 'hwrtseo@gmail.com');
     setPassword('');
     setErrorMessage(null);
   };
 
   const handleQuickLoginAndrea = () => {
     triggerHaptic('selection');
-    setEmail('andrea@amor.com');
+    setEmail(user2Email || 'andrea@amor.com');
     setPassword('');
     setErrorMessage(null);
   };
@@ -150,7 +147,7 @@ export default function LoginScreen() {
               <KeyRound size={18} color="rgba(255, 255, 255, 0.6)" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Contraseña privada (611171571)"
+                placeholder="Contraseña"
                 placeholderTextColor="rgba(255, 255, 255, 0.35)"
                 value={password}
                 onChangeText={(val) => {
