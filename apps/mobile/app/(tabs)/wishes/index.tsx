@@ -260,7 +260,7 @@ export default function WishesScreen() {
       {/* HEADER EDITORIAL */}
       <View style={styles.headerContainer}>
         <View style={styles.headerTextGroup}>
-          <Text style={styles.headerTitle}>Deseos & Rincones</Text>
+          <Text style={styles.headerTitle}>Sorpresas y Deseos</Text>
           <Text style={styles.headerSubtitle}>Para ahora, para después o para algún día</Text>
         </View>
         <TouchableOpacity
