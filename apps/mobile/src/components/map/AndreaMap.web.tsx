@@ -36,7 +36,9 @@ export function AndreaMap({
 
   // 1. Filter out unrevealed secret places
   const visiblePlaces = useMemo(() => {
+    if (!places || !Array.isArray(places)) return [];
     return places.filter((p) => {
+      if (!p || typeof p !== 'object') return false;
       if (p.precision === 'none') return false;
       if (p.precision === 'hidden' && p.isRevealed === false) return false;
       return true;
@@ -45,7 +47,7 @@ export function AndreaMap({
 
   // 2. Group places by exact spot or proximity
   const placeGroups = useMemo(() => {
-    return groupMapPlaces(visiblePlaces);
+    return groupMapPlaces(visiblePlaces || []);
   }, [visiblePlaces]);
 
   // 3. Initialize Google Maps

@@ -8,6 +8,7 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
+import { Platform } from 'react-native';
 import { DevProvider } from '../src/context/DevContext';
 import { Colors } from '../src/theme/colors';
 
@@ -19,7 +20,7 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
-  if (!fontsLoaded && !fontError) {
+  if (Platform.OS !== 'web' && !fontsLoaded && !fontError) {
     return null;
   }
 
