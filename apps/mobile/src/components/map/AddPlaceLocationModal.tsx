@@ -68,6 +68,7 @@ export function AddPlaceLocationModal({
   const [hasDateRange, setHasDateRange] = useState(false);
   const [dateRangeEnd, setDateRangeEnd] = useState('');
   const [emotionTag, setEmotionTag] = useState('');
+  const [isMemoryQuality, setIsMemoryQuality] = useState(true);
 
   const [invitedBy, setInvitedBy] = useState<'tonet' | 'andrea' | 'both'>('both');
   const [destination1, setDestination1] = useState('');
@@ -104,6 +105,7 @@ export function AddPlaceLocationModal({
         setHasDateRange(Boolean(initialPlace.hasDateRange));
         setDateRangeEnd(initialPlace.dateRangeEnd || '');
         setEmotionTag(initialPlace.emotionTag || '');
+        setIsMemoryQuality(Boolean(initialPlace.emotionTag || initialPlace.description || initialPlace.type === 'memory' || initialPlace.photos?.length));
         setInvitedBy(initialPlace.invitedBy || 'both');
         setDestination1(initialPlace.destination1 || '');
         setDestination2(initialPlace.destination2 || '');
@@ -333,9 +335,11 @@ export function AddPlaceLocationModal({
       .map((s) => s.trim())
       .filter(Boolean);
 
+    const finalType: MapPlaceType = (type as string) === 'hotel' ? 'trip' : type;
+
     const placeToSave: AndreaMapPlace = {
       id: initialPlace?.id || ('place-verified-' + Date.now()),
-      type,
+      type: finalType,
       title: title.trim(),
       subtitle: verifiedAddress || verifiedCity,
       description: description.trim() || undefined,
@@ -356,17 +360,17 @@ export function AddPlaceLocationModal({
       startDate: type === 'stage' ? startDate : undefined,
       endDate: type === 'stage' ? (isOngoing ? undefined : endDate) : undefined,
       isOngoing: type === 'stage' ? isOngoing : undefined,
-      stageSummary: type === 'stage' ? stageSummary : undefined,
+      stageSummary: stageSummary || undefined,
 
-      hasDateRange: type === 'memory' ? hasDateRange : undefined,
-      dateRangeEnd: type === 'memory' && hasDateRange ? dateRangeEnd : undefined,
-      emotionTag: type === 'memory' ? emotionTag : undefined,
+      hasDateRange: isMemoryQuality && hasDateRange,
+      dateRangeEnd: isMemoryQuality && hasDateRange ? dateRangeEnd : undefined,
+      emotionTag: isMemoryQuality ? emotionTag : undefined,
 
       invitedBy: type === 'date' ? invitedBy : undefined,
       destination1: type === 'date' ? destination1 : undefined,
       destination2: type === 'date' ? destination2 : undefined,
 
-      accommodation: type === 'trip' ? accommodation : undefined,
+      accommodation: accommodation || (type === 'hotel' ? title : undefined),
       tripDurationDays: type === 'trip' ? Number(tripDurationDays) || 3 : undefined,
       visitedPlaces: type === 'trip' ? visitedPlaces : undefined,
     };
@@ -550,8 +554,35 @@ export function AddPlaceLocationModal({
 
           {step === 'details' && (
             <ScrollView style={styles.contentContainer} keyboardShouldPersistTaps="handled">
-              <Text style={styles.fieldLabel}>🏛️ Categoría del Lugar</Text>
+              <Text style={styles.fieldLabel}>🏛️ ¿Qué tipo de entidad es?</Text>
               <View style={styles.categoryRow}>
+                <TouchableOpacity
+                  style={[styles.categoryPill, type === 'stage' && styles.categoryPillActive]}
+                  onPress={() => setType('stage')}
+                >
+                  <Text style={[styles.categoryPillText, type === 'stage' && styles.categoryPillTextActive]}>
+                    🏡 Etapa de Vida
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.categoryPill, type === 'trip' && styles.categoryPillActive]}
+                  onPress={() => setType('trip')}
+                >
+                  <Text style={[styles.categoryPillText, type === 'trip' && styles.categoryPillTextActive]}>
+                    ✈️ Viaje
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.categoryPill, type === 'date' && styles.categoryPillActive]}
+                  onPress={() => setType('date')}
+                >
+                  <Text style={[styles.categoryPillText, type === 'date' && styles.categoryPillTextActive]}>
+                    🥂 Cita / Escapada
+                  </Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={[styles.categoryPill, type === 'restaurant' && styles.categoryPillActive]}
                   onPress={() => setType('restaurant')}
@@ -562,62 +593,100 @@ export function AddPlaceLocationModal({
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.categoryPill, type === 'stage' && styles.categoryPillActive]}
-                  onPress={() => setType('stage')}
+                  style={[styles.categoryPill, (type === 'hotel' || (type === 'trip' && accommodation)) && styles.categoryPillActive]}
+                  onPress={() => setType('hotel' as any)}
                 >
-                  <Text style={[styles.categoryPillText, type === 'stage' && styles.categoryPillTextActive]}>
-                    🏡 Hogar / Etapa
+                  <Text style={[styles.categoryPillText, (type === 'hotel' || (type === 'trip' && accommodation)) && styles.categoryPillTextActive]}>
+                    🏨 Hotel / Airbnb
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.categoryPill, type === 'memory' && styles.categoryPillActive]}
+                  style={[styles.categoryPill, (type === 'memory' || type === 'family_home') && styles.categoryPillActive]}
                   onPress={() => setType('memory')}
                 >
-                  <Text style={[styles.categoryPillText, type === 'memory' && styles.categoryPillTextActive]}>
-                    ❤️ Recuerdo
+                  <Text style={[styles.categoryPillText, (type === 'memory' || type === 'family_home') && styles.categoryPillTextActive]}>
+                    📍 Lugar / Rincón Familiar
                   </Text>
                 </TouchableOpacity>
+              </View>
 
-                <TouchableOpacity
-                  style={[styles.categoryPill, type === 'date' && styles.categoryPillActive]}
-                  onPress={() => setType('date')}
-                >
-                  <Text style={[styles.categoryPillText, type === 'date' && styles.categoryPillTextActive]}>
-                    🥂 Cita / Plan
-                  </Text>
-                </TouchableOpacity>
+              {/* ✨ CUALIDAD DE RECUERDO: PLUS EMOCIONAL APLICABLE A CUALQUIER ENTIDAD */}
+              <View style={styles.memoryQualityCard}>
+                <View style={styles.memoryQualityHeader}>
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text style={styles.memoryQualityTitle}>✨ Cualidad de Recuerdo</Text>
+                    <Text style={styles.memoryQualityDesc}>
+                      El alma del momento: añade emoción clave, anécdota y memoria a este rincón.
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.qualityToggle, isMemoryQuality && styles.qualityToggleActive]}
+                    onPress={() => setIsMemoryQuality(!isMemoryQuality)}
+                  >
+                    <View style={[styles.qualityToggleCircle, isMemoryQuality && styles.qualityToggleCircleActive]} />
+                  </TouchableOpacity>
+                </View>
 
-                <TouchableOpacity
-                  style={[styles.categoryPill, type === 'trip' && styles.categoryPillActive]}
-                  onPress={() => setType('trip')}
-                >
-                  <Text style={[styles.categoryPillText, type === 'trip' && styles.categoryPillTextActive]}>
-                    ✈️ Viaje / Alojamiento
-                  </Text>
-                </TouchableOpacity>
+                {isMemoryQuality && (
+                  <View style={{ marginTop: 10 }}>
+                    <Text style={styles.subFieldLabel}>Significado / Emoción clave</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Ej: Magia & Destino, Primer beso, Primer encuentro con sus padres..."
+                      value={emotionTag}
+                      onChangeText={setEmotionTag}
+                    />
 
-                <TouchableOpacity
-                  style={[styles.categoryPill, type === 'future_place' && styles.categoryPillActive]}
-                  onPress={() => setType('future_place')}
-                >
-                  <Text style={[styles.categoryPillText, type === 'future_place' && styles.categoryPillTextActive]}>
-                    ✨ Futuro Deseo
-                  </Text>
-                </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.checkboxRow}
+                      onPress={() => setHasDateRange(!hasDateRange)}
+                    >
+                      <Text style={styles.checkboxEmoji}>{hasDateRange ? '☑️' : '◻️'}</Text>
+                      <Text style={styles.checkboxLabel}>Fue un rango de días (ej: fin de semana o escapada)</Text>
+                    </TouchableOpacity>
+
+                    {hasDateRange && (
+                      <View style={{ marginTop: 6 }}>
+                        <Text style={styles.subFieldLabel}>Fecha de Fin</Text>
+                        <TextInput
+                          style={styles.textInput}
+                          placeholder="YYYY-MM-DD"
+                          value={dateRangeEnd}
+                          onChangeText={setDateRangeEnd}
+                        />
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
 
               <Text style={styles.fieldLabel}>Nombre / Título</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="Ej: Nuestra etapa en Canet, Cena en Don Salvatore..."
+                placeholder={
+                  type === 'stage'
+                    ? 'Ej: Nuestra etapa en Canet, Carrer Comte del Real...'
+                    : type === 'trip'
+                    ? 'Ej: Viaje a Roma, Escapada a Suiza...'
+                    : type === 'date'
+                    ? 'Ej: Cena en Casa d\'Aragona y paseo por la Virgen...'
+                    : type === 'restaurant'
+                    ? 'Ej: Honest Greens, Latte & Farina...'
+                    : (type as string) === 'hotel'
+                    ? 'Ej: Nuestro Segundo Airbnb Romántico, Hotel Boutique...'
+                    : 'Ej: Casa de los padres de Andrea, Casa de los iaios...'
+                }
                 value={title}
                 onChangeText={setTitle}
               />
 
               {type === 'stage' && (
                 <View style={styles.specificFieldsBox}>
-                  <Text style={styles.specificBoxTitle}>🏡 Configuración de Hogar / Etapa de Vida</Text>
+                  <Text style={styles.specificBoxTitle}>🏡 Configuración de Etapa de Vida (Contenedor)</Text>
+                  <Text style={styles.boxHelperText}>
+                    Una etapa puede agrupar viajes, citas, hogares y restaurantes vividos en esa época.
+                  </Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.subFieldLabel}>Fecha Inicio (Desde)</Text>
@@ -645,7 +714,7 @@ export function AddPlaceLocationModal({
                     onPress={() => setIsOngoing(!isOngoing)}
                   >
                     <Text style={styles.checkboxEmoji}>{isOngoing ? '☑️' : '◻️'}</Text>
-                    <Text style={styles.checkboxLabel}>Actualmente viviendo o conviviendo aquí</Text>
+                    <Text style={styles.checkboxLabel}>Actualmente viviendo o conviviendo aquí (Hogar en curso)</Text>
                   </TouchableOpacity>
 
                   <Text style={styles.subFieldLabel}>Resumen de la etapa</Text>
@@ -658,9 +727,45 @@ export function AddPlaceLocationModal({
                 </View>
               )}
 
+              {type === 'trip' && (
+                <View style={styles.specificFieldsBox}>
+                  <Text style={styles.specificBoxTitle}>✈️ Configuración del Viaje (Contenedor)</Text>
+                  <Text style={styles.boxHelperText}>
+                    Un viaje puede estar formado por hoteles, restaurantes, citas y paseos.
+                  </Text>
+                  <Text style={styles.subFieldLabel}>¿Dónde nos alojamos? (Hotel / Airbnb)</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Ej: Hotel Boutique, Airbnb frente al mar..."
+                    value={accommodation}
+                    onChangeText={setAccommodation}
+                  />
+
+                  <Text style={styles.subFieldLabel}>Días de duración</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Ej: 4"
+                    keyboardType="numeric"
+                    value={tripDurationDays}
+                    onChangeText={setTripDurationDays}
+                  />
+
+                  <Text style={styles.subFieldLabel}>Restaurantes y sitios visitados (separados por comas)</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Ej: Trattoria del Porto, Mirador del Faro, Café Central"
+                    value={visitedPlacesText}
+                    onChangeText={setVisitedPlacesText}
+                  />
+                </View>
+              )}
+
               {type === 'date' && (
                 <View style={styles.specificFieldsBox}>
-                  <Text style={styles.specificBoxTitle}>🥂 Configuración de la Cita</Text>
+                  <Text style={styles.specificBoxTitle}>🥂 Configuración de la Cita / Escapada</Text>
+                  <Text style={styles.boxHelperText}>
+                    Una cita o escapada puede combinar cena, paseo y sitios especiales.
+                  </Text>
                   <Text style={styles.subFieldLabel}>¿Quién invitó?</Text>
                   <View style={styles.invitedRow}>
                     <TouchableOpacity
@@ -701,76 +806,32 @@ export function AddPlaceLocationModal({
                 </View>
               )}
 
-              {type === 'trip' && (
+              {(type as string) === 'hotel' && (
                 <View style={styles.specificFieldsBox}>
-                  <Text style={styles.specificBoxTitle}>✈️ Configuración de Viaje / Escapada</Text>
-                  <Text style={styles.subFieldLabel}>¿Dónde nos alojamos?</Text>
+                  <Text style={styles.specificBoxTitle}>🏨 Alojamiento (Hotel / Airbnb)</Text>
+                  <Text style={styles.boxHelperText}>
+                    Alojamiento romántico o estancia de escapada/viaje.
+                  </Text>
+                  <Text style={styles.subFieldLabel}>Detalles de la estancia</Text>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Ej: Hotel Boutique, Airbnb frente al mar..."
-                    value={accommodation}
-                    onChangeText={setAccommodation}
-                  />
-
-                  <Text style={styles.subFieldLabel}>Días de duración</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Ej: 4"
-                    keyboardType="numeric"
-                    value={tripDurationDays}
-                    onChangeText={setTripDurationDays}
-                  />
-
-                  <Text style={styles.subFieldLabel}>Restaurantes y sitios visitados (separados por comas)</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Ej: Trattoria del Porto, Mirador del Faro, Café Central"
-                    value={visitedPlacesText}
-                    onChangeText={setVisitedPlacesText}
+                    placeholder="Ej: Apartamento acogedor con vistas, jacuzzi, fin de semana romántico..."
+                    value={stageSummary}
+                    onChangeText={setStageSummary}
                   />
                 </View>
               )}
 
               {type === 'memory' && (
                 <View style={styles.specificFieldsBox}>
-                  <Text style={styles.specificBoxTitle}>❤️ Connotación del Recuerdo</Text>
-                  <Text style={styles.subFieldLabel}>Significado / Emoción clave</Text>
+                  <Text style={styles.specificBoxTitle}>📍 Lugar o Rincón Familiar</Text>
+                  <Text style={styles.boxHelperText}>
+                    Para sitios como casa de los padres de Andrea, casa de los iaios, miradores o sitios propios.
+                  </Text>
+                  <Text style={styles.subFieldLabel}>Tipo o Vínculo Familiar</Text>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Ej: Primer beso, Donde supimos que estábamos enamorados..."
-                    value={emotionTag}
-                    onChangeText={setEmotionTag}
-                  />
-
-                  <TouchableOpacity
-                    style={styles.checkboxRow}
-                    onPress={() => setHasDateRange(!hasDateRange)}
-                  >
-                    <Text style={styles.checkboxEmoji}>{hasDateRange ? '☑️' : '◻️'}</Text>
-                    <Text style={styles.checkboxLabel}>Fue un rango de días (ej: fin de semana)</Text>
-                  </TouchableOpacity>
-
-                  {hasDateRange && (
-                    <View style={{ marginTop: 6 }}>
-                      <Text style={styles.subFieldLabel}>Fecha de Fin</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="YYYY-MM-DD"
-                        value={dateRangeEnd}
-                        onChangeText={setDateRangeEnd}
-                      />
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {type === 'future_place' && (
-                <View style={styles.specificFieldsBox}>
-                  <Text style={styles.specificBoxTitle}>✨ Configuración de Futuro Deseo</Text>
-                  <Text style={styles.subFieldLabel}>¿Por qué queremos ir? / Notas del deseo</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Ej: Nos lo recomendaron, un sitio especial para un aniversario..."
+                    placeholder="Ej: Casa Padres Andrea, Casa Iaios Andrea, Casa Iaios Tonet..."
                     value={stageSummary}
                     onChangeText={setStageSummary}
                   />
@@ -1156,7 +1217,59 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#EF826A',
+    marginBottom: 4,
+  },
+  boxHelperText: {
+    fontSize: 11,
+    color: '#766B72',
     marginBottom: 8,
+  },
+  memoryQualityCard: {
+    backgroundColor: '#FFF9F5',
+    padding: 12,
+    borderRadius: 14,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 130, 106, 0.25)',
+  },
+  memoryQualityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  memoryQualityTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#3A2F38',
+    marginBottom: 2,
+  },
+  memoryQualityDesc: {
+    fontSize: 11,
+    color: '#766B72',
+  },
+  qualityToggle: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#D6CEC7',
+    padding: 2,
+    justifyContent: 'center',
+  },
+  qualityToggleActive: {
+    backgroundColor: '#EF826A',
+  },
+  qualityToggleCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  qualityToggleCircleActive: {
+    alignSelf: 'flex-end',
   },
   checkboxRow: {
     flexDirection: 'row',
