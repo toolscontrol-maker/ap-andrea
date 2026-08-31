@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -98,7 +98,7 @@ export function GoogleMapsPlaceSearchField({
           autoCorrect={false}
         />
         {isSearching ? (
-          <ActivityIndicator size= small color=#EF826A style={{ marginRight: 8 }} />
+          <ActivityIndicator size="small" color="#EF826A" style={{ marginRight: 8 }} />
         ) : (
           <TouchableOpacity
             onPress={() => {
