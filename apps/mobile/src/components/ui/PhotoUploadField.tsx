@@ -16,6 +16,9 @@ interface PhotoUploadFieldProps {
   onPhotoRemoved?: () => void;
   label?: string;
   placeholderText?: string;
+  readOnly?: boolean;
+  readOnlyEmptyText?: string;
+  partnerName?: string;
   aspect?: [number, number];
   style?: ViewStyle;
 }
@@ -29,6 +32,9 @@ export function PhotoUploadField({
   onPhotoRemoved,
   label = 'Fotografía del momento',
   placeholderText = 'Toca para subir una foto o hacer una captura',
+  readOnly = false,
+  readOnlyEmptyText = 'Esperando foto...',
+  partnerName,
   aspect = [4, 3],
   style,
 }: PhotoUploadFieldProps) {
@@ -36,12 +42,14 @@ export function PhotoUploadField({
   const effectiveImageUri = typeof rawUri === 'string' ? rawUri : (rawUri as any)?.uri || '';
 
   const triggerChange = (val: string | null) => {
+    if (readOnly) return;
     if (onImageChange) onImageChange(val);
     if (onPhotoSelected) onPhotoSelected(val);
     if (onPhotoUploaded) onPhotoUploaded(val);
     if (val === null && onPhotoRemoved) onPhotoRemoved();
   };
   const handlePress = () => {
+    if (readOnly) return;
     promptPhotoPicker({
       title: label,
       aspect,
@@ -52,6 +60,7 @@ export function PhotoUploadField({
   };
 
   const handleRemove = (e: any) => {
+    if (readOnly) return;
     e.stopPropagation?.();
     triggerHaptic('light');
     triggerChange(null);
@@ -78,8 +87,12 @@ export function PhotoUploadField({
       {label ? <Text style={styles.label}>{label}</Text> : null}
 
       <TouchableOpacity
-        style={[styles.uploadBox, Boolean(effectiveImageUri) && styles.uploadBoxWithImage]}
-        activeOpacity={0.85}
+        style={[
+          styles.uploadBox,
+          Boolean(effectiveImageUri) && styles.uploadBoxWithImage,
+          readOnly && !effectiveImageUri && styles.uploadBoxReadOnlyEmpty,
+        ]}
+        activeOpacity={readOnly ? 1 : 0.85}
         onPress={handlePress}
       >
         {effectiveImageUri ? (
@@ -100,13 +113,27 @@ export function PhotoUploadField({
                 resizeMode="cover"
               />
             )}
-            <TouchableOpacity style={styles.removeBtn} onPress={handleRemove} activeOpacity={0.7}>
-              <Text style={styles.removeBtnText}>✕</Text>
-            </TouchableOpacity>
-            <View style={styles.changeBadge}>
-              <IconCamera size={13} color="#FFFFFF" strokeWidth={2} />
-              <Text style={styles.changeBadgeText}>{isVideoMedia ? 'Cambiar vídeo' : 'Cambiar'}</Text>
-            </View>
+            {!readOnly && (
+              <>
+                <TouchableOpacity style={styles.removeBtn} onPress={handleRemove} activeOpacity={0.7}>
+                  <Text style={styles.removeBtnText}>✕</Text>
+                </TouchableOpacity>
+                <View style={styles.changeBadge}>
+                  <IconCamera size={13} color="#FFFFFF" strokeWidth={2} />
+                  <Text style={styles.changeBadgeText}>{isVideoMedia ? 'Cambiar vídeo' : 'Cambiar'}</Text>
+                </View>
+              </>
+            )}
+            {readOnly && partnerName && (
+              <View style={styles.readOnlyBadge}>
+                <Text style={styles.readOnlyBadgeText}>📸 {partnerName}</Text>
+              </View>
+            )}
+          </View>
+        ) : readOnly ? (
+          <View style={styles.placeholderContent}>
+            <Text style={{ fontSize: 22, marginBottom: 4 }}>⏳</Text>
+            <Text style={styles.readOnlyEmptyText}>{readOnlyEmptyText}</Text>
           </View>
         ) : (
           <View style={styles.placeholderContent}>
@@ -218,5 +245,30 @@ const styles = StyleSheet.create({
     color: Colors.light.textMuted,
     marginTop: 2,
     textAlign: 'center',
+  },
+  uploadBoxReadOnlyEmpty: {
+    backgroundColor: '#FAF7F2',
+    borderColor: 'rgba(58, 47, 56, 0.08)',
+    borderStyle: 'solid',
+  },
+  readOnlyEmptyText: {
+    fontSize: 12,
+    color: '#766B72',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  readOnlyBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: Radii.full,
+  },
+  readOnlyBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

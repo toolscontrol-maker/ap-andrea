@@ -388,7 +388,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.weeklyPhotosGrid}>
-          {/* Photo Together */}
+          {/* Photo Together - Both can edit */}
           <View style={styles.weeklyPhotoBox}>
             <Text style={styles.weeklyPhotoLabel}>📸 Foto Juntos</Text>
             <PhotoUploadField
@@ -399,7 +399,7 @@ export default function HomeScreen() {
             />
           </View>
 
-          {/* Photo Tonet */}
+          {/* Photo Tonet - Editable only by Tonet, Read-only for Andrea */}
           <View style={styles.weeklyPhotoBox}>
             <Text style={styles.weeklyPhotoLabel}>🤳 Tonet (Separados)</Text>
             <PhotoUploadField
@@ -407,10 +407,13 @@ export default function HomeScreen() {
               onImageChange={(uri) => recordWeeklyPhoto(currentWeekId, 'tonet', uri || '')}
               label="Foto Tonet"
               placeholderText="+ Subir foto"
+              readOnly={!isUser1}
+              readOnlyEmptyText="Esperando foto de Tonet ⏳"
+              partnerName="Tonet"
             />
           </View>
 
-          {/* Photo Andrea */}
+          {/* Photo Andrea - Editable only by Andrea, Read-only for Tonet */}
           <View style={styles.weeklyPhotoBox}>
             <Text style={styles.weeklyPhotoLabel}>🤳 Andrea (Separados)</Text>
             <PhotoUploadField
@@ -418,6 +421,9 @@ export default function HomeScreen() {
               onImageChange={(uri) => recordWeeklyPhoto(currentWeekId, 'andrea', uri || '')}
               label="Foto Andrea"
               placeholderText="+ Subir foto"
+              readOnly={isUser1}
+              readOnlyEmptyText="Esperando foto de Andrea ⏳"
+              partnerName="Andrea"
             />
           </View>
         </View>
