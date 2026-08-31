@@ -57,6 +57,7 @@ export default function AccountScreen() {
     coupleEvents,
     ritualSeeds,
     entries,
+    surprises,
     isCloudConnected,
     cloudSyncStatus,
     forceCloudSync,
@@ -385,6 +386,77 @@ export default function AccountScreen() {
             <Text style={styles.statLabel}>Recuerdos Vivos</Text>
           </View>
         </View>
+
+        {/* FULFILLED SURPRISES SECTION */}
+        {surprises.filter((s) => {
+          const c = s.content as any;
+          return c?.status === 'entregado' || c?.deliveryDetails;
+        }).length > 0 && (
+          <View style={{ marginBottom: Spacing.xl }}>
+            <SectionHeader
+              title="🎁 Sorpresas Hechas Realidad"
+              subtitle="Detalles, compras y regalos que se convirtieron en recuerdos"
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.fulfilledSurprisesScroll}
+            >
+              {surprises
+                .filter((s) => {
+                  const c = s.content as any;
+                  return c?.status === 'entregado' || c?.deliveryDetails;
+                })
+                .map((s) => {
+                  const c = s.content as any;
+                  const purchase = c?.purchaseDetails;
+                  const delivery = c?.deliveryDetails;
+                  const mainPhoto =
+                    delivery?.deliveredPhotoUrl ||
+                    purchase?.purchasePhotoUrl ||
+                    (c?.photos && c?.photos[0]);
+
+                  return (
+                    <View key={s.id} style={styles.fulfilledSurpriseCard}>
+                      {mainPhoto ? (
+                        <Image
+                          source={{ uri: mainPhoto }}
+                          style={styles.fulfilledSurpriseImg}
+                        />
+                      ) : (
+                        <View style={styles.fulfilledSurpriseImgPlaceholder}>
+                          <Text style={{ fontSize: 28 }}>🎁</Text>
+                        </View>
+                      )}
+                      <View style={styles.fulfilledSurpriseContent}>
+                        <Badge variant="primary" size="sm">
+                          ✨ Hecho Realidad
+                        </Badge>
+                        <Text style={styles.fulfilledSurpriseTitle} numberOfLines={2}>
+                          {c.title}
+                        </Text>
+                        {delivery?.deliveredAt && (
+                          <Text style={styles.fulfilledSurpriseDate}>
+                            🎁 Entregado el {delivery.deliveredAt}
+                          </Text>
+                        )}
+                        {purchase?.purchasedAt && (
+                          <Text style={styles.fulfilledSurpriseSubdate}>
+                            📦 Comprado el {purchase.purchasedAt}
+                          </Text>
+                        )}
+                        {delivery?.partnerReaction && (
+                          <Text style={styles.fulfilledSurpriseReaction} numberOfLines={2}>
+                            "{delivery.partnerReaction}"
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+            </ScrollView>
+          </View>
+        )}
 
         {/* PROFILES & PHOTOS EDITING SECTION */}
         <SectionHeader
@@ -1499,5 +1571,63 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+  fulfilledSurprisesScroll: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: 2,
+    gap: Spacing.md,
+  },
+  fulfilledSurpriseCard: {
+    width: 220,
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radii['2xl'],
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(43, 33, 41, 0.08)',
+    ...Shadows.sm,
+  },
+  fulfilledSurpriseImg: {
+    width: '100%',
+    height: 130,
+    backgroundColor: '#FAF5EA',
+  },
+  fulfilledSurpriseImgPlaceholder: {
+    width: '100%',
+    height: 130,
+    backgroundColor: '#FAF5EA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fulfilledSurpriseContent: {
+    padding: Spacing.md,
+  },
+  fulfilledSurpriseTitle: {
+    ...Typography.bodyBold,
+    fontSize: 13,
+    color: '#3A2F38',
+    marginTop: Spacing.xs,
+    marginBottom: 4,
+  },
+  fulfilledSurpriseDate: {
+    ...Typography.captionBold,
+    fontSize: 11,
+    color: Colors.light.primary,
+    marginBottom: 2,
+  },
+  fulfilledSurpriseSubdate: {
+    ...Typography.caption,
+    fontSize: 10,
+    color: '#766B72',
+    marginBottom: 4,
+  },
+  fulfilledSurpriseReaction: {
+    ...Typography.caption,
+    fontSize: 11,
+    fontStyle: 'italic',
+    color: '#3A2F38',
+    marginTop: 4,
+    backgroundColor: '#FFF5F1',
+    padding: 6,
+    borderRadius: 8,
   },
 });

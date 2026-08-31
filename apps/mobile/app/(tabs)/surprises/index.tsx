@@ -1,41 +1,65 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDev } from '../../../src/context/DevContext';
 import { Colors } from '../../../src/theme/colors';
 import { Radii, Shadows, Spacing, Typography } from '../../../src/theme/tokens';
 import { ScreenWrapper, SectionHeader, SegmentedControl, Card, Badge, Button, EmptyState } from '../../../src/components/ui';
-import { DiaryEntryUI, DecryptedSurpriseContent } from '@andrea/types';
+import { DiaryEntryUI, DecryptedSurpriseContent, WishlistItem } from '@andrea/types';
+import { FulfillSurpriseWizardModal } from '../../../src/components/surprises/FulfillSurpriseWizardModal';
 
 type KanbanStatus = 'idea' | 'comprando' | 'listo' | 'entregado';
 
 export default function SurprisesScreen() {
   const [activeKanban, setActiveKanban] = useState<KanbanStatus>('idea');
-  const { surprises, currentDevUser, partnerDevUser, updateSurpriseStatus } = useDev();
+  const {
+    surprises,
+    wishes,
+    currentDevUser,
+    partnerDevUser,
+    updateSurpriseStatus,
+    recordSurprisePurchase,
+    recordSurpriseDelivery,
+  } = useDev();
   const router = useRouter();
+
+  const [isFulfillModalOpen, setIsFulfillModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'purchase' | 'delivery'>('purchase');
+  const [selectedSurprise, setSelectedSurprise] = useState<DiaryEntryUI | null>(null);
 
   const mySurprises = surprises.filter((e) => {
     const c = e.content as DecryptedSurpriseContent;
     const matchesStatus = (c.status || 'idea') === activeKanban;
     if (activeKanban === 'entregado') return matchesStatus;
-    return matchesStatus && e.authorId === currentDevUser.id;
+    // For non-delivered surprises, author sees all; partner sees if in progress/ready
+    if (e.authorId === currentDevUser.id) return matchesStatus;
+    return matchesStatus && (activeKanban === 'comprando' || activeKanban === 'listo');
   });
 
   const getStatusCount = (status: KanbanStatus) => {
     return surprises.filter((e) => {
       const c = e.content as DecryptedSurpriseContent;
       if (status === 'entregado') return (c.status || 'idea') === status;
-      return (c.status || 'idea') === status && e.authorId === currentDevUser.id;
+      if (e.authorId === currentDevUser.id) return (c.status || 'idea') === status;
+      return (c.status || 'idea') === status && (status === 'comprando' || status === 'listo');
     }).length;
   };
 
-  const handleAdvanceStatus = (item: DiaryEntryUI, currentStatus: string) => {
-    let nextStatus: KanbanStatus = 'comprando';
-    if (currentStatus === 'idea') nextStatus = 'comprando';
-    else if (currentStatus === 'comprando') nextStatus = 'listo';
-    else if (currentStatus === 'listo') nextStatus = 'entregado';
+  const findLinkedWish = (item: DiaryEntryUI): WishlistItem | undefined => {
+    const title = (item.content as any)?.title || '';
+    return wishes.find((w) => title.toLowerCase().includes(w.title.toLowerCase()));
+  };
 
-    updateSurpriseStatus(item.id, nextStatus);
+  const handleOpenPurchaseModal = (item: DiaryEntryUI) => {
+    setSelectedSurprise(item);
+    setModalMode('purchase');
+    setIsFulfillModalOpen(true);
+  };
+
+  const handleOpenDeliveryModal = (item: DiaryEntryUI) => {
+    setSelectedSurprise(item);
+    setModalMode('delivery');
+    setIsFulfillModalOpen(true);
   };
 
   const getOccasionBadgeVariant = (occasion?: string): 'primary' | 'secondary' | 'sage' | 'butter' | 'mistBlue' => {
@@ -72,7 +96,7 @@ export default function SurprisesScreen() {
         <View style={{ flex: 1 }}>
           <Text style={styles.vaultTitle}>VAULT SECRETO DE PAREJA</Text>
           <Text style={styles.vaultSub}>
-            Tus planes están guardados como borrador privado en este dispositivo. {partnerDevUser.name} no los verá hasta el día de la entrega.
+            Tus planes están guardados con ilusión. Podrás registrar la compra y tu pareja marcará su llegada con una foto para la historia.
           </Text>
         </View>
       </View>
@@ -98,7 +122,7 @@ export default function SurprisesScreen() {
           title={activeKanban === 'idea' ? `Guarda una idea secreta para ${partnerDevUser.name}` : 'Sin detalles en esta fase'}
           subtitle={
             activeKanban === 'idea'
-              ? 'Una escapada sorpresa, un libro que mencionó de pasada o una cena romántica. El valor está en el cariño, no en el precio.'
+              ? 'Una escapada sorpresa, un libro que mencionó de pasada o una prenda de Sézane. El valor está en el cariño y la ilusión.'
               : 'Mueve tus ideas a esta fase a medida que vayas preparando el detalle.'
           }
           actionText="+ Anotar idea secreta"
@@ -108,45 +132,104 @@ export default function SurprisesScreen() {
         />
       ) : (
         mySurprises.map((item) => {
-          const c = item.content as DecryptedSurpriseContent;
+          const c = item.content as any;
           const isMine = item.authorId === currentDevUser.id;
+          const linkedWish = findLinkedWish(item);
+          const purchaseDetails = c?.purchaseDetails;
+          const deliveryDetails = c?.deliveryDetails;
 
           return (
             <View key={item.id} style={styles.surpriseCard}>
               {/* Card Top Ribbon */}
               <View style={styles.cardHeader}>
                 <Badge variant={getOccasionBadgeVariant(c.occasion)} size="sm">
-                  {c.occasion || 'Sin ocasión'}
+                  {c.occasion || (linkedWish ? 'Deseo cumplido' : 'Sin ocasión')}
                 </Badge>
-                <Text style={styles.cardDate}>📅 {item.date}</Text>
+                <Text style={styles.cardDate}>
+                  📅 {deliveryDetails?.deliveredAt || purchaseDetails?.purchasedAt || item.date}
+                </Text>
               </View>
 
               {/* Title & Description */}
               <Text style={styles.cardTitle}>{c.title}</Text>
               <Text style={styles.cardDesc}>{c.description}</Text>
 
+              {/* Purchase Details Box if present */}
+              {purchaseDetails && (
+                <View style={styles.infoBadgeBox}>
+                  <Text style={styles.infoBadgeHeading}>
+                    📦 Comprado el {purchaseDetails.purchasedAt}
+                  </Text>
+                  {purchaseDetails.purchaseNotes && (
+                    <Text style={styles.infoBadgeText}>
+                      💬 "{purchaseDetails.purchaseNotes}"
+                    </Text>
+                  )}
+                  {purchaseDetails.purchasePhotoUrl && (
+                    <Image
+                      source={{ uri: purchaseDetails.purchasePhotoUrl }}
+                      style={styles.infoThumbnail}
+                    />
+                  )}
+                </View>
+              )}
+
+              {/* Delivery Details Box if delivered */}
+              {deliveryDetails && (
+                <View style={[styles.infoBadgeBox, { backgroundColor: '#FFF5F1', borderColor: 'rgba(224, 86, 102, 0.2)' }]}>
+                  <Text style={[styles.infoBadgeHeading, { color: Colors.light.primary }]}>
+                    ✨ Entregado y Recibido el {deliveryDetails.deliveredAt}
+                  </Text>
+                  {deliveryDetails.partnerReaction && (
+                    <Text style={styles.infoBadgeText}>
+                      💖 Reacción: "{deliveryDetails.partnerReaction}"
+                    </Text>
+                  )}
+                  {deliveryDetails.deliveredPhotoUrl && (
+                    <Image
+                      source={{ uri: deliveryDetails.deliveredPhotoUrl }}
+                      style={styles.deliveryPhotoBig}
+                    />
+                  )}
+                </View>
+              )}
+
               {/* Budget Badge */}
-              {c.budgetRange ? (
+              {c.budgetRange && !purchaseDetails ? (
                 <View style={styles.budgetBox}>
                   <Text style={styles.budgetLabel}>Presupuesto estimado:</Text>
                   <Text style={styles.budgetValue}>€{c.budgetRange[0]} – €{c.budgetRange[1]}</Text>
                 </View>
               ) : null}
 
-              {/* Footer with Advance Button */}
+              {/* Footer with Action Buttons */}
               <View style={styles.cardFooter}>
                 <Text style={styles.authorBadge}>
                   {isMine ? `Preparado por ti para ${partnerDevUser.name}` : `Preparado por ${partnerDevUser.name}`}
                 </Text>
 
+                {/* Author Purchase / Manage Action */}
                 {isMine && c.status !== 'entregado' && (
                   <TouchableOpacity
                     style={styles.advanceBtn}
-                    onPress={() => handleAdvanceStatus(item, c.status || 'idea')}
+                    onPress={() => handleOpenPurchaseModal(item)}
                     activeOpacity={0.8}
                   >
                     <Text style={styles.advanceBtnText}>
-                      {c.status === 'idea' ? 'Poner en marcha ➔' : c.status === 'comprando' ? 'Marcar listo 🎁' : 'Entregar ❤️'}
+                      {c.status === 'idea' ? 'Comprar / Gestionar 🛒' : 'Actualizar Pedido 📦'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Recipient Fulfill / Deliver Action */}
+                {!isMine && c.status !== 'entregado' && (
+                  <TouchableOpacity
+                    style={[styles.advanceBtn, { backgroundColor: Colors.light.primary }]}
+                    onPress={() => handleOpenDeliveryModal(item)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.advanceBtnText}>
+                      ✨ ¡Me ha llegado!
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -155,6 +238,30 @@ export default function SurprisesScreen() {
           );
         })
       )}
+
+      {/* Fulfill Wizard Modal */}
+      <FulfillSurpriseWizardModal
+        visible={isFulfillModalOpen}
+        onClose={() => {
+          setIsFulfillModalOpen(false);
+          setSelectedSurprise(null);
+        }}
+        surpriseItem={selectedSurprise}
+        linkedWish={selectedSurprise ? findLinkedWish(selectedSurprise) : null}
+        mode={modalMode}
+        currentUserName={currentDevUser.name}
+        partnerUserName={partnerDevUser.name}
+        onConfirmPurchase={(data) => {
+          if (selectedSurprise) {
+            recordSurprisePurchase(selectedSurprise.id, data);
+          }
+        }}
+        onConfirmDelivery={(data) => {
+          if (selectedSurprise) {
+            recordSurpriseDelivery(selectedSurprise.id, data);
+          }
+        }}
+      />
     </ScreenWrapper>
   );
 }
@@ -273,5 +380,39 @@ const styles = StyleSheet.create({
     ...Typography.captionBold,
     color: '#FFFFFF',
     fontSize: 11,
+  },
+  infoBadgeBox: {
+    backgroundColor: '#FAF5EA',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 169, 60, 0.3)',
+    marginBottom: Spacing.md,
+  },
+  infoBadgeHeading: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#8A6812',
+    marginBottom: 4,
+  },
+  infoBadgeText: {
+    fontSize: 12,
+    color: '#766B72',
+    fontStyle: 'italic',
+    marginBottom: 8,
+  },
+  infoThumbnail: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+    marginTop: 4,
+    backgroundColor: '#EFEBE6',
+  },
+  deliveryPhotoBig: {
+    width: '100%',
+    height: 160,
+    borderRadius: 12,
+    marginTop: 6,
+    backgroundColor: '#EFEBE6',
   },
 });

@@ -1442,6 +1442,26 @@ export interface DevContextType {
   addEntry: (entry: Partial<DiaryEntryUI>) => void;
   addSurprise: (surprise: Partial<DiaryEntryUI>) => void;
   updateSurpriseStatus: (id: string, newStatus: 'idea' | 'comprando' | 'listo' | 'entregado') => void;
+  recordSurprisePurchase: (
+    surpriseId: string,
+    purchaseData: {
+      purchasedAt: string;
+      purchasePhotoUrl?: string;
+      purchaseNotes?: string;
+      productUrl?: string;
+      price?: number;
+      linkedWishId?: string;
+    }
+  ) => void;
+  recordSurpriseDelivery: (
+    surpriseId: string,
+    deliveryData: {
+      deliveredAt: string;
+      deliveredPhotoUrl?: string;
+      partnerReaction?: string;
+      linkedWishId?: string;
+    }
+  ) => void;
 
   // Aya AI Actions
   getRandomAyaQuestion: () => AyaQuestionPrompt;
@@ -2224,6 +2244,131 @@ export function DevProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const recordSurprisePurchase = (
+    surpriseId: string,
+    purchaseData: {
+      purchasedAt: string;
+      purchasePhotoUrl?: string;
+      purchaseNotes?: string;
+      productUrl?: string;
+      price?: number;
+      linkedWishId?: string;
+    }
+  ) => {
+    // 1. Update entries / surprises
+    setEntries((prev) =>
+      prev.map((s) => {
+        if (s.id === surpriseId) {
+          const content = s.content as any;
+          return {
+            ...s,
+            content: {
+              ...content,
+              status: 'comprando',
+              purchaseDetails: {
+                purchasedAt: purchaseData.purchasedAt,
+                purchasedBy: currentDevUser.id,
+                purchasePhotoUrl: purchaseData.purchasePhotoUrl,
+                purchaseNotes: purchaseData.purchaseNotes,
+                productUrl: purchaseData.productUrl,
+                price: purchaseData.price,
+              },
+            },
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return s;
+      })
+    );
+
+    // 2. If linked to a wish, set wish status to 'in_progress'
+    if (purchaseData.linkedWishId) {
+      updateWishStatus(purchaseData.linkedWishId, 'in_progress');
+    } else {
+      const targetSurprise = entries.find((e) => e.id === surpriseId);
+      const title = (targetSurprise?.content as any)?.title || '';
+      const matchingWish = wishes.find((w) => title.toLowerCase().includes(w.title.toLowerCase()));
+      if (matchingWish) {
+        updateWishStatus(matchingWish.id, 'in_progress');
+      }
+    }
+  };
+
+  const recordSurpriseDelivery = (
+    surpriseId: string,
+    deliveryData: {
+      deliveredAt: string;
+      deliveredPhotoUrl?: string;
+      partnerReaction?: string;
+      linkedWishId?: string;
+    }
+  ) => {
+    let targetSurprise = entries.find((e) => e.id === surpriseId);
+
+    // 1. Update entries / surprises
+    setEntries((prev) =>
+      prev.map((s) => {
+        if (s.id === surpriseId) {
+          const content = s.content as any;
+          return {
+            ...s,
+            content: {
+              ...content,
+              status: 'entregado',
+              deliveryDetails: {
+                deliveredAt: deliveryData.deliveredAt,
+                deliveredPhotoUrl: deliveryData.deliveredPhotoUrl,
+                partnerReaction: deliveryData.partnerReaction,
+                receivedBy: currentDevUser.id,
+              },
+            },
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return s;
+      })
+    );
+
+    // 2. If linked to a wish, set wish status to 'fulfilled'
+    let matchedWishId = deliveryData.linkedWishId;
+    if (!matchedWishId && targetSurprise) {
+      const title = (targetSurprise.content as any)?.title || '';
+      const matchingWish = wishes.find((w) => title.toLowerCase().includes(w.title.toLowerCase()));
+      if (matchingWish) matchedWishId = matchingWish.id;
+    }
+    if (matchedWishId) {
+      updateWishStatus(matchedWishId, 'fulfilled');
+    }
+
+    // 3. Generate a shared memory in Nuestra Historia
+    const title = (targetSurprise?.content as any)?.title || 'Sorpresa Hecha Realidad';
+    const purchasePhoto = (targetSurprise?.content as any)?.purchaseDetails?.purchasePhotoUrl;
+    const deliveryPhoto = deliveryData.deliveredPhotoUrl;
+    const photos = [deliveryPhoto, purchasePhoto].filter(Boolean) as string[];
+
+    const memoryEntry: DiaryEntryUI = {
+      id: 'mem-surp-' + Date.now(),
+      coupleId: 'andrea-tonet',
+      authorId: currentDevUser.id,
+      type: 'diary_shared',
+      visibility: 'shared',
+      date: deliveryData.deliveredAt || new Date().toISOString().split('T')[0],
+      content: {
+        title: `✨ Hecho Realidad: ${title.replace(/^Sorpresa:\s*/i, '')}`,
+        story: deliveryData.partnerReaction || `Un momento mágico hecho realidad juntos.`,
+        body: deliveryData.partnerReaction || `Un momento mágico hecho realidad juntos.`,
+        photos: photos,
+      },
+      moodTag: 'grateful',
+      ayaConsentBoth: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isMine: true,
+    };
+
+    setEntries((prev) => [memoryEntry, ...prev]);
+  };
+
   const ayaInsights = [
     {
       id: 'ins-1',
@@ -2351,6 +2496,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
         addEntry,
         addSurprise,
         updateSurpriseStatus,
+        recordSurprisePurchase,
+        recordSurpriseDelivery,
         getRandomAyaQuestion,
         isDemoModeEnabled,
         resetAllDataToDefaults,
