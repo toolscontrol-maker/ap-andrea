@@ -2516,6 +2516,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
       };
 
       StorageEngine.setItem(STORAGE_KEYS.DAILY_CHECKINS, updated);
+      CloudSyncEngine.syncDailyMeetingCheckIn(updated[date]);
       return updated;
     });
   };
@@ -2547,6 +2548,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
       };
 
       StorageEngine.setItem(STORAGE_KEYS.WEEKLY_PHOTOS, updated);
+      CloudSyncEngine.syncWeeklyPhoto(updated[weekId]);
       return updated;
     });
   };

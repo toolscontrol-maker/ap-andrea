@@ -582,7 +582,7 @@ class CloudSyncEngineService {
     }
   }
 
-  // ── 6. RITUAL SEEDS ──
+  // ── 6. RITUAL SEEDS & DAILY CHECK-INS ──
   public async syncRitualSeed(seed: RitualSeed) {
     this.broadcastLocal('ritual_seeds', 'UPDATE', seed);
     try {
@@ -604,6 +604,54 @@ class CloudSyncEngineService {
       }
     } catch (e) {
       console.warn('[CloudSync] Ritual seed sync error:', e);
+    }
+  }
+
+  public async syncDailyMeetingCheckIn(checkIn: any) {
+    try {
+      if (this.isSupabaseConfigured()) {
+        const seedPayload: RitualSeed = {
+          id: `checkin-${checkIn.date}`,
+          coupleId: COUPLE_ID,
+          authorId: 'system',
+          date: checkIn.date,
+          type: 'daily_reflection',
+          title: checkIn.confirmedMet ? '🖤 Encuentro confirmado' : checkIn.wontSee ? '⏳ Día sin encuentro' : 'Registro diario',
+          body: JSON.stringify(checkIn),
+          mood: checkIn.confirmedMet ? 'love' : 'calm',
+          isSharedWithPartner: true,
+          partnerResponded: Boolean(checkIn.tonetResponse && checkIn.andreaResponse),
+          createdAt: checkIn.updatedAt || new Date().toISOString(),
+        };
+        await this.syncRitualSeed(seedPayload);
+      }
+    } catch (e) {
+      console.warn('[CloudSync] Check-in sync error:', e);
+    }
+  }
+
+  public async syncWeeklyPhoto(weekEntry: any) {
+    try {
+      if (this.isSupabaseConfigured()) {
+        const seedPayload: RitualSeed = {
+          id: `weekly-photo-${weekEntry.weekId}`,
+          coupleId: COUPLE_ID,
+          authorId: 'system',
+          date: new Date().toISOString().split('T')[0],
+          type: 'photo_prompt',
+          title: `📸 Semana en Fotos: ${weekEntry.weekRangeLabel}`,
+          body: JSON.stringify(weekEntry),
+          photoUrl: weekEntry.photoTogether || weekEntry.photoTonet || weekEntry.photoAndrea,
+          imageUrl: weekEntry.photoTogether || weekEntry.photoTonet || weekEntry.photoAndrea,
+          mood: 'love',
+          isSharedWithPartner: true,
+          partnerResponded: true,
+          createdAt: weekEntry.updatedAt || new Date().toISOString(),
+        };
+        await this.syncRitualSeed(seedPayload);
+      }
+    } catch (e) {
+      console.warn('[CloudSync] Weekly photo sync error:', e);
     }
   }
 
