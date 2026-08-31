@@ -30,6 +30,8 @@ import { WishlistItem, WishlistStatus, WishlistItemType, Place } from '@andrea/t
 import { extractLinkMetadata } from '../../../src/utils/linkMetadata';
 import { triggerHaptic } from '../../../src/utils/haptics';
 import { AddWishWizardModal, NewWishData } from '../../../src/components/wishes/AddWishWizardModal';
+import { CreateSurpriseFlow } from '../../../src/features/calendar/components/CreateSurpriseFlow';
+import { SurpriseCreationPayload } from '../../../src/features/calendar/domain/calendar.types';
 
 type TabFilter = 'all' | 'restaurants' | 'fashion' | 'trips' | 'home' | 'fulfilled';
 
@@ -46,7 +48,9 @@ export default function WishesScreen() {
     convertWishToMemory,
     deleteWish,
     addSavedPlace,
-    convertPlaceToEvent
+    convertPlaceToEvent,
+    addCoupleEvent,
+    addSurprise,
   } = useDev();
 
   const [activeFilter, setActiveFilter] = useState<TabFilter>('all');
@@ -56,6 +60,9 @@ export default function WishesScreen() {
   const [fulfillStory, setFulfillStory] = useState('');
   const [fulfillPhotoUrl, setFulfillPhotoUrl] = useState('');
   const [selectedRestaurantPlace, setSelectedRestaurantPlace] = useState<Place | null>(null);
+
+  const [isSurpriseFlowOpen, setIsSurpriseFlowOpen] = useState(false);
+  const [surpriseWishTarget, setSurpriseWishTarget] = useState<WishlistItem | null>(null);
 
   const handleScheduleRestaurantDate = (placeOrWish: { id?: string; name?: string; title?: string; phoneNumber?: string; city?: string }) => {
     triggerHaptic('medium');
@@ -167,11 +174,66 @@ export default function WishesScreen() {
   };
 
   const handleMakeSurprise = (wish: WishlistItem) => {
-    convertWishToSurprise(wish.id, `Sorpresa preparada por ${currentDevUser.name} para cumplir el deseo.`);
-    Alert.alert(
-      'Sorpresa en marcha',
-      `Se ha programado en secreto en el Calendario sin revelar los detalles a ${partnerDevUser.name}.`
-    );
+    triggerHaptic('selection');
+    setSurpriseWishTarget(wish);
+    setIsSurpriseFlowOpen(true);
+  };
+
+  const handleSaveSurpriseFromWish = (payload: SurpriseCreationPayload) => {
+    if (!surpriseWishTarget) return;
+
+    // 1. Calculate revealAt if custom_date
+    let calculatedRevealAt: string | undefined = undefined;
+    if (payload.revealOption === 'custom_date' && payload.revealDate) {
+      calculatedRevealAt = `${payload.revealDate}T${payload.revealTime || '12:00'}:00`;
+    } else if (payload.revealOption === 'one_day_before') {
+      calculatedRevealAt = `${payload.date}T00:00:00`;
+    } else if (payload.revealOption === 'same_day_morning') {
+      calculatedRevealAt = `${payload.date}T09:00:00`;
+    } else if (payload.revealOption === 'specific_time') {
+      calculatedRevealAt = `${payload.date}T${payload.time}:00`;
+    }
+
+    // 2. Add couple event
+    addCoupleEvent({
+      eventType: 'surprise',
+      date: payload.date,
+      time: payload.time,
+      title: payload.title,
+      subtitle: payload.location ? `En ${payload.location}` : 'Plan secreto con amor',
+      location: payload.location,
+      notes: payload.notes,
+      isSecret: true,
+      revealPolicy: payload.revealOption === 'now' ? 'immediately' : 'scheduled',
+      revealAt: calculatedRevealAt,
+      surpriseCategory: payload.category,
+      linkedWishlistId: surpriseWishTarget.id,
+    });
+
+    // 3. Mark wish in progress
+    updateWishStatus(surpriseWishTarget.id, 'in_progress');
+
+    // 4. Create surprise entry in diary/surprises
+    addSurprise({
+      date: payload.date,
+      content: {
+        title: payload.title,
+        description: payload.notes?.join(' · ') || `Sorpresa para cumplir el deseo: ${surpriseWishTarget.title}`,
+        status: 'comprando',
+        occasion: 'sin_ocasión',
+        category: payload.category,
+        purchaseDetails: {
+          purchasedAt: new Date().toISOString().split('T')[0],
+          purchasedBy: currentDevUser.id,
+          productUrl: surpriseWishTarget.sourceUrl,
+          price: surpriseWishTarget.estimatedPrice,
+        }
+      } as any,
+    });
+
+    setIsSurpriseFlowOpen(false);
+    setSurpriseWishTarget(null);
+    Alert.alert('🎁 ¡Sorpresa Preparada!', `Has agendado "${payload.title}" en secreto para ${partnerDevUser.name}.`);
   };
 
   const getStatusBadge = (status: WishlistStatus) => {
@@ -652,6 +714,30 @@ export default function WishesScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* SURPRISE CREATION FLOW FOR WISH */}
+      <CreateSurpriseFlow
+        visible={isSurpriseFlowOpen}
+        onClose={() => {
+          setIsSurpriseFlowOpen(false);
+          setSurpriseWishTarget(null);
+        }}
+        onSuccess={handleSaveSurpriseFromWish}
+        initialTitle={surpriseWishTarget ? `Sorpresa: ${surpriseWishTarget.title}` : undefined}
+        initialCategory={
+          surpriseWishTarget?.type === 'restaurant'
+            ? 'cena'
+            : surpriseWishTarget?.type === 'trip'
+            ? 'escapada'
+            : 'regalo'
+        }
+        initialLocation={surpriseWishTarget?.brand || surpriseWishTarget?.storeName}
+        initialNotes={
+          surpriseWishTarget?.sourceUrl
+            ? `Enlace del deseo: ${surpriseWishTarget.sourceUrl}`
+            : undefined
+        }
+      />
     </ScreenWrapper>
   );
 }
