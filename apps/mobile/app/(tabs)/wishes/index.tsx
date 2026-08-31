@@ -29,6 +29,7 @@ import { Spacing, Radii, Shadows } from '../../../src/theme/tokens';
 import { WishlistItem, WishlistStatus, WishlistItemType, Place } from '@andrea/types';
 import { extractLinkMetadata } from '../../../src/utils/linkMetadata';
 import { triggerHaptic } from '../../../src/utils/haptics';
+import { AddWishWizardModal, NewWishData } from '../../../src/components/wishes/AddWishWizardModal';
 
 type TabFilter = 'all' | 'restaurants' | 'fashion' | 'trips' | 'home' | 'fulfilled';
 
@@ -55,122 +56,6 @@ export default function WishesScreen() {
   const [fulfillStory, setFulfillStory] = useState('');
   const [fulfillPhotoUrl, setFulfillPhotoUrl] = useState('');
   const [selectedRestaurantPlace, setSelectedRestaurantPlace] = useState<Place | null>(null);
-
-  // Form State for Quick Add
-  const [newTitle, setNewTitle] = useState('');
-  const [newDescription, setNewDescription] = useState('');
-  const [newUrl, setNewUrl] = useState('');
-  const [newImageUrl, setNewImageUrl] = useState('');
-  const [newGalleryImages, setNewGalleryImages] = useState<string[]>([]);
-  const [newType, setNewType] = useState<WishlistItemType>('fashion');
-  const [newStatus, setNewStatus] = useState<WishlistStatus>('dreaming');
-  const [newPrice, setNewPrice] = useState('');
-  const [newBrand, setNewBrand] = useState('');
-  const [newPhone, setNewPhone] = useState('');
-  const [newIsForSelf, setNewIsForSelf] = useState(false);
-  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
-
-  // Smart Autocomplete State
-  const [isExtractingLink, setIsExtractingLink] = useState(false);
-  const [extractedSource, setExtractedSource] = useState<string | null>(null);
-
-  const handleUrlChange = async (url: string) => {
-    setNewUrl(url);
-    if (!url || url.trim().length < 5) {
-      setExtractedSource(null);
-      return;
-    }
-
-    const trimmed = url.trim();
-    if (
-      trimmed.includes('.') &&
-      (trimmed.startsWith('http') ||
-        trimmed.includes('www.') ||
-        trimmed.includes('.com') ||
-        trimmed.includes('.es') ||
-        trimmed.includes('.org') ||
-        trimmed.includes('.co'))
-    ) {
-      setIsExtractingLink(true);
-      try {
-        const meta = await extractLinkMetadata(trimmed);
-        if (meta) {
-          triggerHaptic('selection');
-          setExtractedSource(meta.brand || meta.domain || 'tienda');
-
-          // Always autofill exact metadata from link
-          if (meta.title) setNewTitle(meta.title);
-          if (meta.brand) setNewBrand(meta.brand);
-          if (meta.type) setNewType(meta.type);
-          if (meta.phoneNumber) setNewPhone(meta.phoneNumber);
-          if (meta.estimatedPrice !== undefined && meta.estimatedPrice > 0) {
-            setNewPrice(meta.estimatedPrice.toString());
-          } else {
-            setNewPrice('');
-          }
-          if (meta.galleryImages && meta.galleryImages.length > 0) {
-            setNewGalleryImages(meta.galleryImages);
-            setNewImageUrl(meta.galleryImages[0]);
-          } else if (meta.imageUrl) {
-            setNewGalleryImages([meta.imageUrl]);
-            setNewImageUrl(meta.imageUrl);
-          } else {
-            setNewGalleryImages([]);
-            setNewImageUrl('');
-          }
-          if (meta.description) {
-            setNewDescription(meta.description);
-          }
-        }
-      } catch (err) {
-        console.warn('Error extracting link meta:', err);
-      } finally {
-        setIsExtractingLink(false);
-      }
-    }
-  };
-
-  const handleSelectCoverImage = (imgUrl: string) => {
-    triggerHaptic('light');
-    setNewImageUrl(imgUrl);
-  };
-
-  const handleRemoveGalleryImage = (imgUrl: string) => {
-    triggerHaptic('light');
-    setNewGalleryImages((prev) => {
-      const updated = prev.filter((img) => img !== imgUrl);
-      if (newImageUrl === imgUrl) {
-        setNewImageUrl(updated[0] || '');
-      }
-      return updated;
-    });
-  };
-
-  const handleCustomImageAdded = (val: string | null) => {
-    if (val) {
-      setNewImageUrl(val);
-      setNewGalleryImages((prev) => [val, ...prev.filter((img) => img !== val)]);
-    } else {
-      setNewImageUrl('');
-    }
-  };
-
-  const resetAddForm = () => {
-    setNewTitle('');
-    setNewDescription('');
-    setNewUrl('');
-    setNewImageUrl('');
-    setNewGalleryImages([]);
-    setNewType('fashion');
-    setNewStatus('dreaming');
-    setNewPrice('');
-    setNewBrand('');
-    setNewPhone('');
-    setNewIsForSelf(false);
-    setShowAdvancedFields(false);
-    setExtractedSource(null);
-    setIsExtractingLink(false);
-  };
 
   const handleScheduleRestaurantDate = (placeOrWish: { id?: string; name?: string; title?: string; phoneNumber?: string; city?: string }) => {
     triggerHaptic('medium');
@@ -230,44 +115,40 @@ export default function WishesScreen() {
     return savedPlaces.filter((p) => p.category === 'restaurant' || p.category === 'cafe' || p.category === 'bar');
   }, [savedPlaces]);
 
-  const handleSaveWish = () => {
-    if (!newTitle.trim()) {
-      Alert.alert('Falta el título', 'Escribe al menos una idea o nombre para el deseo.');
-      return;
-    }
-
+  const handleSaveWishFromWizard = async (data: NewWishData) => {
     triggerHaptic('heavy');
 
-    addWish({
-      title: newTitle.trim(),
-      description: newDescription.trim() || undefined,
-      sourceUrl: newUrl.trim() || undefined,
-      externalImageUrl: newImageUrl.trim() || (newGalleryImages.length > 0 ? newGalleryImages[0] : undefined),
-      images: newGalleryImages.length > 0 ? newGalleryImages : (newImageUrl ? [newImageUrl] : undefined),
-      type: newType,
-      status: newStatus,
-      brand: newBrand.trim() || undefined,
-      estimatedPrice: newPrice ? parseFloat(newPrice) : undefined,
-      isForSelf: newIsForSelf,
-      phoneNumber: newPhone.trim() || undefined
+    await addWish({
+      title: data.title,
+      description: data.description,
+      sourceUrl: data.sourceUrl,
+      externalImageUrl: data.externalImageUrl,
+      images: data.images,
+      type: data.type,
+      status: data.status,
+      brand: data.brand,
+      storeName: data.storeName,
+      estimatedPrice: data.estimatedPrice,
+      isForSelf: data.isForSelf,
+      phoneNumber: data.phoneNumber,
+      color: data.color,
+      occasion: data.occasion,
     });
 
     // If it's a restaurant, also optionally create a Place
-    if (newType === 'restaurant') {
+    if (data.type === 'restaurant') {
       addSavedPlace({
-        name: newTitle.trim(),
+        name: data.title,
         category: 'restaurant',
         status: 'want_to_go',
-        note: newDescription.trim() || undefined,
-        coverImageUrl: newImageUrl.trim() || undefined,
-        phoneNumber: newPhone.trim() || undefined,
-        city: 'Valencia'
+        note: data.description || (data.occasion ? `Cocina: ${data.occasion}` : undefined),
+        coverImageUrl: data.externalImageUrl,
+        phoneNumber: data.phoneNumber,
+        city: data.brand || 'Valencia',
       });
     }
 
-    resetAddForm();
-    setIsAddModalOpen(false);
-    Alert.alert('Deseo Guardado', 'Se ha añadido a vuestro catálogo.');
+    Alert.alert('✨ Deseo Guardado', `"${data.title}" se ha añadido a vuestro catálogo de ilusiones.`);
   };
 
   const handleOpenFulfill = (wish: WishlistItem) => {
@@ -519,400 +400,12 @@ export default function WishesScreen() {
         )}
       </View>
 
-      {/* QUICK ADD MODAL (ZERO FRICTION) */}
-      <Modal visible={isAddModalOpen} animationType="slide" transparent>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>Guardar nuevo deseo</Text>
-                <Text style={styles.modalSubtitle}>Cero fricción: escribe solo lo que tengas a mano</Text>
-              </View>
-              <TouchableOpacity onPress={() => setIsAddModalOpen(false)}>
-                <Text style={styles.modalCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              {/* ── 1. SELECTOR PRINCIPAL DE CATEGORÍA ── */}
-              <View style={styles.modalCategorySection}>
-                <Text style={styles.inputLabel}>Tipo de deseo o rincón</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.categoryChipsScroll}
-                >
-                  {[
-                    { id: 'restaurant', label: '🍽️ Restaurante' },
-                    { id: 'fashion', label: '👗 Moda & Regalo' },
-                    { id: 'trip', label: '✈️ Viaje & Cita' },
-                    { id: 'home', label: '🏡 Hogar & Deco' },
-                    { id: 'beauty', label: '💄 Belleza' },
-                    { id: 'experience', label: '🎟️ Experiencia' },
-                  ].map((item) => (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={[
-                        styles.categoryChoiceChip,
-                        newType === item.id && styles.categoryChoiceChipActive,
-                      ]}
-                      onPress={() => {
-                        triggerHaptic('selection');
-                        setNewType(item.id as WishlistItemType);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.categoryChoiceChipText,
-                          newType === item.id && styles.categoryChoiceChipTextActive,
-                        ]}
-                      >
-                        {item.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* ── 2. ENLACE O TIENDA AUTOCOMPLETABLE ── */}
-              <Text style={styles.inputLabel}>
-                {newType === 'restaurant'
-                  ? 'Enlace de Google Maps / Apple Maps / Web del restaurante'
-                  : newType === 'trip'
-                  ? 'Enlace de Booking, Airbnb, vuelo o destino'
-                  : newType === 'home'
-                  ? 'Enlace de la tienda de decoración (IKEA, Zara Home...)'
-                  : newType === 'experience'
-                  ? 'Enlace del evento, spa o entradas'
-                  : 'Enlace web o tienda (autocompleta los datos)'}
-              </Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder={
-                  newType === 'restaurant'
-                    ? 'Pega enlace de Google Maps, TheFork o web...'
-                    : newType === 'trip'
-                    ? 'Pega enlace de Booking, Airbnb, vuelo o destino...'
-                    : newType === 'home'
-                    ? 'Pega enlace de Zara Home, IKEA, Kave Home...'
-                    : newType === 'experience'
-                    ? 'Pega enlace del plan, entradas o concierto...'
-                    : 'Pega un enlace de Sézane, Louis Vuitton, Zara, Nike...'
-                }
-                placeholderTextColor={Colors.light.textMuted}
-                value={newUrl}
-                onChangeText={handleUrlChange}
-                autoCapitalize="none"
-              />
-
-              {isExtractingLink && (
-                <View style={styles.extractingRow}>
-                  <IconSparkles size={13} color={Colors.light.primary} />
-                  <Text style={styles.extractingText}>Extrayendo datos de la prenda o plan...</Text>
-                </View>
-              )}
-
-              {extractedSource && !isExtractingLink && (
-                <View style={styles.autocompleteBadge}>
-                  <IconSparkles size={13} color={Colors.light.primary} />
-                  <Text style={styles.autocompleteBadgeText}>
-                    Sugerencias cargadas desde {extractedSource} · Puedes editarlas libremente
-                  </Text>
-                </View>
-              )}
-
-              {/* ── 3. CAMPOS ADAPTADOS SEGÚN EL TIPO SELECCIONADO ── */}
-              <Text style={styles.inputLabel}>
-                {newType === 'restaurant'
-                  ? 'Nombre del restaurante o local *'
-                  : newType === 'trip'
-                  ? 'Destino o Escapada *'
-                  : newType === 'home'
-                  ? 'Mueble o elemento deco *'
-                  : newType === 'experience'
-                  ? 'Experiencia o Plan *'
-                  : 'Prenda, regalo o idea *'}
-              </Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder={
-                  newType === 'restaurant'
-                    ? 'ej. Don Salvatore / Desde 1911 / Sacha'
-                    : newType === 'trip'
-                    ? 'ej. Escapada a Menorca / Cabaña en Dolomitas'
-                    : newType === 'home'
-                    ? 'ej. Lámpara de sobremesa lino'
-                    : newType === 'experience'
-                    ? 'ej. Concierto a la luz de las velas'
-                    : 'ej. Bolso Claude Piel Caramelo'
-                }
-                placeholderTextColor={Colors.light.textMuted}
-                value={newTitle}
-                onChangeText={setNewTitle}
-              />
-
-              {/* FILA SECUNDARIA DINÁMICA: RESTAURANTE vs MODA/VIAJE */}
-              {newType === 'restaurant' ? (
-                <>
-                  <View style={styles.rowTwoInputs}>
-                    <View style={{ flex: 1, marginRight: Spacing.sm }}>
-                      <Text style={styles.inputLabel}>Ubicación o Barrio</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="ej. Ruzafa, Valencia"
-                        placeholderTextColor={Colors.light.textMuted}
-                        value={newBrand}
-                        onChangeText={setNewBrand}
-                      />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.inputLabel}>Tipo de cocina / Ocasión</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="ej. Italiano romántico"
-                        placeholderTextColor={Colors.light.textMuted}
-                        value={newDescription}
-                        onChangeText={setNewDescription}
-                      />
-                    </View>
-                  </View>
-                  <View style={{ marginTop: Spacing.xs, marginBottom: Spacing.xs }}>
-                    <Text style={styles.inputLabel}>📞 Teléfono del local (para llamar con 1 toque al agendar)</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="ej. +34 963 74 82 90"
-                      placeholderTextColor={Colors.light.textMuted}
-                      value={newPhone}
-                      onChangeText={setNewPhone}
-                      keyboardType="phone-pad"
-                    />
-                  </View>
-                </>
-              ) : (
-                <View style={styles.rowTwoInputs}>
-                  <View style={{ flex: 1, marginRight: Spacing.sm }}>
-                    <Text style={styles.inputLabel}>
-                      {newType === 'trip'
-                        ? 'Alojamiento o Transporte'
-                        : newType === 'home'
-                        ? 'Tienda de deco'
-                        : newType === 'experience'
-                        ? 'Lugar o Proveedor'
-                        : 'Marca o Tienda'}
-                    </Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder={
-                        newType === 'trip'
-                          ? 'ej. Hotel Boutique / Airbnb'
-                          : newType === 'home'
-                          ? 'ej. Zara Home, IKEA'
-                          : newType === 'experience'
-                          ? 'ej. Auditorio / Balneario'
-                          : 'ej. Sézane, Massimo Dutti'
-                      }
-                      placeholderTextColor={Colors.light.textMuted}
-                      value={newBrand}
-                      onChangeText={setNewBrand}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.inputLabel}>
-                      {newType === 'trip' ? 'Presupuesto aprox. (€)' : 'Precio aprox. (€)'}
-                    </Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder={newType === 'trip' ? 'ej. 350' : 'ej. 120'}
-                      placeholderTextColor={Colors.light.textMuted}
-                      value={newPrice}
-                      onChangeText={setNewPrice}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                </View>
-              )}
-
-              {/* INTERACTIVE MULTI-IMAGE GALLERY SELECTOR */}
-              {newGalleryImages.length > 0 && (
-                <View style={styles.gallerySelectorSection}>
-                  <View style={styles.gallerySelectorHeader}>
-                    <Text style={styles.inputLabel}>
-                      Galería autocompletada ({newGalleryImages.length} fotos)
-                    </Text>
-                    <Text style={styles.galleryHint}>Toca para elegir portada</Text>
-                  </View>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.galleryScroll}
-                  >
-                    {newGalleryImages.map((imgUrl, idx) => {
-                      const isCover = newImageUrl === imgUrl;
-                      return (
-                        <TouchableOpacity
-                          key={idx}
-                          style={[styles.galleryThumbCard, isCover && styles.galleryThumbCardActive]}
-                          activeOpacity={0.8}
-                          onPress={() => handleSelectCoverImage(imgUrl)}
-                        >
-                          <Image source={{ uri: imgUrl }} style={styles.galleryThumbImg} />
-                          {isCover && (
-                            <View style={styles.coverBadge}>
-                              <Text style={styles.coverBadgeText}>★ Portada</Text>
-                            </View>
-                          )}
-                          <TouchableOpacity
-                            style={styles.removeThumbBtn}
-                            onPress={() => handleRemoveGalleryImage(imgUrl)}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                          >
-                            <Text style={styles.removeThumbText}>✕</Text>
-                          </TouchableOpacity>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-              )}
-
-              <PhotoUploadField
-                imageUri={newImageUrl}
-                onImageChange={handleCustomImageAdded}
-                label={
-                  newGalleryImages.length > 0
-                    ? '+ Añadir otra foto a la galería'
-                    : newType === 'restaurant'
-                    ? 'Foto del local, plato o carta'
-                    : newType === 'trip'
-                    ? 'Foto del destino o alojamiento'
-                    : 'Foto del deseo o captura'
-                }
-                placeholderText="Toca para subir foto desde la cámara o galería"
-              />
-
-              {newType !== 'restaurant' && (
-                <>
-                  <Text style={styles.inputLabel}>Notas o detalles</Text>
-                  <TextInput
-                    style={[styles.textInput, styles.textArea]}
-                    placeholder={
-                      newType === 'trip'
-                        ? 'ej. Para primavera o fin de semana largo'
-                        : newType === 'home'
-                        ? 'ej. Para el salón junto a la ventana'
-                        : 'ej. En color caramelo, para una ocasión especial'
-                    }
-                    placeholderTextColor={Colors.light.textMuted}
-                    value={newDescription}
-                    onChangeText={setNewDescription}
-                    multiline
-                    numberOfLines={3}
-                  />
-                </>
-              )}
-
-              {/* TOGGLE ADVANCED */}
-              <TouchableOpacity
-                style={styles.toggleAdvancedBtn}
-                onPress={() => setShowAdvancedFields(!showAdvancedFields)}
-              >
-                <Text style={styles.toggleAdvancedText}>
-                  {showAdvancedFields ? '▲ Ocultar estado emocional' : '▼ Estado emocional e ilusión'}
-                </Text>
-              </TouchableOpacity>
-
-              {showAdvancedFields && (
-                <View style={styles.advancedSection}>
-                  <Text style={styles.inputLabel}>Tipo de deseo</Text>
-                  <View style={styles.choiceChipsRow}>
-                    {(['fashion', 'restaurant', 'trip', 'home', 'beauty', 'experience'] as WishlistItemType[]).map((t) => (
-                      <TouchableOpacity
-                        key={t}
-                        style={[styles.choiceChip, newType === t && styles.choiceChipActive]}
-                        onPress={() => setNewType(t)}
-                      >
-                        <Text style={[styles.choiceChipText, newType === t && styles.choiceChipTextActive]}>
-                          {t === 'fashion' ? 'Moda' : t === 'restaurant' ? 'Restaurante' : t === 'trip' ? 'Viaje' : t === 'home' ? 'Hogar' : t === 'beauty' ? 'Belleza' : 'Experiencia'}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-
-                  <Text style={styles.inputLabel}>Estado emocional</Text>
-                  <View style={styles.choiceChipsRow}>
-                    {(['dreaming', 'considering', 'planned', 'someday'] as WishlistStatus[]).map((s) => (
-                      <TouchableOpacity
-                        key={s}
-                        style={[styles.choiceChip, newStatus === s && styles.choiceChipActive]}
-                        onPress={() => setNewStatus(s)}
-                      >
-                        <Text style={[styles.choiceChipText, newStatus === s && styles.choiceChipTextActive]}>
-                          {s === 'dreaming' ? 'Me hace ilusión' : s === 'considering' ? 'Lo pienso' : s === 'planned' ? 'Ocasión especial' : 'Algún día'}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-
-                  <View style={styles.rowTwoInputs}>
-                    <View style={{ flex: 1, marginRight: Spacing.sm }}>
-                      <Text style={styles.inputLabel}>Precio aprox. (€)</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="ej. 85"
-                        placeholderTextColor={Colors.light.textMuted}
-                        keyboardType="numeric"
-                        value={newPrice}
-                        onChangeText={setNewPrice}
-                      />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.inputLabel}>Marca / Tienda</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="ej. Sézane"
-                        placeholderTextColor={Colors.light.textMuted}
-                        value={newBrand}
-                        onChangeText={setNewBrand}
-                      />
-                    </View>
-                  </View>
-                </View>
-              )}
-            </ScrollView>
-
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  borderRadius: 12,
-                  backgroundColor: 'rgba(28, 25, 23, 0.06)',
-                  marginRight: 8,
-                }}
-                onPress={() => setIsAddModalOpen(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={{ fontSize: 15, fontWeight: '600', color: Colors.light.textSecondary }}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  paddingHorizontal: 20,
-                  paddingVertical: 12,
-                  borderRadius: 12,
-                  backgroundColor: Colors.light.primary,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                onPress={handleSaveWish}
-                activeOpacity={0.7}
-              >
-                <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>Guardar deseo</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* MULTI-STEP WISH WIZARD MODAL */}
+      <AddWishWizardModal
+        visible={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSaveWish={handleSaveWishFromWizard}
+      />
 
       {/* FULFILL / MAKE MEMORY MODAL */}
       <Modal visible={isFulfillModalOpen} animationType="fade" transparent>
