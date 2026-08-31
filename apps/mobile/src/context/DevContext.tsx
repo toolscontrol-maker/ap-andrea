@@ -266,6 +266,7 @@ export interface DevContextType {
   addCoupleEvent: (payload: AddCoupleEventPayload) => void;
   revealCoupleEvent: (id: string) => void;
   completeCoupleEvent: (id: string) => void;
+  deleteCoupleEvent: (id: string) => void;
 
   // Ritual Seeds Actions
   addRitualSeed: (seed: Partial<RitualSeed>) => void;
@@ -275,6 +276,7 @@ export interface DevContextType {
   addMapPlace: (place: Partial<MapPlace>) => void;
   addEntry: (entry: Partial<DiaryEntryUI>) => void;
   addSurprise: (surprise: Partial<DiaryEntryUI>) => void;
+  deleteSurprise: (id: string) => void;
   updateSurpriseStatus: (id: string, newStatus: 'idea' | 'comprando' | 'listo' | 'entregado') => void;
   recordSurprisePurchase: (
     surpriseId: string,
@@ -1175,6 +1177,11 @@ export function DevProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const deleteCoupleEvent = (id: string) => {
+    setCoupleEvents((prev) => prev.filter((ev) => ev.id !== id));
+    CloudSyncEngine.deleteCoupleEvent(id);
+  };
+
   // ── Ritual Seeds Actions ──
   const addRitualSeed = async (seed: Partial<RitualSeed>) => {
     let finalPhoto = seed.photoUrl || seed.imageUrl;
@@ -1273,6 +1280,12 @@ export function DevProvider({ children }: { children: ReactNode }) {
     };
 
     setEntries((prev) => [newSurprise, ...prev]);
+  };
+
+  const deleteSurprise = (id: string) => {
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+    setCoupleEvents((prev) => prev.filter((ev) => ev.id !== id && ev.linkedWishlistId !== id));
+    CloudSyncEngine.deleteCoupleEvent(id);
   };
 
   const updateSurpriseStatus = (id: string, newStatus: 'idea' | 'comprando' | 'listo' | 'entregado') => {
@@ -1666,11 +1679,13 @@ export function DevProvider({ children }: { children: ReactNode }) {
         addCoupleEvent,
         revealCoupleEvent,
         completeCoupleEvent,
+        deleteCoupleEvent,
         addRitualSeed,
         addPlace: addMapPlace,
         addMapPlace,
         addEntry,
         addSurprise,
+        deleteSurprise,
         updateSurpriseStatus,
         recordSurprisePurchase,
         recordSurpriseDelivery,

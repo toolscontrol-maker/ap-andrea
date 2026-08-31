@@ -12,6 +12,7 @@ interface EventDetailSheetProps {
   onClose: () => void;
   onRevealNow: (eventId: string) => void;
   onCompletePlan: (event: SanitizedEventItem) => void;
+  onDeleteEvent?: (eventId: string) => void;
   partnerName: string;
 }
 
@@ -21,6 +22,7 @@ export function EventDetailSheet({
   onClose,
   onRevealNow,
   onCompletePlan,
+  onDeleteEvent,
   partnerName,
 }: EventDetailSheetProps) {
   if (!visible || !event) return null;
@@ -49,6 +51,31 @@ export function EventDetailSheet({
     triggerHaptic('success');
     onCompletePlan(event);
     onClose();
+  };
+
+  const handleDelete = () => {
+    if (!event.isOwner) {
+      Alert.alert('Acción no permitida', 'Solo la persona que creó este evento puede eliminarlo.');
+      return;
+    }
+
+    triggerHaptic('warning');
+    Alert.alert(
+      '¿Eliminar este plan / sorpresa?',
+      `¿Estás seguro de que deseas eliminar "${event.title}" del calendario? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar 🗑️',
+          style: 'destructive',
+          onPress: () => {
+            triggerHaptic('success');
+            if (onDeleteEvent) onDeleteEvent(event.id);
+            onClose();
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -162,6 +189,28 @@ export function EventDetailSheet({
               >
                 ✓ Marcar como vivido / Guardar recuerdo
               </Button>
+
+              {/* Owner Delete Button */}
+              {event.isOwner && (
+                <TouchableOpacity
+                  style={{
+                    marginTop: Spacing.sm,
+                    paddingVertical: 12,
+                    borderRadius: Radii.full,
+                    backgroundColor: 'rgba(217, 93, 93, 0.10)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(217, 93, 93, 0.25)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  activeOpacity={0.8}
+                  onPress={handleDelete}
+                >
+                  <Text style={{ fontSize: 13.5, fontWeight: '700', color: '#D95D5D' }}>
+                    🗑️ Eliminar este plan / sorpresa
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </ScrollView>
         </View>

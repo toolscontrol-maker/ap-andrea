@@ -26,6 +26,7 @@ import { triggerHaptic } from '../../../src/utils/haptics';
 import { AddWishWizardModal, NewWishData } from '../../../src/components/wishes/AddWishWizardModal';
 import { CreateSurpriseFlow } from '../../../src/features/calendar/components/CreateSurpriseFlow';
 import { SurpriseCreationPayload } from '../../../src/features/calendar/domain/calendar.types';
+import { WishDetailModal } from '../../../src/components/wishes/WishDetailModal';
 
 type TabView = 'all' | 'partner' | 'mine' | 'fulfilled';
 type CategoryFilter = 'all' | 'restaurants' | 'fashion' | 'trips' | 'home';
@@ -39,6 +40,7 @@ export default function WishesScreen() {
     addWish,
     updateWishStatus,
     convertWishToMemory,
+    deleteWish,
     addSavedPlace,
     convertPlaceToEvent,
     addCoupleEvent,
@@ -51,6 +53,7 @@ export default function WishesScreen() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isFulfillModalOpen, setIsFulfillModalOpen] = useState(false);
   const [selectedWishForFulfill, setSelectedWishForFulfill] = useState<WishlistItem | null>(null);
+  const [selectedWishDetail, setSelectedWishDetail] = useState<WishlistItem | null>(null);
   const [fulfillStory, setFulfillStory] = useState('');
   const [fulfillPhotoUrl, setFulfillPhotoUrl] = useState('');
 
@@ -404,7 +407,14 @@ export default function WishesScreen() {
 
               return (
                 <StaggeredItem key={wish.id} index={index}>
-                  <View style={styles.appleCard}>
+                  <TouchableOpacity
+                    style={styles.appleCard}
+                    activeOpacity={0.92}
+                    onPress={() => {
+                      triggerHaptic('selection');
+                      setSelectedWishDetail(wish);
+                    }}
+                  >
                     {/* Visual Cover Header */}
                     {wish.images && wish.images.length > 1 ? (
                       <View style={styles.photoWrap}>
@@ -557,7 +567,7 @@ export default function WishesScreen() {
                         </View>
                       )}
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 </StaggeredItem>
               );
             })}
@@ -667,6 +677,19 @@ export default function WishesScreen() {
             ? `Enlace del deseo: ${surpriseWishTarget.sourceUrl}`
             : undefined
         }
+      />
+
+      {/* DETAILED WISH INSPECTION & DELETION MODAL */}
+      <WishDetailModal
+        visible={Boolean(selectedWishDetail)}
+        wish={selectedWishDetail}
+        onClose={() => setSelectedWishDetail(null)}
+        onDeleteWish={deleteWish}
+        onMakeSurprise={handleMakeSurprise}
+        onFulfillWish={handleOpenFulfill}
+        currentUserId={currentDevUser.id}
+        currentUserName={currentDevUser.name}
+        partnerName={partnerDevUser.name}
       />
     </ScreenWrapper>
   );

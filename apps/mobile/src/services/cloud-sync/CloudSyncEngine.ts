@@ -582,6 +582,17 @@ class CloudSyncEngineService {
     }
   }
 
+  public async deleteCoupleEvent(eventId: string) {
+    this.broadcastLocal('couple_events', 'DELETE', { id: eventId });
+    try {
+      if (this.isSupabaseConfigured()) {
+        await supabase.from('couple_events').delete().eq('id', eventId);
+      }
+    } catch (e) {
+      console.warn('[CloudSync] Event delete error:', e);
+    }
+  }
+
   // ── 6. RITUAL SEEDS & DAILY CHECK-INS ──
   public async syncRitualSeed(seed: RitualSeed) {
     this.broadcastLocal('ritual_seeds', 'UPDATE', seed);

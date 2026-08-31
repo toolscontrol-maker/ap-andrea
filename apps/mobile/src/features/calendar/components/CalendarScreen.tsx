@@ -50,6 +50,7 @@ export function CalendarScreen() {
     addCoupleEvent,
     revealCoupleEvent,
     completeCoupleEvent,
+    deleteCoupleEvent,
   } = useDev();
 
   const store = useCalendarState();
@@ -472,6 +473,10 @@ export function CalendarScreen() {
         onCompletePlan={(ev) => {
           completeCoupleEvent(ev.id);
           store.setCompletedEventForMemory(ev);
+        }}
+        onDeleteEvent={(eventId) => {
+          deleteCoupleEvent(eventId);
+          store.setSelectedEventId(null);
         }}
         partnerName={partnerDevUser.name}
       />

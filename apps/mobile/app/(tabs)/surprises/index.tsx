@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDev } from '../../../src/context/DevContext';
 import { Colors } from '../../../src/theme/colors';
@@ -7,6 +7,7 @@ import { Radii, Shadows, Spacing, Typography } from '../../../src/theme/tokens';
 import { ScreenWrapper, SectionHeader, SegmentedControl, Card, Badge, Button, EmptyState } from '../../../src/components/ui';
 import { DiaryEntryUI, DecryptedSurpriseContent, WishlistItem } from '@andrea/types';
 import { FulfillSurpriseWizardModal } from '../../../src/components/surprises/FulfillSurpriseWizardModal';
+import { triggerHaptic } from '../../../src/utils/haptics';
 
 type KanbanStatus = 'idea' | 'comprando' | 'listo' | 'entregado';
 
@@ -20,6 +21,7 @@ export default function SurprisesScreen() {
     updateSurpriseStatus,
     recordSurprisePurchase,
     recordSurpriseDelivery,
+    deleteSurprise,
   } = useDev();
   const router = useRouter();
 
@@ -233,6 +235,34 @@ export default function SurprisesScreen() {
                     </Text>
                   </TouchableOpacity>
                 )}
+
+                {/* Creator Delete Button */}
+                {isMine && (
+                  <TouchableOpacity
+                    style={styles.deleteSurpriseBtn}
+                    onPress={() => {
+                      triggerHaptic('warning');
+                      Alert.alert(
+                        '¿Eliminar sorpresa?',
+                        `¿Estás seguro de que deseas eliminar "${c.title}"?`,
+                        [
+                          { text: 'Cancelar', style: 'cancel' },
+                          {
+                            text: 'Eliminar 🗑️',
+                            style: 'destructive',
+                            onPress: () => {
+                              triggerHaptic('success');
+                              deleteSurprise(item.id);
+                            },
+                          },
+                        ]
+                      );
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.deleteSurpriseBtnText}>🗑️</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           );
@@ -380,6 +410,18 @@ const styles = StyleSheet.create({
     ...Typography.captionBold,
     color: '#FFFFFF',
     fontSize: 11,
+  },
+  deleteSurpriseBtn: {
+    backgroundColor: 'rgba(217, 93, 93, 0.10)',
+    paddingHorizontal: 10,
+    paddingVertical: Spacing.xs + 3,
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(217, 93, 93, 0.25)',
+    marginLeft: 8,
+  },
+  deleteSurpriseBtnText: {
+    fontSize: 13,
   },
   infoBadgeBox: {
     backgroundColor: '#FAF5EA',
