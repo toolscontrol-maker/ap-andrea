@@ -215,9 +215,14 @@ export async function compressFileToBlob(
   maxWidth = 2048,
   maxHeight = 2048,
   quality = 0.92
-): Promise<{ blob: Blob | File; mimeType: string; fileName: string }> {
+): Promise<{ blob: Blob | File; mimeType: string; fileName: string; fingerprint?: string }> {
   if (file.type && file.type.startsWith('video/')) {
-    return { blob: file, mimeType: file.type || 'video/mp4', fileName: file.name || 'video.mp4' };
+    return {
+      blob: file,
+      mimeType: file.type || 'video/mp4',
+      fileName: file.name || 'video.mp4',
+      fingerprint: `vid_${file.name}_${file.size}`,
+    };
   }
 
   return new Promise((resolve) => {
@@ -225,13 +230,23 @@ export async function compressFileToBlob(
     try {
       objectUrl = URL.createObjectURL(file);
     } catch {
-      resolve({ blob: file, mimeType: file.type || 'image/jpeg', fileName: file.name || 'photo.jpg' });
+      resolve({
+        blob: file,
+        mimeType: file.type || 'image/jpeg',
+        fileName: file.name || 'photo.jpg',
+        fingerprint: `file_${file.name}_${file.size}`,
+      });
       return;
     }
 
     const timeout = setTimeout(() => {
       try { URL.revokeObjectURL(objectUrl); } catch {}
-      resolve({ blob: file, mimeType: file.type || 'image/jpeg', fileName: file.name || 'photo.jpg' });
+      resolve({
+        blob: file,
+        mimeType: file.type || 'image/jpeg',
+        fileName: file.name || 'photo.jpg',
+        fingerprint: `file_${file.name}_${file.size}`,
+      });
     }, 4000);
 
     const img = new Image();
@@ -243,9 +258,32 @@ export async function compressFileToBlob(
 
         if (!width || !height) {
           try { URL.revokeObjectURL(objectUrl); } catch {}
-          resolve({ blob: file, mimeType: file.type || 'image/jpeg', fileName: file.name || 'photo.jpg' });
+          resolve({
+            blob: file,
+            mimeType: file.type || 'image/jpeg',
+            fileName: file.name || 'photo.jpg',
+            fingerprint: `file_${file.name}_${file.size}`,
+          });
           return;
         }
+
+        // Fast perceptual fingerprint calculation for deduplication
+        let fingerprint = `${file.name}_${file.size}`;
+        try {
+          const smallCanvas = document.createElement('canvas');
+          smallCanvas.width = 16;
+          smallCanvas.height = 16;
+          const sCtx = smallCanvas.getContext('2d');
+          if (sCtx) {
+            sCtx.drawImage(img, 0, 0, 16, 16);
+            const d = sCtx.getImageData(0, 0, 16, 16).data;
+            let h = 0;
+            for (let j = 0; j < d.length; j += 4) {
+              h = ((h << 5) - h) + (d[j] * 299 + d[j + 1] * 587 + d[j + 2] * 114) | 0;
+            }
+            fingerprint = `fp_${width}x${height}_${h}_${file.size}`;
+          }
+        } catch {}
 
         if (width > maxWidth || height > maxHeight) {
           if (width > height) {
@@ -263,7 +301,12 @@ export async function compressFileToBlob(
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           try { URL.revokeObjectURL(objectUrl); } catch {}
-          resolve({ blob: file, mimeType: file.type || 'image/jpeg', fileName: file.name || 'photo.jpg' });
+          resolve({
+            blob: file,
+            mimeType: file.type || 'image/jpeg',
+            fileName: file.name || 'photo.jpg',
+            fingerprint,
+          });
           return;
         }
 
@@ -275,14 +318,29 @@ export async function compressFileToBlob(
           (blob) => {
             try { URL.revokeObjectURL(objectUrl); } catch {}
             if (blob && blob.size > 0) {
-              resolve({ blob, mimeType: 'image/webp', fileName: (file.name ? file.name.replace(/\.[^/.]+$/, '') : 'photo') + '.webp' });
+              resolve({
+                blob,
+                mimeType: 'image/webp',
+                fileName: (file.name ? file.name.replace(/\.[^/.]+$/, '') : 'photo') + '.webp',
+                fingerprint,
+              });
             } else {
               canvas.toBlob(
                 (jpgBlob) => {
                   if (jpgBlob && jpgBlob.size > 0) {
-                    resolve({ blob: jpgBlob, mimeType: 'image/jpeg', fileName: (file.name ? file.name.replace(/\.[^/.]+$/, '') : 'photo') + '.jpg' });
+                    resolve({
+                      blob: jpgBlob,
+                      mimeType: 'image/jpeg',
+                      fileName: (file.name ? file.name.replace(/\.[^/.]+$/, '') : 'photo') + '.jpg',
+                      fingerprint,
+                    });
                   } else {
-                    resolve({ blob: file, mimeType: file.type || 'image/jpeg', fileName: file.name || 'photo.jpg' });
+                    resolve({
+                      blob: file,
+                      mimeType: file.type || 'image/jpeg',
+                      fileName: file.name || 'photo.jpg',
+                      fingerprint,
+                    });
                   }
                 },
                 'image/jpeg',
@@ -295,14 +353,24 @@ export async function compressFileToBlob(
         );
       } catch (err) {
         try { URL.revokeObjectURL(objectUrl); } catch {}
-        resolve({ blob: file, mimeType: file.type || 'image/jpeg', fileName: file.name || 'photo.jpg' });
+        resolve({
+          blob: file,
+          mimeType: file.type || 'image/jpeg',
+          fileName: file.name || 'photo.jpg',
+          fingerprint: `file_${file.name}_${file.size}`,
+        });
       }
     };
 
     img.onerror = () => {
       clearTimeout(timeout);
       try { URL.revokeObjectURL(objectUrl); } catch {}
-      resolve({ blob: file, mimeType: file.type || 'image/jpeg', fileName: file.name || 'photo.jpg' });
+      resolve({
+        blob: file,
+        mimeType: file.type || 'image/jpeg',
+        fileName: file.name || 'photo.jpg',
+        fingerprint: `file_${file.name}_${file.size}`,
+      });
     };
 
     img.src = objectUrl;

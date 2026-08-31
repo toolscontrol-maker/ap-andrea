@@ -41,6 +41,7 @@ export function PlaceGalleryModal({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadStatus, setUploadStatus] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
   const [photoToDelete, setPhotoToDelete] = useState<string | null>(null);
 
   if (!place) return null;
@@ -54,6 +55,7 @@ export function PlaceGalleryModal({
 
   const handlePickMultiple = async () => {
     try {
+      setSuccessMessage('');
       setIsUploading(true);
       setUploadStatus('Abriendo selector de fotos y vídeos...');
       const files = await pickMultipleFiles();
@@ -66,13 +68,34 @@ export function PlaceGalleryModal({
 
       const total = files.length;
       const uploadedUrls: string[] = [];
+      const seenFp = new Set<string>();
+      let duplicateCount = 0;
 
       for (let i = 0; i < total; i++) {
         const file = files[i];
-        setUploadStatus(`Optimizando y subiendo ${i + 1} de ${total} recuerdos en Ultra HD...`);
+        setUploadStatus(`Optimizando y analizando ${i + 1} de ${total} recuerdos...`);
 
         try {
-          const { blob, mimeType, fileName } = await compressFileToBlob(file, 2048, 2048, 0.92);
+          const { blob, mimeType, fileName, fingerprint } = await compressFileToBlob(file, 2048, 2048, 0.92);
+
+          // Anti-duplicate protection:
+          const fp = fingerprint || `${file.name}_${file.size}`;
+          const isDupInBatch = seenFp.has(fp);
+          const isDupInPlace = allPhotos.some((photoUrl) => {
+            const cleanName = fileName.replace(/\.[^/.]+$/, '');
+            return (
+              photoUrl.includes(encodeURIComponent(cleanName)) ||
+              photoUrl.includes(cleanName) ||
+              (fingerprint && photoUrl.includes(fingerprint))
+            );
+          });
+
+          if (isDupInBatch || isDupInPlace) {
+            duplicateCount++;
+            continue;
+          }
+
+          seenFp.add(fp);
           const publicUrl = await CloudSyncEngine.uploadMediaBlob(blob, `gallery_${place.id}_${fileName}`, mimeType);
           if (publicUrl) {
             uploadedUrls.push(publicUrl);
@@ -94,6 +117,13 @@ export function PlaceGalleryModal({
       }
 
       triggerHaptic('success');
+      if (duplicateCount > 0 && uploadedUrls.length > 0) {
+        setSuccessMessage(`✨ ¡${uploadedUrls.length} fotos nuevas añadidas! (${duplicateCount} ${duplicateCount === 1 ? 'duplicada omitida' : 'duplicadas omitidas'} automáticamente)`);
+      } else if (duplicateCount > 0 && uploadedUrls.length === 0) {
+        setSuccessMessage(`ℹ️ Todas las fotos seleccionadas (${duplicateCount}) ya estaban subidas a este rincón.`);
+      } else if (uploadedUrls.length > 0) {
+        setSuccessMessage(`✨ ¡${uploadedUrls.length} recuerdos añadidos con éxito!`);
+      }
     } catch (err) {
       console.warn('[Gallery] Multi-upload error:', err);
     } finally {
@@ -224,6 +254,12 @@ export function PlaceGalleryModal({
                   <Text style={styles.multiUploadBtnText}>📸 Seleccionar varias fotos / vídeos a la vez</Text>
                 </TouchableOpacity>
               )}
+
+              {successMessage ? (
+                <View style={styles.successMessageBox}>
+                  <Text style={styles.successMessageText}>{successMessage}</Text>
+                </View>
+              ) : null}
             </View>
 
             {allPhotos.length > 0 ? (
@@ -610,6 +646,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#8A6208',
+  },
+  successMessageBox: {
+    marginTop: 12,
+    backgroundColor: '#EEF9F1',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#73D190',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successMessageText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1C7036',
+    textAlign: 'center',
+    lineHeight: 18,
   },
   photosGridWrapper: {
     flexDirection: 'row',
