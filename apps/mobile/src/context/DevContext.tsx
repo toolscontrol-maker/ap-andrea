@@ -16,6 +16,7 @@ import {
 } from '@andrea/types';
 import { StorageEngine, STORAGE_KEYS } from '../services/storage';
 import { CloudSyncEngine } from '../services/cloud-sync/CloudSyncEngine';
+import { pushNotificationService } from '../services/notifications/PushNotificationService';
 
 export const AUTH_SESSION_KEY = 'andrea_auth_session_v7';
 export const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -247,6 +248,7 @@ export interface DevContextType {
   cloudSyncStatus: string;
   forceCloudSync: () => Promise<void>;
   uploadMediaImage: (fileBase64OrUri: string, fileName: string) => Promise<string>;
+  sendHeartbeat: () => void;
 
   // Wishbook Actions
   addWish: (wish: Partial<WishlistItem>) => void;
@@ -359,6 +361,13 @@ export function DevProvider({ children }: { children: ReactNode }) {
               if (exists) return prev.map((w) => (w.id === record.id ? { ...w, ...record } : w));
               return [record, ...prev];
             });
+            if (eventType === 'INSERT') {
+              pushNotificationService.showLocalNotification({
+                title: '✨ Nuevo Deseo',
+                body: `Se ha añadido "${record.title || 'un nuevo deseo'}" a vuestra lista`,
+                category: 'wishes',
+              });
+            }
           }
         } else if (entity === 'saved_places') {
           if (eventType === 'DELETE') {
@@ -389,6 +398,21 @@ export function DevProvider({ children }: { children: ReactNode }) {
               if (exists) return prev.map((e) => (e.id === record.id ? { ...e, ...record } : e));
               return [record, ...prev];
             });
+            if (eventType === 'INSERT') {
+              if (record.eventType === 'surprise') {
+                pushNotificationService.showLocalNotification({
+                  title: '🤫 ¡Sorpresa Secreta!',
+                  body: 'Hay una nueva sorpresa preparándose para ti ❤️',
+                  category: 'surprises',
+                });
+              } else {
+                pushNotificationService.showLocalNotification({
+                  title: '🗓️ Nueva Cita Agendada',
+                  body: `${record.title || 'Nueva cita'} · ${record.date}`,
+                  category: 'calendar',
+                });
+              }
+            }
           }
         } else if (entity === 'profiles') {
           if (record) {
@@ -426,6 +450,33 @@ export function DevProvider({ children }: { children: ReactNode }) {
             if (exists) return prev.map((s) => (s.id === record.id ? { ...s, ...record } : s));
             return [record, ...prev];
           });
+          if (record.id?.startsWith('heartbeat-')) {
+            pushNotificationService.showLocalNotification({
+              title: '💓 ¡Latido de Amor!',
+              body: `${record.title || 'Te acaban de enviar un latido de amor'} ❤️`,
+              category: 'hearts',
+            });
+          } else if (record.id?.startsWith('checkin-')) {
+            pushNotificationService.showLocalNotification({
+              title: '🖤 Encuentro Diario',
+              body: 'Se ha registrado el check-in de hoy',
+              category: 'daily_checkin',
+            });
+          } else if (record.id?.startsWith('weekly-photo-')) {
+            pushNotificationService.showLocalNotification({
+              title: '📸 Álbum Semanal',
+              body: 'Se han actualizado las fotos de la semana',
+              category: 'weekly_album',
+            });
+          }
+        } else if (entity === 'feelings') {
+          if (record.senderName) {
+            pushNotificationService.showLocalNotification({
+              title: '💓 ¡Latido de Amor!',
+              body: `${record.senderName} te acaba de enviar un latido ❤️`,
+              category: 'hearts',
+            });
+          }
         }
       },
       onConnectionChange: (connected, status) => {
@@ -1350,6 +1401,10 @@ export function DevProvider({ children }: { children: ReactNode }) {
     return CloudSyncEngine.uploadMediaImage(fileBase64OrUri, fileName);
   };
 
+  const sendHeartbeat = () => {
+    CloudSyncEngine.syncHeartbeat(currentDevUser.id, currentDevUser.name);
+  };
+
   return (
     <DevContext.Provider
       value={{
@@ -1372,6 +1427,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
         cloudSyncStatus,
         forceCloudSync,
         uploadMediaImage,
+        sendHeartbeat,
         wishes,
         savedPlaces,
         places: mapPlaces,

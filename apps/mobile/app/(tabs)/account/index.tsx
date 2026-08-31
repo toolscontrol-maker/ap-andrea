@@ -42,6 +42,7 @@ import { RotatingAffectionText } from '../../../src/components/ui/RotatingAffect
 import { CloudSyncStatusBadge } from '../../../src/components/ui/CloudSyncStatusBadge';
 import { INTRO_PHOTOS } from '../../../src/constants/introImages';
 import { THEME_PALETTES, ThemePalette } from '../../../src/theme/colors';
+import { pushNotificationService, NotificationPreferences } from '../../../src/services/notifications/PushNotificationService';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -77,6 +78,41 @@ export default function AccountScreen() {
   const [secretSurpriseMode, setSecretSurpriseMode] = useState(true);
   const [hapticFeedback, setHapticFeedback] = useState(true);
   const [romanticReminders, setRomanticReminders] = useState(true);
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(pushNotificationService.getPreferences());
+  const [pushPermission, setPushPermission] = useState<string>(pushNotificationService.getPermissionStatus());
+
+  const handleTogglePushMaster = async () => {
+    triggerHaptic('selection');
+    if (pushPermission !== 'granted') {
+      const granted = await pushNotificationService.requestPermission();
+      setPushPermission(pushNotificationService.getPermissionStatus());
+      if (granted) {
+        const updated = await pushNotificationService.savePreferences({ enabled: true });
+        setNotificationPrefs(updated);
+        Alert.alert('🔔 ¡Notificaciones Activadas!', 'Tu iPhone está listo para recibir avisos de amor en tiempo real.');
+      } else {
+        Alert.alert(
+          'Permiso de Notificación',
+          'Para recibir notificaciones en iPhone, asegúrate de haber añadido la app a la Pantalla de Inicio desde Safari y de autorizar los avisos.'
+        );
+      }
+    } else {
+      const updated = await pushNotificationService.savePreferences({ enabled: !notificationPrefs.enabled });
+      setNotificationPrefs(updated);
+    }
+  };
+
+  const handleToggleCategory = async (key: keyof Omit<NotificationPreferences, 'enabled'>) => {
+    triggerHaptic('selection');
+    const updated = await pushNotificationService.savePreferences({ [key]: !notificationPrefs[key] });
+    setNotificationPrefs(updated);
+  };
+
+  const handleTestNotification = async () => {
+    triggerHaptic('medium');
+    await pushNotificationService.triggerTestNotification();
+    Alert.alert('💓 Notificación de Prueba', 'Se ha enviado un aviso de prueba a tu iPhone.');
+  };
 
   // Profile edit modal state
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -571,26 +607,66 @@ export default function AccountScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* PREFERENCES & NOTIFICATIONS */}
+        {/* NOTIFICATION CENTER & IPHONE PUSH NOTIFICATIONS */}
         <SectionHeader
-          title="Preferencias de la Pareja"
-          subtitle="Comodidad, háptica y avisos románticos"
+          title="Notificaciones en iPhone & Avisos"
+          subtitle="Latidos, deseos, sorpresas y momentos en tiempo real"
         />
         <View style={styles.settingsGroupCard}>
+          {/* Master Push Switch */}
           <View style={styles.settingRow}>
-            <View style={styles.settingIconContainer}>
+            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(224, 86, 102, 0.12)' }]}>
               <IconBell size={16} color={Colors.light.primary} />
             </View>
             <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Avisos de Citas y Aniversarios</Text>
-              <Text style={styles.settingDesc}>Recordatorios sutiles de fechas clave y cenas</Text>
+              <Text style={styles.settingTitle}>Notificaciones Push en iPhone</Text>
+              <Text style={styles.settingDesc}>
+                {pushPermission === 'granted'
+                  ? (notificationPrefs.enabled
+                      ? '🟢 Notificaciones push activadas en este dispositivo'
+                      : '⏸️ Notificaciones en pausa')
+                  : '🔔 Toca para activar los avisos en tu iPhone'}
+              </Text>
             </View>
             <Switch
-              value={romanticReminders}
-              onValueChange={(val) => {
-                triggerHaptic('selection');
-                setRomanticReminders(val);
-              }}
+              value={notificationPrefs.enabled && pushPermission === 'granted'}
+              onValueChange={handleTogglePushMaster}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          {/* Test Notification Action */}
+          <View style={styles.settingDivider} />
+          <TouchableOpacity
+            style={[styles.settingRow, { paddingVertical: 12 }]}
+            activeOpacity={0.7}
+            onPress={handleTestNotification}
+          >
+            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(239, 130, 106, 0.12)' }]}>
+              <IconHeart size={16} color="#EF826A" />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={[styles.settingTitle, { color: Colors.light.primary }]}>Probar Notificación en iPhone</Text>
+              <Text style={styles.settingDesc}>Envía un aviso de prueba instantáneo para comprobar el sonido y la alerta</Text>
+            </View>
+            <Text style={[styles.settingActionText, { color: Colors.light.primary }]}>Probar 💓</Text>
+          </TouchableOpacity>
+
+          <View style={styles.settingDivider} />
+
+          {/* Category: Hearts & Taps */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingIconContainer}>
+              <Text style={{ fontSize: 14 }}>💓</Text>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Latidos y Toques de Amor</Text>
+              <Text style={styles.settingDesc}>Avisar al recibir un latido o toque en el corazón del Nido</Text>
+            </View>
+            <Switch
+              value={notificationPrefs.hearts}
+              onValueChange={() => handleToggleCategory('hearts')}
               trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
               thumbColor="#FFFFFF"
             />
@@ -598,6 +674,102 @@ export default function AccountScreen() {
 
           <View style={styles.settingDivider} />
 
+          {/* Category: Wishes */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingIconContainer}>
+              <Text style={{ fontSize: 14 }}>🎁</Text>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Nuevos Deseos e Ilusiones</Text>
+              <Text style={styles.settingDesc}>Avisar cuando tu pareja añada un nuevo deseo a la lista</Text>
+            </View>
+            <Switch
+              value={notificationPrefs.wishes}
+              onValueChange={() => handleToggleCategory('wishes')}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingDivider} />
+
+          {/* Category: Surprises */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingIconContainer}>
+              <Text style={{ fontSize: 14 }}>🤫</Text>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Sorpresas y Planes Secretos</Text>
+              <Text style={styles.settingDesc}>Aviso de misterio cuando hay una sorpresa preparándose (sin spoilers)</Text>
+            </View>
+            <Switch
+              value={notificationPrefs.surprises}
+              onValueChange={() => handleToggleCategory('surprises')}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingDivider} />
+
+          {/* Category: Daily Check-in */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingIconContainer}>
+              <Text style={{ fontSize: 14 }}>🖤</Text>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Check-in Diario de Encuentro</Text>
+              <Text style={styles.settingDesc}>Avisar cuando tu pareja responda a la pregunta de si os habéis visto hoy</Text>
+            </View>
+            <Switch
+              value={notificationPrefs.daily_checkin}
+              onValueChange={() => handleToggleCategory('daily_checkin')}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingDivider} />
+
+          {/* Category: Weekly Album */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingIconContainer}>
+              <Text style={{ fontSize: 14 }}>📸</Text>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Álbum Semanal de Fotos</Text>
+              <Text style={styles.settingDesc}>Avisar cuando se suban las fotos juntos o individuales de la semana</Text>
+            </View>
+            <Switch
+              value={notificationPrefs.weekly_album}
+              onValueChange={() => handleToggleCategory('weekly_album')}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingDivider} />
+
+          {/* Category: Calendar */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingIconContainer}>
+              <Text style={{ fontSize: 14 }}>🗓️</Text>
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Citas y Fechas Especiales</Text>
+              <Text style={styles.settingDesc}>Recordatorios de cenas, aniversarios y momentos agendados</Text>
+            </View>
+            <Switch
+              value={notificationPrefs.calendar}
+              onValueChange={() => handleToggleCategory('calendar')}
+              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingDivider} />
+
+          {/* Haptics */}
           <View style={styles.settingRow}>
             <View style={styles.settingIconContainer}>
               <IconSliders size={16} color={Colors.light.primary} />
@@ -616,7 +788,31 @@ export default function AccountScreen() {
               thumbColor="#FFFFFF"
             />
           </View>
+        </View>
 
+        {/* IPHONE INSTALLATION GUIDE BANNER */}
+        <View
+          style={{
+            backgroundColor: 'rgba(224, 86, 102, 0.05)',
+            borderRadius: Radii.xl,
+            padding: Spacing.lg,
+            marginTop: Spacing.sm,
+            marginBottom: Spacing.md,
+            borderWidth: 1,
+            borderColor: 'rgba(224, 86, 102, 0.15)',
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+            <Text style={{ fontSize: 16, marginRight: 8 }}>📱</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: Colors.light.text, fontFamily: 'Inter, sans-serif' }}>
+              Cómo recibir Notificaciones en tu iPhone
+            </Text>
+          </View>
+          <Text style={{ fontSize: 13, color: Colors.light.textSecondary, lineHeight: 18, fontFamily: 'Inter, sans-serif' }}>
+            1. Abre <Text style={{ fontWeight: '700' }}>ap-andrea.vercel.app</Text> en Safari de tu iPhone.{'\n'}
+            2. Pulsa el botón <Text style={{ fontWeight: '700' }}>Compartir (⬆️)</Text> y elige <Text style={{ fontWeight: '700' }}>"Añadir a pantalla de inicio"</Text>.{'\n'}
+            3. Abre el icono desde tu pantalla de inicio y pulsa <Text style={{ fontWeight: '700' }}>"Permitir"</Text> cuando te solicite notificaciones.
+          </Text>
         </View>
 
         {/* LOCAL DATA TOOLS & STORAGE ENGINE */}

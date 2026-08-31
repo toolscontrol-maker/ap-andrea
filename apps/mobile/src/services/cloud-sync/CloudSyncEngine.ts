@@ -655,6 +655,35 @@ class CloudSyncEngineService {
     }
   }
 
+  public async syncHeartbeat(senderUserId: string, senderName: string) {
+    const payload = {
+      senderUserId,
+      senderName,
+      timestamp: Date.now(),
+    };
+    this.broadcastLocal('feelings', 'INSERT', payload);
+    try {
+      if (this.isSupabaseConfigured()) {
+        const seedPayload: RitualSeed = {
+          id: `heartbeat-${Date.now()}`,
+          coupleId: COUPLE_ID,
+          authorId: senderUserId,
+          date: new Date().toISOString().split('T')[0],
+          type: 'daily_reflection',
+          title: `💓 Latido de amor de ${senderName}`,
+          body: `Latido enviado con amor`,
+          mood: 'love',
+          isSharedWithPartner: true,
+          partnerResponded: false,
+          createdAt: new Date().toISOString(),
+        };
+        await this.syncRitualSeed(seedPayload);
+      }
+    } catch (e) {
+      console.warn('[CloudSync] Heartbeat sync error:', e);
+    }
+  }
+
   // ── 5. PROFILES & PHOTOS ──
   public async syncUserProfile(userId: string, roleKey: 'user1' | 'user2', profile: Partial<DevUser>) {
     const photo = profile.avatarPhoto || (profile as any).avatar_photo || null;
