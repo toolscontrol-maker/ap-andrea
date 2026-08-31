@@ -34,15 +34,23 @@ import {
   IconCamera,
   IconLogOut
 } from '../../../src/components/ui/Icons';
-import { Colors } from '../../../src/theme/colors';
+import { Colors, THEME_PALETTES, ThemePalette } from '../../../src/theme/colors';
 import { Spacing, Radii, Shadows, Typography } from '../../../src/theme/tokens';
 import { triggerHaptic } from '../../../src/utils/haptics';
 import { ConnectedCoupleHeart } from '../../../src/components/ui/ConnectedCoupleHeart';
 import { RotatingAffectionText } from '../../../src/components/ui/RotatingAffectionText';
 import { CloudSyncStatusBadge } from '../../../src/components/ui/CloudSyncStatusBadge';
 import { INTRO_PHOTOS } from '../../../src/constants/introImages';
-import { THEME_PALETTES, ThemePalette } from '../../../src/theme/colors';
 import { pushNotificationService, NotificationPreferences } from '../../../src/services/notifications/PushNotificationService';
+
+// Subpages & Modals
+import { AppearanceSettingsSubpage } from '../../../src/components/account/AppearanceSettingsSubpage';
+import { NotificationSettingsSubpage } from '../../../src/components/account/NotificationSettingsSubpage';
+import { FeedbackRecommendationsSubpage } from '../../../src/components/account/FeedbackRecommendationsSubpage';
+import { SecurityDataSubpage } from '../../../src/components/account/SecurityDataSubpage';
+import { CoupleMilestonesModal } from '../../../src/components/account/CoupleMilestonesModal';
+import { LogoutConfirmModal } from '../../../src/components/account/LogoutConfirmModal';
+import { SettingsSubpageContainer } from '../../../src/components/account/SettingsSubpageContainer';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -73,6 +81,10 @@ export default function AccountScreen() {
     importAllUserData,
   } = useDev();
 
+  // Subpage navigation state
+  const [activeSubpage, setActiveSubpage] = useState<'appearance' | 'notifications' | 'milestones' | 'feedback' | 'security' | null>(null);
+  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+
   // Settings local state
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
   const [secretSurpriseMode, setSecretSurpriseMode] = useState(true);
@@ -80,39 +92,6 @@ export default function AccountScreen() {
   const [romanticReminders, setRomanticReminders] = useState(true);
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(pushNotificationService.getPreferences());
   const [pushPermission, setPushPermission] = useState<string>(pushNotificationService.getPermissionStatus());
-
-  const handleTogglePushMaster = async () => {
-    triggerHaptic('selection');
-    if (pushPermission !== 'granted') {
-      const granted = await pushNotificationService.requestPermission();
-      setPushPermission(pushNotificationService.getPermissionStatus());
-      if (granted) {
-        const updated = await pushNotificationService.savePreferences({ enabled: true });
-        setNotificationPrefs(updated);
-        Alert.alert('🔔 ¡Notificaciones Activadas!', 'Tu iPhone está listo para recibir avisos de amor en tiempo real.');
-      } else {
-        Alert.alert(
-          'Permiso de Notificación',
-          'Para recibir notificaciones en iPhone, asegúrate de haber añadido la app a la Pantalla de Inicio desde Safari y de autorizar los avisos.'
-        );
-      }
-    } else {
-      const updated = await pushNotificationService.savePreferences({ enabled: !notificationPrefs.enabled });
-      setNotificationPrefs(updated);
-    }
-  };
-
-  const handleToggleCategory = async (key: keyof Omit<NotificationPreferences, 'enabled'>) => {
-    triggerHaptic('selection');
-    const updated = await pushNotificationService.savePreferences({ [key]: !notificationPrefs[key] });
-    setNotificationPrefs(updated);
-  };
-
-  const handleTestNotification = async () => {
-    triggerHaptic('medium');
-    await pushNotificationService.triggerTestNotification();
-    Alert.alert('💓 Notificación de Prueba', 'Se ha enviado un aviso de prueba a tu iPhone.');
-  };
 
   // Profile edit modal state
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -149,423 +128,267 @@ export default function AccountScreen() {
     const finalName = editName.trim() || (isUser1 ? 'Tonet' : 'Andrea');
     await updateUserProfile(editingUserId, {
       name: finalName,
-      avatarPhoto: editPhotoUrl.trim() || undefined,
       avatar: finalName[0].toUpperCase(),
+      avatarPhoto: editPhotoUrl || undefined,
     });
     setIsEditModalVisible(false);
-    Alert.alert('✨ Perfil Actualizado', `La foto y los datos de ${finalName} se han guardado con éxito.`);
+    Alert.alert('✨ Perfil Actualizado', `El perfil de ${finalName} se ha guardado y sincronizado.`);
   };
 
-  const handleToggleBiometrics = (val: boolean) => {
+  const handleToggleSurpriseMode = (value: boolean) => {
     triggerHaptic('selection');
-    setBiometricsEnabled(val);
-    if (val) {
-      Alert.alert('Face ID Activado', 'Se requerirá autenticación biométrica para abrir tu espacio.');
-    }
+    setSecretSurpriseMode(value);
+    Alert.alert(
+      value ? '🔒 Modo Sorpresas Blindadas Activado' : '🔓 Modo Sorpresas Estándar',
+      value
+        ? 'Las notificaciones no mostrarán detalles ni títulos de compras o reservas.'
+        : 'Las notificaciones mostrarán información estándar.'
+    );
   };
 
-  const handleToggleSurpriseMode = (val: boolean) => {
+  const handleToggleBiometrics = (value: boolean) => {
     triggerHaptic('selection');
-    setSecretSurpriseMode(val);
-    if (val) {
-      Alert.alert('Modo Anti-Spoilers', 'Las sorpresas se ocultarán en la pantalla para no arruinar los regalos a tu pareja.');
-    }
-  };
-
-  const handleSwitchUser = () => {
-    triggerHaptic('medium');
-    const newRole = activeRole === 'user1' ? 'user2' : 'user1';
-    switchRole(newRole);
-    Alert.alert(
-      'Perspectiva Cambiada',
-      `Ahora estás viendo Andrea App como ${newRole === 'user1' ? 'Tonet' : 'Andrea'}.`
-    );
-  };
-
-  const handleExportData = async () => {
-    triggerHaptic('success');
-    try {
-      const json = await exportAllUserData();
-      if (Platform.OS === 'web' && typeof document !== 'undefined') {
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `andrea_app_backup_${new Date().toISOString().slice(0, 10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } else {
-        Alert.alert('📦 Copia Generada', 'Copia de seguridad guardada localmente.');
-      }
-    } catch {
-      Alert.alert('Error', 'No se pudo exportar la copia local.');
-    }
-  };
-
-  const handleImportData = async () => {
-    if (!importJsonText.trim()) {
-      Alert.alert('Falta el contenido', 'Pega el texto JSON de la copia de seguridad.');
-      return;
-    }
-    triggerHaptic('medium');
-    const res = await importAllUserData(importJsonText.trim());
-    if (res.success) {
-      setIsImportModalOpen(false);
-      setImportJsonText('');
-      Alert.alert('📥 Copia Restaurada', `Se han importado ${res.importedKeys} registros de datos correctamente.`);
-    } else {
-      Alert.alert('Error al importar', res.error || 'Formato de copia inválido.');
-    }
-  };
-
-  const handleConfirmClearAll = () => {
-    Alert.alert(
-      '¿Borrar todos los datos locales?',
-      'Esta acción eliminará todos los recuerdos, deseos, citas y fotos guardados en este dispositivo. Te recomendamos exportar una copia antes.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sí, Borrar Todo',
-          style: 'destructive',
-          onPress: async () => {
-            triggerHaptic('heavy');
-            await clearAllUserData();
-            Alert.alert('Datos Borrados', 'El almacenamiento local de este dispositivo ha sido limpiado.');
-          },
-        },
-      ]
-    );
-  };
-
-  const handleConfirmResetDemo = () => {
-    Alert.alert(
-      '¿Restablecer datos demo?',
-      'Se reinsertarán los recuerdos y restaurantes de demostración de Andrea & Tonet.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Restablecer',
-          onPress: async () => {
-            triggerHaptic('medium');
-            await resetAllDataToDefaults();
-            Alert.alert('Datos Demo Restaurados', 'Los datos iniciales han sido recargados.');
-          },
-        },
-      ]
-    );
+    setBiometricsEnabled(value);
   };
 
   const handleCopyKey = () => {
     triggerHaptic('selection');
-    Alert.alert('🔑 Identificador de Pareja', 'Identificador local de vuestra pareja copiado al portapapeles.');
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText('ed25519-andrea-tonet-88a9c34f12b7e5');
+    }
+    Alert.alert('Clave Copiada', 'Clave privada copiada al portapapeles.');
+  };
+
+  const themeNameMap: Record<ThemePalette, string> = {
+    atelier: 'Atelier Calme',
+    velvet: 'Rosa Terciopelo',
+    lavender: 'Lavanda Silvestre',
+    olive: 'Salvia & Olivo',
+    sunset: 'Atardecer en Canet',
   };
 
   return (
     <ScreenWrapper>
       <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
       >
-        {/* TOP HEADER */}
+        {/* TOP STATUS BAR & HEADER */}
         <View style={styles.headerBlock}>
           <View style={styles.headerTopRow}>
-            <View>
-              <Text style={styles.headerSubtitle}>ESPACIO EXCLUSIVO</Text>
-              <Text style={styles.headerTitle}>Tu Cuenta</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <CloudSyncStatusBadge onPress={() => forceCloudSync()} />
-              {isDemoModeEnabled && (
-                <TouchableOpacity
-                  style={styles.btnPerspectiveSwitch}
-                  activeOpacity={0.8}
-                  onPress={handleSwitchUser}
-                >
-                  <IconSparkles size={14} color={Colors.light.primary} />
-                  <Text style={styles.btnPerspectiveSwitchText}>
-                    Ver como {partnerDevUser.name}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            <Text style={styles.eyebrow}>ESPACIO PRIVADO</Text>
+            <CloudSyncStatusBadge isConnected={isCloudConnected} statusText={cloudSyncStatus} />
           </View>
+          <Text style={styles.screenTitle}>Ajustes & Personalización</Text>
+          <Text style={styles.screenSubtitle}>
+            Configura el look, las notificaciones y los detalles íntimos de {users.user2.name} & {users.user1.name}
+          </Text>
         </View>
 
-        {/* COUPLE PROFILE HERO CARD WITH CONNECTED HEART ANIMATION */}
-        <TiltedCard style={styles.coupleHeroCard} variant="elevated">
-          <ConnectedCoupleHeart
-            user1Name={users.user2.name}
-            user1Avatar={users.user2.avatar}
-            user1PhotoUrl={users.user2.avatarPhoto}
-            onEditAvatar1={() => handleOpenEditProfile(users.user2.id)}
-            user2Name={users.user1.name}
-            user2Avatar={users.user1.avatar}
-            user2PhotoUrl={users.user1.avatarPhoto}
-            onEditAvatar2={() => handleOpenEditProfile(users.user1.id)}
-            currentUserName={currentDevUser.name}
-            daysTogether={diffDays}
-            startDateFormatted="15 de Febrero de 2025"
-          />
-
-          <View style={styles.coupleInfoSection}>
-            <Text style={styles.coupleNames}>Andrea & Tonet</Text>
-            <Text style={styles.coupleSubtitle}>Juntos desde el 15 de Febrero de 2025 · Valencia</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
-              <View style={styles.vaultSecurityBadge}>
-                <IconShield size={13} color={Colors.light.primary} />
-                <Text style={styles.vaultSecurityText}>Atlas Privado</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.btnLogoutHero}
-                activeOpacity={0.8}
-                onPress={() => {
-                  triggerHaptic('medium');
-                  Alert.alert(
-                    'Cerrar Sesión',
-                    '¿Deseas salir a la pantalla de bienvenida?',
-                    [
-                      { text: 'Cancelar', style: 'cancel' },
-                      {
-                        text: 'Cerrar Sesión',
-                        style: 'destructive',
-                        onPress: async () => {
-                          await logout();
-                          router.replace('/(auth)/login');
-                        },
-                      },
-                    ]
-                  );
-                }}
-              >
-                <IconLogOut size={12} color={Colors.light.primary} />
-                <Text style={styles.btnLogoutHeroText}>Cerrar Sesión</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TiltedCard>
-
-        {/* NUESTROS HITOS INOLVIDABLES */}
-        <SectionHeader
-          title="Nuestra Historia & Hitos"
-          subtitle="Los momentos fundacionales de Andrea & Tonet"
-        />
-        <View style={styles.milestonesCard}>
-          <View style={styles.milestoneItem}>
-            <View style={[styles.milestoneIconBadge, { backgroundColor: 'rgba(212, 175, 55, 0.12)' }]}>
-              <Text style={{ fontSize: 16 }}>🪩</Text>
-            </View>
-            <View style={styles.milestoneContent}>
-              <View style={styles.milestoneHeaderRow}>
-                <Text style={styles.milestoneTitle}>Nos Conocimos</Text>
-                <Text style={styles.milestoneDate}>23 Nov 2024</Text>
-              </View>
-              <Text style={styles.milestoneLocation}>Ent. Rico, 6, Quatre Carreres · Valencia</Text>
-              <Text style={styles.milestoneDesc}>
-                La noche donde cruzamos miradas por primera vez y empezó nuestra historia ({daysSinceMet} días).
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.milestoneDivider} />
-
-          <View style={styles.milestoneItem}>
-            <View style={[styles.milestoneIconBadge, { backgroundColor: 'rgba(224, 86, 102, 0.12)' }]}>
-              <Text style={{ fontSize: 16 }}>💫</Text>
-            </View>
-            <View style={styles.milestoneContent}>
-              <View style={styles.milestoneHeaderRow}>
-                <Text style={styles.milestoneTitle}>Primer Beso</Text>
-                <Text style={styles.milestoneDate}>08 Dic 2024</Text>
-              </View>
-              <Text style={styles.milestoneLocation}>Paseo de la Alameda · Valencia</Text>
-              <Text style={styles.milestoneDesc}>
-                Bajo los árboles de la Alameda en una noche fría y perfecta ({daysSinceKiss} días).
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.milestoneDivider} />
-
-          <View style={styles.milestoneItem}>
-            <View style={[styles.milestoneIconBadge, { backgroundColor: 'rgba(224, 86, 102, 0.12)' }]}>
-              <Text style={{ fontSize: 16 }}>💍</Text>
-            </View>
-            <View style={styles.milestoneContent}>
-              <View style={styles.milestoneHeaderRow}>
-                <Text style={styles.milestoneTitle}>Inicio de Nuestra Relación</Text>
-                <Text style={styles.milestoneDate}>15 Feb 2025</Text>
-              </View>
-              <Text style={styles.milestoneLocation}>Valencia, España</Text>
-              <Text style={styles.milestoneDesc}>
-                El día que formalizamos nuestro amor y prometimos construir un hogar juntos ({diffDays} días).
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* STATS OVERVIEW */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{wishes.length}</Text>
-            <Text style={styles.statLabel}>Deseos e Ilusiones</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{savedPlaces.length}</Text>
-            <Text style={styles.statLabel}>Restaurantes & Sitios</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{coupleEvents.length}</Text>
-            <Text style={styles.statLabel}>Citas en Calendario</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{entries.length}</Text>
-            <Text style={styles.statLabel}>Recuerdos Vivos</Text>
-          </View>
-        </View>
-
-        {/* FULFILLED SURPRISES SECTION */}
-        {surprises.filter((s) => {
-          const c = s.content as any;
-          return c?.status === 'entregado' || c?.deliveryDetails;
-        }).length > 0 && (
-          <View style={{ marginBottom: Spacing.xl }}>
-            <SectionHeader
-              title="🎁 Sorpresas Hechas Realidad"
-              subtitle="Detalles, compras y regalos que se convirtieron en recuerdos"
-            />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.fulfilledSurprisesScroll}
-            >
-              {surprises
-                .filter((s) => {
-                  const c = s.content as any;
-                  return c?.status === 'entregado' || c?.deliveryDetails;
-                })
-                .map((s) => {
-                  const c = s.content as any;
-                  const purchase = c?.purchaseDetails;
-                  const delivery = c?.deliveryDetails;
-                  const mainPhoto =
-                    delivery?.deliveredPhotoUrl ||
-                    purchase?.purchasePhotoUrl ||
-                    (c?.photos && c?.photos[0]);
-
-                  return (
-                    <View key={s.id} style={styles.fulfilledSurpriseCard}>
-                      {mainPhoto ? (
-                        <Image
-                          source={{ uri: mainPhoto }}
-                          style={styles.fulfilledSurpriseImg}
-                        />
-                      ) : (
-                        <View style={styles.fulfilledSurpriseImgPlaceholder}>
-                          <Text style={{ fontSize: 28 }}>🎁</Text>
-                        </View>
-                      )}
-                      <View style={styles.fulfilledSurpriseContent}>
-                        <Badge variant="primary" size="sm">
-                          ✨ Hecho Realidad
-                        </Badge>
-                        <Text style={styles.fulfilledSurpriseTitle} numberOfLines={2}>
-                          {c.title}
-                        </Text>
-                        {delivery?.deliveredAt && (
-                          <Text style={styles.fulfilledSurpriseDate}>
-                            🎁 Entregado el {delivery.deliveredAt}
-                          </Text>
-                        )}
-                        {purchase?.purchasedAt && (
-                          <Text style={styles.fulfilledSurpriseSubdate}>
-                            📦 Comprado el {purchase.purchasedAt}
-                          </Text>
-                        )}
-                        {delivery?.partnerReaction && (
-                          <Text style={styles.fulfilledSurpriseReaction} numberOfLines={2}>
-                            "{delivery.partnerReaction}"
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                  );
-                })}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* PROFILES & PHOTOS EDITING SECTION */}
-        <SectionHeader
-          title="Perfiles & Fotografías"
-          subtitle="Personaliza las fotos y nombres de Andrea & Tonet"
-        />
-        <View style={styles.settingsGroupCard}>
-          {/* ANDREA PROFILE ROW */}
+        {/* ── 1. HERO COUPLE PROFILES & SWITCHER ── */}
+        <View style={styles.coupleHeroRow}>
+          {/* Andrea Card */}
           <TouchableOpacity
-            style={styles.settingRow}
-            activeOpacity={0.7}
-            onPress={() => handleOpenEditProfile(users.user2.id)}
+            style={[styles.partnerMiniCard, activeRole === 'user2' && styles.partnerMiniCardActive]}
+            activeOpacity={0.8}
+            onPress={() => {
+              triggerHaptic('selection');
+              switchRole('user2');
+            }}
           >
-            <View style={styles.userAvatarThumbWrapper}>
+            <View style={styles.miniCardAvatarWrapper}>
               {users.user2.avatarPhoto ? (
-                <Image source={{ uri: users.user2.avatarPhoto }} style={styles.userAvatarThumb} />
+                <Image source={{ uri: users.user2.avatarPhoto }} style={styles.miniCardAvatar} />
               ) : (
-                <View style={[styles.userAvatarThumb, { backgroundColor: Colors.light.primary }]}>
-                  <Text style={styles.userAvatarThumbText}>{users.user2.avatar}</Text>
+                <View style={[styles.miniCardAvatar, { backgroundColor: Colors.light.primary }]}>
+                  <Text style={styles.miniCardAvatarText}>{users.user2.avatar}</Text>
                 </View>
               )}
-              <View style={styles.thumbCameraBadge}>
-                <IconCamera size={9} color="#FFFFFF" />
-              </View>
+              {activeRole === 'user2' && (
+                <View style={styles.activePillBadge}>
+                  <Text style={styles.activePillText}>Tú</Text>
+                </View>
+              )}
             </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Foto & Perfil de {users.user2.name}</Text>
-              <Text style={styles.settingDesc}>Toca para cambiar foto, elegir retrato o editar nombre</Text>
+            <Text style={styles.miniCardName}>{users.user2.name}</Text>
+            <Text style={styles.miniCardRole}>Novia & Creadora</Text>
+            <TouchableOpacity
+              style={styles.editPhotoLink}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleOpenEditProfile(users.user2.id);
+              }}
+            >
+              <Text style={styles.editPhotoLinkText}>Editar foto ›</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+
+          {/* Tonet Card */}
+          <TouchableOpacity
+            style={[styles.partnerMiniCard, activeRole === 'user1' && styles.partnerMiniCardActive]}
+            activeOpacity={0.8}
+            onPress={() => {
+              triggerHaptic('selection');
+              switchRole('user1');
+            }}
+          >
+            <View style={styles.miniCardAvatarWrapper}>
+              {users.user1.avatarPhoto ? (
+                <Image source={{ uri: users.user1.avatarPhoto }} style={styles.miniCardAvatar} />
+              ) : (
+                <View style={[styles.miniCardAvatar, { backgroundColor: '#EF826A' }]}>
+                  <Text style={styles.miniCardAvatarText}>{users.user1.avatar}</Text>
+                </View>
+              )}
+              {activeRole === 'user1' && (
+                <View style={[styles.activePillBadge, { backgroundColor: '#EF826A' }]}>
+                  <Text style={styles.activePillText}>Tú</Text>
+                </View>
+              )}
             </View>
-            <Text style={styles.settingActionText}>Editar</Text>
+            <Text style={styles.miniCardName}>{users.user1.name}</Text>
+            <Text style={styles.miniCardRole}>Novio & Compañero</Text>
+            <TouchableOpacity
+              style={styles.editPhotoLink}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleOpenEditProfile(users.user1.id);
+              }}
+            >
+              <Text style={styles.editPhotoLinkText}>Editar foto ›</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── 2. MAIN SETTINGS INSET GROUP: EXPERIENCIA & PERSONALIZACIÓN ── */}
+        <SectionHeader
+          title="Personalización & Experiencia"
+          subtitle="Ajusta cada rincón a vuestro estilo de pareja"
+        />
+        <View style={styles.settingsGroupCard}>
+          {/* 1. Look & Appearance */}
+          <TouchableOpacity
+            style={styles.navRow}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerHaptic('selection');
+              setActiveSubpage('appearance');
+            }}
+          >
+            <View style={[styles.navIconBox, { backgroundColor: 'rgba(239, 130, 106, 0.12)' }]}>
+              <Text style={{ fontSize: 16 }}>🎨</Text>
+            </View>
+            <View style={styles.navTextCol}>
+              <Text style={styles.navTitle}>Apariencia & Look de la App</Text>
+              <Text style={styles.navSubtitle}>Tema: {themeNameMap[themePalette] || 'Atelier'} · Glassmorphism & Squircles</Text>
+            </View>
+            <Text style={styles.chevronText}>›</Text>
           </TouchableOpacity>
 
           <View style={styles.settingDivider} />
 
-          {/* TONET PROFILE ROW */}
+          {/* 2. Notifications Center */}
           <TouchableOpacity
-            style={styles.settingRow}
+            style={styles.navRow}
             activeOpacity={0.7}
-            onPress={() => handleOpenEditProfile(users.user1.id)}
+            onPress={() => {
+              triggerHaptic('selection');
+              setActiveSubpage('notifications');
+            }}
           >
-            <View style={styles.userAvatarThumbWrapper}>
-              {users.user1.avatarPhoto ? (
-                <Image source={{ uri: users.user1.avatarPhoto }} style={styles.userAvatarThumb} />
-              ) : (
-                <View style={[styles.userAvatarThumb, { backgroundColor: Colors.light.secondary }]}>
-                  <Text style={styles.userAvatarThumbText}>{users.user1.avatar}</Text>
-                </View>
-              )}
-              <View style={[styles.thumbCameraBadge, { backgroundColor: Colors.light.secondary }]}>
-                <IconCamera size={9} color="#FFFFFF" />
-              </View>
+            <View style={[styles.navIconBox, { backgroundColor: 'rgba(224, 86, 102, 0.12)' }]}>
+              <Text style={{ fontSize: 16 }}>🔔</Text>
             </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Foto & Perfil de {users.user1.name}</Text>
-              <Text style={styles.settingDesc}>Toca para cambiar foto, elegir retrato o editar nombre</Text>
+            <View style={styles.navTextCol}>
+              <Text style={styles.navTitle}>Centro de Notificaciones en iPhone</Text>
+              <Text style={styles.navSubtitle}>
+                {pushPermission === 'granted' ? '🟢 Activadas' : '🔔 Configurar'} · Latidos, deseos, sorpresas y check-in
+              </Text>
             </View>
-            <Text style={styles.settingActionText}>Editar</Text>
+            <Text style={styles.chevronText}>›</Text>
+          </TouchableOpacity>
+
+          <View style={styles.settingDivider} />
+
+          {/* 3. Milestones & Dates */}
+          <TouchableOpacity
+            style={styles.navRow}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerHaptic('selection');
+              setActiveSubpage('milestones');
+            }}
+          >
+            <View style={[styles.navIconBox, { backgroundColor: 'rgba(244, 201, 93, 0.15)' }]}>
+              <Text style={{ fontSize: 16 }}>✨</Text>
+            </View>
+            <View style={styles.navTextCol}>
+              <Text style={styles.navTitle}>Hitos de Nuestra Historia & Fechas</Text>
+              <Text style={styles.navSubtitle}>Aniversario (15 Feb), Conocerse (23 Nov), Cumpleaños</Text>
+            </View>
+            <Text style={styles.chevronText}>›</Text>
+          </TouchableOpacity>
+
+          <View style={styles.settingDivider} />
+
+          {/* 4. Feedback & Recommendations */}
+          <TouchableOpacity
+            style={styles.navRow}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerHaptic('selection');
+              setActiveSubpage('feedback');
+            }}
+          >
+            <View style={[styles.navIconBox, { backgroundColor: 'rgba(158, 138, 205, 0.15)' }]}>
+              <Text style={{ fontSize: 16 }}>💌</Text>
+            </View>
+            <View style={styles.navTextCol}>
+              <Text style={styles.navTitle}>Enviar Recomendaciones & Sugerencias</Text>
+              <Text style={styles.navSubtitle}>Buzón de ideas, nuevos restaurantes y notas secretas</Text>
+            </View>
+            <Text style={styles.chevronText}>›</Text>
           </TouchableOpacity>
         </View>
 
-        {/* PRIVACY & SECURITY SETTINGS */}
+        {/* ── 3. SEGURIDAD & DATOS EN LA NUBE ── */}
         <SectionHeader
-          title="Seguridad & Privacidad"
-          subtitle="Control absoluto sobre vuestros momentos y secretos"
+          title="Seguridad, Nube & Privacidad"
+          subtitle="Sincronización segura con Supabase Cloud"
         />
         <View style={styles.settingsGroupCard}>
+          {/* Security & Backup Subpage */}
+          <TouchableOpacity
+            style={styles.navRow}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerHaptic('selection');
+              setActiveSubpage('security');
+            }}
+          >
+            <View style={[styles.navIconBox, { backgroundColor: 'rgba(94, 148, 112, 0.15)' }]}>
+              <Text style={{ fontSize: 16 }}>🔒</Text>
+            </View>
+            <View style={styles.navTextCol}>
+              <Text style={styles.navTitle}>Estado de Nube & Copias de Seguridad</Text>
+              <Text style={styles.navSubtitle}>
+                {isCloudConnected ? '🟢 Supabase Conectado' : '🟡 Conectando'} · Exportar/Importar JSON
+              </Text>
+            </View>
+            <Text style={styles.chevronText}>›</Text>
+          </TouchableOpacity>
+
+          <View style={styles.settingDivider} />
+
+          {/* Face ID / Biometrics */}
           <View style={styles.settingRow}>
             <View style={styles.settingIconContainer}>
               <IconLock size={16} color={Colors.light.primary} />
             </View>
             <View style={styles.settingTextContainer}>
               <Text style={styles.settingTitle}>Bloqueo con Face ID / Huella</Text>
-              <Text style={styles.settingDesc}>Solicitar biometría al abrir la aplicación</Text>
+              <Text style={styles.settingDesc}>Solicitar autenticación al abrir la app</Text>
             </View>
             <Switch
               value={biometricsEnabled}
@@ -577,191 +400,18 @@ export default function AccountScreen() {
 
           <View style={styles.settingDivider} />
 
+          {/* Blinded Surprises Mode */}
           <View style={styles.settingRow}>
             <View style={styles.settingIconContainer}>
               <IconSparkles size={16} color={Colors.light.primary} />
             </View>
             <View style={styles.settingTextContainer}>
               <Text style={styles.settingTitle}>Modo Sorpresas Blindadas</Text>
-              <Text style={styles.settingDesc}>Ocultar notificaciones y nombres en la pantalla de bloqueo</Text>
+              <Text style={styles.settingDesc}>Ocultar nombres y detalles en las alertas</Text>
             </View>
             <Switch
               value={secretSurpriseMode}
               onValueChange={handleToggleSurpriseMode}
-              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          <View style={styles.settingDivider} />
-
-          <TouchableOpacity style={styles.settingRow} activeOpacity={0.7} onPress={handleCopyKey}>
-            <View style={styles.settingIconContainer}>
-              <IconShield size={16} color={Colors.light.primary} />
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Clave de Sincronización Privada</Text>
-              <Text style={styles.settingDesc}>ed25519-andrea-tonet-88a9...</Text>
-            </View>
-            <Text style={styles.settingActionText}>Copiar</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* NOTIFICATION CENTER & IPHONE PUSH NOTIFICATIONS */}
-        <SectionHeader
-          title="Notificaciones en iPhone & Avisos"
-          subtitle="Latidos, deseos, sorpresas y momentos en tiempo real"
-        />
-        <View style={styles.settingsGroupCard}>
-          {/* Master Push Switch */}
-          <View style={styles.settingRow}>
-            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(224, 86, 102, 0.12)' }]}>
-              <IconBell size={16} color={Colors.light.primary} />
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Notificaciones Push en iPhone</Text>
-              <Text style={styles.settingDesc}>
-                {pushPermission === 'granted'
-                  ? (notificationPrefs.enabled
-                      ? '🟢 Notificaciones push activadas en este dispositivo'
-                      : '⏸️ Notificaciones en pausa')
-                  : '🔔 Toca para activar los avisos en tu iPhone'}
-              </Text>
-            </View>
-            <Switch
-              value={notificationPrefs.enabled && pushPermission === 'granted'}
-              onValueChange={handleTogglePushMaster}
-              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          {/* Test Notification Action */}
-          <View style={styles.settingDivider} />
-          <TouchableOpacity
-            style={[styles.settingRow, { paddingVertical: 12 }]}
-            activeOpacity={0.7}
-            onPress={handleTestNotification}
-          >
-            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(239, 130, 106, 0.12)' }]}>
-              <IconHeart size={16} color="#EF826A" />
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={[styles.settingTitle, { color: Colors.light.primary }]}>Probar Notificación en iPhone</Text>
-              <Text style={styles.settingDesc}>Envía un aviso de prueba instantáneo para comprobar el sonido y la alerta</Text>
-            </View>
-            <Text style={[styles.settingActionText, { color: Colors.light.primary }]}>Probar 💓</Text>
-          </TouchableOpacity>
-
-          <View style={styles.settingDivider} />
-
-          {/* Category: Hearts & Taps */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingIconContainer}>
-              <Text style={{ fontSize: 14 }}>💓</Text>
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Latidos y Toques de Amor</Text>
-              <Text style={styles.settingDesc}>Avisar al recibir un latido o toque en el corazón del Nido</Text>
-            </View>
-            <Switch
-              value={notificationPrefs.hearts}
-              onValueChange={() => handleToggleCategory('hearts')}
-              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          <View style={styles.settingDivider} />
-
-          {/* Category: Wishes */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingIconContainer}>
-              <Text style={{ fontSize: 14 }}>🎁</Text>
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Nuevos Deseos e Ilusiones</Text>
-              <Text style={styles.settingDesc}>Avisar cuando tu pareja añada un nuevo deseo a la lista</Text>
-            </View>
-            <Switch
-              value={notificationPrefs.wishes}
-              onValueChange={() => handleToggleCategory('wishes')}
-              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          <View style={styles.settingDivider} />
-
-          {/* Category: Surprises */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingIconContainer}>
-              <Text style={{ fontSize: 14 }}>🤫</Text>
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Sorpresas y Planes Secretos</Text>
-              <Text style={styles.settingDesc}>Aviso de misterio cuando hay una sorpresa preparándose (sin spoilers)</Text>
-            </View>
-            <Switch
-              value={notificationPrefs.surprises}
-              onValueChange={() => handleToggleCategory('surprises')}
-              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          <View style={styles.settingDivider} />
-
-          {/* Category: Daily Check-in */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingIconContainer}>
-              <Text style={{ fontSize: 14 }}>🖤</Text>
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Check-in Diario de Encuentro</Text>
-              <Text style={styles.settingDesc}>Avisar cuando tu pareja responda a la pregunta de si os habéis visto hoy</Text>
-            </View>
-            <Switch
-              value={notificationPrefs.daily_checkin}
-              onValueChange={() => handleToggleCategory('daily_checkin')}
-              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          <View style={styles.settingDivider} />
-
-          {/* Category: Weekly Album */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingIconContainer}>
-              <Text style={{ fontSize: 14 }}>📸</Text>
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Álbum Semanal de Fotos</Text>
-              <Text style={styles.settingDesc}>Avisar cuando se suban las fotos juntos o individuales de la semana</Text>
-            </View>
-            <Switch
-              value={notificationPrefs.weekly_album}
-              onValueChange={() => handleToggleCategory('weekly_album')}
-              trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          <View style={styles.settingDivider} />
-
-          {/* Category: Calendar */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingIconContainer}>
-              <Text style={{ fontSize: 14 }}>🗓️</Text>
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Citas y Fechas Especiales</Text>
-              <Text style={styles.settingDesc}>Recordatorios de cenas, aniversarios y momentos agendados</Text>
-            </View>
-            <Switch
-              value={notificationPrefs.calendar}
-              onValueChange={() => handleToggleCategory('calendar')}
               trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
               thumbColor="#FFFFFF"
             />
@@ -776,7 +426,7 @@ export default function AccountScreen() {
             </View>
             <View style={styles.settingTextContainer}>
               <Text style={styles.settingTitle}>Vibración Háptica Táctil</Text>
-              <Text style={styles.settingDesc}>Micro-respuestas táctiles en botones y gestos</Text>
+              <Text style={styles.settingDesc}>Micro-respuestas táctiles en botones y toques</Text>
             </View>
             <Switch
               value={hapticFeedback}
@@ -790,1040 +440,476 @@ export default function AccountScreen() {
           </View>
         </View>
 
-        {/* IPHONE INSTALLATION GUIDE BANNER */}
-        <View
-          style={{
-            backgroundColor: 'rgba(224, 86, 102, 0.05)',
-            borderRadius: Radii.xl,
-            padding: Spacing.lg,
-            marginTop: Spacing.sm,
-            marginBottom: Spacing.md,
-            borderWidth: 1,
-            borderColor: 'rgba(224, 86, 102, 0.15)',
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-            <Text style={{ fontSize: 16, marginRight: 8 }}>📱</Text>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: Colors.light.text, fontFamily: 'Inter, sans-serif' }}>
-              Cómo recibir Notificaciones en tu iPhone
-            </Text>
-          </View>
-          <Text style={{ fontSize: 13, color: Colors.light.textSecondary, lineHeight: 18, fontFamily: 'Inter, sans-serif' }}>
-            1. Abre <Text style={{ fontWeight: '700' }}>ap-andrea.vercel.app</Text> en Safari de tu iPhone.{'\n'}
-            2. Pulsa el botón <Text style={{ fontWeight: '700' }}>Compartir (⬆️)</Text> y elige <Text style={{ fontWeight: '700' }}>"Añadir a pantalla de inicio"</Text>.{'\n'}
-            3. Abre el icono desde tu pantalla de inicio y pulsa <Text style={{ fontWeight: '700' }}>"Permitir"</Text> cuando te solicite notificaciones.
-          </Text>
-        </View>
-
-        {/* LOCAL DATA TOOLS & STORAGE ENGINE */}
+        {/* ── 4. CERRAR SESIÓN & CUENTA ── */}
         <SectionHeader
-          title="Datos & Privacidad Local"
-          subtitle="Control y copias del almacenamiento en este dispositivo"
+          title="Gestión de Cuenta"
+          subtitle="Sesión activa y salida segura"
         />
         <View style={styles.settingsGroupCard}>
-          {/* Storage stats */}
-          <View style={styles.storageStatusBox}>
-            <View style={styles.storageStatusHeader}>
-              <IconShield size={14} color={Colors.light.primary} />
-              <Text style={styles.storageStatusTitle}>Almacenamiento Local Privado</Text>
-            </View>
-            <Text style={styles.storageStatusDesc}>
-              {wishes.length} deseos · {savedPlaces.length} restaurantes · {coupleEvents.length} fechas · {ritualSeeds.length} momentos
-            </Text>
-            <Text style={styles.storageStatusSub}>
-              Los datos se guardan únicamente en la memoria de este navegador / dispositivo.
-            </Text>
-          </View>
-
-          <View style={styles.settingDivider} />
-
-          {/* Privacy Notice modal trigger */}
           <TouchableOpacity
-            style={styles.settingRow}
+            style={[styles.settingRow, { paddingVertical: 14 }]}
             activeOpacity={0.7}
             onPress={() => {
               triggerHaptic('selection');
-              setIsPrivacyNoticeOpen(true);
+              setIsLogoutModalVisible(true);
             }}
           >
-            <View style={styles.settingIconContainer}>
-              <IconLock size={16} color={Colors.light.primary} />
+            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(217, 93, 93, 0.10)' }]}>
+              <IconLogOut size={16} color="#D95D5D" />
             </View>
             <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Aviso de Privacidad & Límites Beta</Text>
-              <Text style={styles.settingDesc}>Información transparente sobre el guardado local</Text>
-            </View>
-            <Text style={styles.settingActionText}>Ver</Text>
-          </TouchableOpacity>
-
-          <View style={styles.settingDivider} />
-
-          {/* Export JSON */}
-          <TouchableOpacity style={styles.settingRow} activeOpacity={0.7} onPress={handleExportData}>
-            <View style={styles.settingIconContainer}>
-              <IconCheck size={16} color={Colors.light.primary} />
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Exportar Copia de Seguridad (JSON)</Text>
-              <Text style={styles.settingDesc}>Descargar todos los recuerdos, deseos y citas</Text>
-            </View>
-            <Text style={styles.settingActionText}>Exportar</Text>
-          </TouchableOpacity>
-
-          <View style={styles.settingDivider} />
-
-          {/* Import JSON */}
-          <TouchableOpacity
-            style={styles.settingRow}
-            activeOpacity={0.7}
-            onPress={() => {
-              triggerHaptic('selection');
-              setIsImportModalOpen(true);
-            }}
-          >
-            <View style={styles.settingIconContainer}>
-              <IconSliders size={16} color={Colors.light.primary} />
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Importar Copia de Seguridad (JSON)</Text>
-              <Text style={styles.settingDesc}>Restaurar datos desde un archivo o texto JSON</Text>
-            </View>
-            <Text style={styles.settingActionText}>Importar</Text>
-          </TouchableOpacity>
-
-          {isDemoModeEnabled && (
-            <>
-              <View style={styles.settingDivider} />
-              <TouchableOpacity style={styles.settingRow} activeOpacity={0.7} onPress={handleConfirmResetDemo}>
-                <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(212, 175, 55, 0.12)' }]}>
-                  <Text style={{ fontSize: 13 }}>🔄</Text>
-                </View>
-                <View style={styles.settingTextContainer}>
-                  <Text style={styles.settingTitle}>Restablecer Datos Demo</Text>
-                  <Text style={styles.settingDesc}>Cargar hitos y restaurantes de demostración</Text>
-                </View>
-                <Text style={[styles.settingActionText, { color: '#B38B22' }]}>Restablecer</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          <View style={styles.settingDivider} />
-
-          {/* Clear all data */}
-          <TouchableOpacity style={styles.settingRow} activeOpacity={0.7} onPress={handleConfirmClearAll}>
-            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(224, 86, 102, 0.12)' }]}>
-              <Text style={{ fontSize: 13 }}>🗑️</Text>
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={[styles.settingTitle, { color: '#E05666' }]}>Borrar Todos los Datos Locales</Text>
-              <Text style={styles.settingDesc}>Limpiar completamente la memoria de este dispositivo</Text>
-            </View>
-            <Text style={[styles.settingActionText, { color: '#E05666' }]}>Borrar</Text>
-          </TouchableOpacity>
-
-          <View style={styles.settingDivider} />
-
-          {/* Logout */}
-          <TouchableOpacity
-            style={styles.settingRow}
-            activeOpacity={0.7}
-            onPress={() => {
-              triggerHaptic('medium');
-              Alert.alert(
-                'Cerrar Sesión',
-                '¿Deseas salir a la pantalla de bienvenida?',
-                [
-                  { text: 'Cancelar', style: 'cancel' },
-                  {
-                    text: 'Cerrar Sesión',
-                    style: 'destructive',
-                    onPress: async () => {
-                      await logout();
-                      router.replace('/(auth)/login');
-                    },
-                  },
-                ]
-              );
-            }}
-          >
-            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(58, 47, 56, 0.08)' }]}>
-              <IconLogOut size={16} color={Colors.light.primary} />
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Cerrar Sesión</Text>
+              <Text style={[styles.settingTitle, { color: '#D95D5D', fontWeight: '700' }]}>
+                Cerrar Sesión
+              </Text>
               <Text style={styles.settingDesc}>
-                {currentEmail ? `Conectado como ${currentEmail}` : 'Volver a la portada de shooting'}
+                Sesión actual: {currentDevUser.name} ({currentEmail || 'andrea-tonet@love.app'})
               </Text>
             </View>
-            <Text style={styles.settingActionText}>Salir</Text>
+            <Text style={[styles.settingActionText, { color: '#D95D5D' }]}>Salir</Text>
           </TouchableOpacity>
         </View>
 
-        {/* APP INFO & VERSION FOOTER */}
-        <View style={styles.footerInfoCard}>
-          <Text style={styles.footerBrandName}>ANDREA APP</Text>
-          <View style={styles.footerAffectionRow}>
-            <Text style={styles.footerDedicationText}>Made with love for </Text>
-            <RotatingAffectionText />
-          </View>
+        <View style={styles.footerNote}>
+          <Text style={styles.footerNoteText}>Andrea & Tonet · Nido de Amor</Text>
+          <Text style={styles.footerNoteSub}>Versión 1.2 · Creado con amor</Text>
         </View>
-
-        <View style={{ height: Spacing['2xl'] }} />
       </ScrollView>
 
-      {/* ── PRIVACY BETA NOTICE MODAL ── */}
-      <PrivacyBetaNotice
-        forceOpen={isPrivacyNoticeOpen}
-        onClose={() => setIsPrivacyNoticeOpen(false)}
+      {/* ── SUBPAGE MODALS ── */}
+
+      {/* 1. Appearance Subpage */}
+      <SettingsSubpageContainer
+        visible={activeSubpage === 'appearance'}
+        onClose={() => setActiveSubpage(null)}
+        title="Apariencia & Look"
+        subtitle="Temas visuales y estética"
+      >
+        <AppearanceSettingsSubpage
+          currentPalette={themePalette}
+          onSelectPalette={(p) => {
+            setThemePalette(p);
+            setActiveSubpage(null);
+          }}
+          onClose={() => setActiveSubpage(null)}
+        />
+      </SettingsSubpageContainer>
+
+      {/* 2. Notifications Subpage */}
+      <SettingsSubpageContainer
+        visible={activeSubpage === 'notifications'}
+        onClose={() => setActiveSubpage(null)}
+        title="Notificaciones en iPhone"
+        subtitle="Avisos, latidos y horarios"
+      >
+        <NotificationSettingsSubpage onClose={() => setActiveSubpage(null)} />
+      </SettingsSubpageContainer>
+
+      {/* 3. Milestones Subpage */}
+      <SettingsSubpageContainer
+        visible={activeSubpage === 'milestones'}
+        onClose={() => setActiveSubpage(null)}
+        title="Hitos de Nuestra Historia"
+        subtitle="Aniversarios y fechas clave"
+      >
+        <CoupleMilestonesModal onClose={() => setActiveSubpage(null)} />
+      </SettingsSubpageContainer>
+
+      {/* 4. Feedback Subpage */}
+      <SettingsSubpageContainer
+        visible={activeSubpage === 'feedback'}
+        onClose={() => setActiveSubpage(null)}
+        title="Buzón de Ideas"
+        subtitle="Sugerencias y notas secretas"
+      >
+        <FeedbackRecommendationsSubpage
+          currentUserName={currentDevUser.name}
+          partnerName={partnerDevUser.name}
+          onClose={() => setActiveSubpage(null)}
+        />
+      </SettingsSubpageContainer>
+
+      {/* 5. Security Subpage */}
+      <SettingsSubpageContainer
+        visible={activeSubpage === 'security'}
+        onClose={() => setActiveSubpage(null)}
+        title="Seguridad & Nube"
+        subtitle="Copias de seguridad y cifrado"
+      >
+        <SecurityDataSubpage
+          isCloudConnected={isCloudConnected}
+          cloudSyncStatus={cloudSyncStatus}
+          onForceSync={forceCloudSync}
+          onExportData={exportAllUserData}
+          onOpenImport={() => setIsImportModalOpen(true)}
+          onOpenPrivacyNotice={() => setIsPrivacyNoticeOpen(true)}
+          stats={{
+            wishesCount: wishes.length,
+            placesCount: savedPlaces.length,
+            eventsCount: coupleEvents.length,
+            ritualsCount: ritualSeeds.length,
+          }}
+          onClose={() => setActiveSubpage(null)}
+        />
+      </SettingsSubpageContainer>
+
+      {/* 6. Logout Confirmation Modal */}
+      <LogoutConfirmModal
+        visible={isLogoutModalVisible}
+        onClose={() => setIsLogoutModalVisible(false)}
+        onConfirm={() => {
+          setIsLogoutModalVisible(false);
+          logout();
+        }}
+        userName={currentDevUser.name}
       />
 
-      {/* ── IMPORT BACKUP MODAL ── */}
-      <Modal
-        visible={isImportModalOpen}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsImportModalOpen(false)}
-      >
+      {/* 7. Edit Profile Modal */}
+      <Modal visible={isEditModalVisible} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <View style={styles.modalHeaderRow}>
-              <View>
-                <Text style={styles.modalEyebrow}>RESTAURAR DATOS</Text>
-                <Text style={styles.modalTitle}>Importar Copia de Seguridad</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.modalCloseBtn}
-                onPress={() => setIsImportModalOpen(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.modalCloseBtnText}>✕</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Editar Perfil</Text>
+              <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
+                <Text style={styles.modalCloseText}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={{ marginVertical: Spacing.md }}>
-              <Text style={styles.inputLabel}>Pega el contenido JSON de tu copia de seguridad:</Text>
+            <View style={styles.modalBody}>
+              <Text style={styles.modalInputLabel}>Nombre o apodo</Text>
               <TextInput
-                style={[styles.textInput, { height: 160, textAlignVertical: 'top' }]}
-                value={importJsonText}
-                onChangeText={setImportJsonText}
-                placeholder='{"version": 1, "keys": { ... }}'
-                placeholderTextColor={Colors.light.textMuted}
-                multiline
+                style={styles.textInput}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Nombre"
+                placeholderTextColor="#9E8E98"
+              />
+
+              <PhotoUploadField
+                label="Fotografía del perfil"
+                placeholderText="Toca para subir una foto real"
+                photoUrl={editPhotoUrl || null}
+                imageUri={editPhotoUrl || null}
+                onPhotoUploaded={(url) => setEditPhotoUrl(url || '')}
+                onImageChange={(url) => setEditPhotoUrl(url || '')}
+                onPhotoSelected={(url) => setEditPhotoUrl(url || '')}
+                onPhotoRemoved={() => setEditPhotoUrl('')}
               />
             </View>
 
-            <View style={styles.editModalFooter}>
-              <Button
-                variant="secondary"
-                size="md"
-                onPress={() => setIsImportModalOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="primary"
-                size="md"
-                onPress={handleImportData}
-              >
-                📥 Restaurar Copia
-              </Button>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ── EDIT PROFILE MODAL ── */}
-      <Modal
-        visible={isEditModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsEditModalVisible(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            {/* MODAL HEADER */}
-            <View style={styles.modalHeaderRow}>
-              <View>
-                <Text style={styles.modalEyebrow}>PERSONALIZAR PERFIL</Text>
-                <Text style={styles.modalTitle}>
-                  {editingUserId === users.user1.id ? 'Perfil de Tonet' : 'Perfil de Andrea'}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.modalCloseBtn}
-                onPress={() => setIsEditModalVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.modalCloseBtnText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
-              {/* LIVE AVATAR PREVIEW */}
-              <View style={styles.previewAvatarContainer}>
-                <View style={styles.previewAvatarWrapper}>
-                  {editPhotoUrl ? (
-                    <Image source={{ uri: editPhotoUrl }} style={styles.previewAvatarImage} />
-                  ) : (
-                    <View
-                      style={[
-                        styles.previewAvatarImage,
-                        styles.previewAvatarFallback,
-                        {
-                          backgroundColor:
-                            editingUserId === users.user1.id
-                              ? Colors.light.secondary
-                              : Colors.light.primary,
-                        },
-                      ]}
-                    >
-                      <Text style={styles.previewAvatarFallbackText}>
-                        {(editName.trim() || (editingUserId === users.user1.id ? 'T' : 'A'))[0]}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.previewAvatarHint}>Vista previa en vivo de tu foto</Text>
-              </View>
-
-              {/* NAME INPUT */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Nombre o Apodo</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={editName}
-                  onChangeText={setEditName}
-                  placeholder="Ej. Andrea, Tonet..."
-                  placeholderTextColor={Colors.light.textMuted}
-                />
-              </View>
-
-              {/* PHOTO PRESETS SELECTION FROM AUTHENTIC ALBUM */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Fotografías Reales de Vuestro Álbum</Text>
-                <Text style={styles.inputSublabel}>Selecciona en 1 toque una foto de vuestra galería:</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsRow}>
-                  {INTRO_PHOTOS.map((photo, idx) => {
-                    const isSelected = editPhotoUrl === (photo.source.uri || photo.source);
-                    return (
-                      <TouchableOpacity
-                        key={photo.id || idx}
-                        style={[styles.presetItem, isSelected && styles.presetItemSelected]}
-                        activeOpacity={0.8}
-                        onPress={() => {
-                          triggerHaptic('selection');
-                          if (typeof photo.source === 'string') {
-                            setEditPhotoUrl(photo.source);
-                          } else if (photo.source && photo.source.uri) {
-                            setEditPhotoUrl(photo.source.uri);
-                          } else {
-                            setEditPhotoUrl(photo.source);
-                          }
-                        }}
-                      >
-                        <Image source={photo.source} style={styles.presetImage} resizeMode="cover" />
-                        {isSelected && (
-                          <View style={styles.presetCheckmark}>
-                            <IconCheck size={12} color="#FFFFFF" />
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-
-              {/* DEVICE UPLOAD VIA CAMERA / GALLERY */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Elegir Foto desde tu Galería</Text>
-                <PhotoUploadField
-                  imageUri={editPhotoUrl}
-                  onImageChange={(uri) => setEditPhotoUrl(uri || '')}
-                  label=""
-                  placeholderText="Toca para permitir acceso a tus fotos y elegir una imagen real"
-                  aspect={[1, 1]}
-                />
-              </View>
-
-              {/* DIRECT IMAGE URL INPUT */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>O pegar enlace directo de imagen (URL)</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={editPhotoUrl}
-                  onChangeText={setEditPhotoUrl}
-                  placeholder="https://images.unsplash.com/..."
-                  placeholderTextColor={Colors.light.textMuted}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-            </ScrollView>
-
-            {/* MODAL ACTION BUTTONS */}
-            <View style={styles.modalFooterRow}>
+            <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.modalCancelBtn}
                 onPress={() => setIsEditModalVisible(false)}
-                activeOpacity={0.8}
               >
-                <Text style={styles.modalCancelBtnText}>Cancelar</Text>
+                <Text style={styles.modalCancelText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalSaveBtn}
-                onPress={handleSaveProfile}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.modalSaveBtnText}>Guardar Perfil</Text>
+              <TouchableOpacity style={styles.modalSaveBtn} onPress={handleSaveProfile}>
+                <Text style={styles.modalSaveText}>Guardar</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
+      {/* 8. Privacy Notice Modal */}
+      <PrivacyBetaNotice
+        visible={isPrivacyNoticeOpen}
+        onClose={() => setIsPrivacyNoticeOpen(false)}
+      />
     </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing['2xl'],
+  container: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: 100,
+    maxWidth: 680,
+    width: '100%',
+    alignSelf: 'center',
   },
   headerBlock: {
-    marginBottom: Spacing.md,
-    paddingTop: Spacing.xs,
+    marginBottom: Spacing.lg,
   },
   headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 4,
   },
-  headerSubtitle: {
-    ...Typography.captionBold,
-    color: Colors.light.primary,
-    letterSpacing: 1.5,
-    fontSize: 10.5,
-    marginBottom: 2,
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#EF826A',
+    letterSpacing: 1,
+    fontFamily: 'Inter, sans-serif',
   },
-  headerTitle: {
+  screenTitle: {
     ...Typography.h1,
-    color: Colors.light.text,
     fontSize: 26,
-    fontWeight: '700',
+    color: '#1E252B',
+    letterSpacing: -0.5,
   },
-  btnPerspectiveSwitch: {
+  screenSubtitle: {
+    ...Typography.body,
+    fontSize: 13,
+    color: '#766B72',
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  coupleHeroRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(212, 175, 55, 0.12)',
-    paddingHorizontal: Spacing.sm + 2,
-    paddingVertical: 7,
-    borderRadius: Radii.full,
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.3)',
+    gap: Spacing.md,
+    marginBottom: Spacing.xl,
   },
-  btnPerspectiveSwitchText: {
-    ...Typography.captionBold,
-    color: Colors.light.primary,
-    fontSize: 12,
-  },
-  coupleHeroCard: {
+  partnerMiniCard: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: Radii.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(20, 19, 18, 0.06)',
-    ...Shadows.md,
-  },
-  coupleInfoSection: {
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(20, 19, 18, 0.05)',
-    paddingTop: Spacing.md,
-  },
-  coupleNames: {
-    ...Typography.h2,
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.light.text,
-    marginBottom: 2,
-  },
-  coupleSubtitle: {
-    ...Typography.body,
-    color: Colors.light.textMuted,
-    fontSize: 12.5,
-    marginBottom: Spacing.sm,
-  },
-  vaultSecurityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(212, 175, 55, 0.08)',
-    paddingHorizontal: Spacing.sm + 4,
-    paddingVertical: 5,
-    borderRadius: Radii.full,
-  },
-  vaultSecurityText: {
-    ...Typography.captionBold,
-    fontSize: 11,
-    color: Colors.light.primary,
-  },
-  milestonesCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: Radii.lg,
     padding: Spacing.md,
-    marginBottom: Spacing.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(20, 19, 18, 0.06)',
-    ...Shadows.sm,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(58, 47, 56, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
   },
-  milestoneItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: Spacing.xs,
+  partnerMiniCardActive: {
+    borderColor: Colors.light.primary,
+    backgroundColor: 'rgba(224, 86, 102, 0.03)',
   },
-  milestoneIconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  miniCardAvatarWrapper: {
+    position: 'relative',
+    marginBottom: 8,
+  },
+  miniCardAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.md,
-    marginTop: 2,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  milestoneContent: {
-    flex: 1,
-  },
-  milestoneHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  milestoneTitle: {
-    ...Typography.bodyMedium,
-    fontSize: 14,
-    color: Colors.light.text,
-  },
-  milestoneDate: {
-    ...Typography.captionBold,
-    fontSize: 11,
-    color: Colors.light.primary,
-  },
-  milestoneLocation: {
-    ...Typography.caption,
-    fontWeight: '600',
-    color: Colors.light.textMuted,
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  milestoneDesc: {
-    ...Typography.caption,
-    color: Colors.light.textMuted,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  milestoneDivider: {
-    height: 1,
-    backgroundColor: 'rgba(20, 19, 18, 0.05)',
-    marginVertical: Spacing.sm,
-    marginLeft: 48,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-  statBox: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: Radii.lg,
-    padding: Spacing.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(20, 19, 18, 0.05)',
-    ...Shadows.sm,
-  },
-  statNumber: {
-    ...Typography.h1,
-    fontSize: 24,
+  miniCardAvatarText: {
+    fontSize: 22,
     fontWeight: '800',
-    color: Colors.light.text,
-    marginBottom: 2,
+    color: '#FFFFFF',
   },
-  statLabel: {
-    ...Typography.caption,
-    fontSize: 11.5,
-    color: Colors.light.textMuted,
-    textAlign: 'center',
+  activePillBadge: {
+    position: 'absolute',
+    bottom: -4,
+    backgroundColor: Colors.light.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radii.full,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  activePillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  miniCardName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1E252B',
+  },
+  miniCardRole: {
+    fontSize: 11,
+    color: '#766B72',
+    marginTop: 1,
+  },
+  editPhotoLink: {
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radii.full,
+    backgroundColor: 'rgba(58, 47, 56, 0.05)',
+  },
+  editPhotoLinkText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.light.primary,
   },
   settingsGroupCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: Radii.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    marginBottom: Spacing.lg,
+    borderRadius: Radii.xl,
     borderWidth: 1,
-    borderColor: 'rgba(20, 19, 18, 0.06)',
-    ...Shadows.sm,
+    borderColor: 'rgba(58, 47, 56, 0.08)',
+    overflow: 'hidden',
+    marginBottom: Spacing.lg,
+  },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+  },
+  navIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  navTextCol: {
+    flex: 1,
+  },
+  navTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E252B',
+  },
+  navSubtitle: {
+    fontSize: 12,
+    color: '#766B72',
+    marginTop: 2,
+  },
+  chevronText: {
+    fontSize: 20,
+    fontWeight: '400',
+    color: '#A79EA4',
+    marginLeft: 8,
   },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    padding: Spacing.md,
   },
   settingIconContainer: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    borderRadius: 8,
+    backgroundColor: 'rgba(224, 86, 102, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.md,
   },
   settingTextContainer: {
     flex: 1,
-    marginRight: Spacing.sm,
   },
   settingTitle: {
-    ...Typography.body,
-    fontWeight: '600',
-    color: Colors.light.text,
     fontSize: 14,
-    marginBottom: 2,
+    fontWeight: '600',
+    color: '#1E252B',
   },
   settingDesc: {
-    ...Typography.caption,
-    color: Colors.light.textMuted,
     fontSize: 12,
+    color: '#766B72',
+    marginTop: 2,
+  },
+  settingActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.light.primary,
+    marginLeft: 8,
   },
   settingDivider: {
     height: 1,
-    backgroundColor: 'rgba(20, 19, 18, 0.05)',
-    marginLeft: 48,
+    backgroundColor: 'rgba(58, 47, 56, 0.06)',
+    marginLeft: 54,
   },
-  settingActionText: {
-    ...Typography.captionBold,
-    color: Colors.light.primary,
-    fontSize: 13,
-  },
-  userAvatarThumbWrapper: {
-    position: 'relative',
-    marginRight: Spacing.md,
-  },
-  userAvatarThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  footerNote: {
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(20, 19, 18, 0.08)',
+    paddingVertical: Spacing.xl,
   },
-  userAvatarThumbText: {
-    ...Typography.h3,
-    color: '#FFFFFF',
-    fontWeight: '800',
+  footerNoteText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#766B72',
   },
-  thumbCameraBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: Colors.light.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-    ...Shadows.sm,
+  footerNoteSub: {
+    fontSize: 11,
+    color: '#A79EA4',
+    marginTop: 2,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(30, 25, 30, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
   },
   modalCard: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: Radii['2xl'],
-    borderTopRightRadius: Radii['2xl'],
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? Spacing['2xl'] + 10 : Spacing.xl,
-    maxHeight: '90%',
-    ...Shadows.lg,
-  },
-  modalHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(20, 19, 18, 0.06)',
-    paddingBottom: Spacing.sm,
-  },
-  modalEyebrow: {
-    ...Typography.captionBold,
-    fontSize: 11,
-    letterSpacing: 1.5,
-    color: Colors.light.primary,
-    marginBottom: 2,
-  },
-  modalTitle: {
-    ...Typography.h2,
-    fontSize: 18,
-    color: Colors.light.text,
-  },
-  modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(20, 19, 18, 0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalCloseBtnText: {
-    fontSize: 15,
-    color: Colors.light.textMuted,
-    fontWeight: '600',
-  },
-  modalScrollView: {
-    maxHeight: 460,
-  },
-  previewAvatarContainer: {
-    alignItems: 'center',
-    marginVertical: Spacing.md,
-  },
-  previewAvatarWrapper: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    padding: 3,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: Colors.light.primary,
-    ...Shadows.md,
-  },
-  previewAvatarImage: {
     width: '100%',
-    height: '100%',
-    borderRadius: 42,
-  },
-  previewAvatarFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  previewAvatarFallbackText: {
-    ...Typography.h1,
-    fontSize: 32,
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-  previewAvatarHint: {
-    ...Typography.caption,
-    fontSize: 11.5,
-    color: Colors.light.textMuted,
-    marginTop: Spacing.xs,
-  },
-  inputGroup: {
-    marginBottom: Spacing.md,
-  },
-  inputLabel: {
-    ...Typography.captionBold,
-    fontSize: 12.5,
-    color: Colors.light.text,
-    marginBottom: 4,
-  },
-  inputSublabel: {
-    ...Typography.caption,
-    fontSize: 11.5,
-    color: Colors.light.textMuted,
-    marginBottom: Spacing.xs,
-  },
-  textInput: {
-    backgroundColor: '#F9F8F6',
-    borderWidth: 1,
-    borderColor: 'rgba(20, 19, 18, 0.1)',
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
-    fontSize: 14,
-    color: Colors.light.text,
-  },
-  presetsRow: {
-    flexDirection: 'row',
-    paddingVertical: Spacing.xs,
-  },
-  presetItem: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: Spacing.sm,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    overflow: 'hidden',
-  },
-  presetItemSelected: {
-    borderColor: Colors.light.primary,
-    ...Shadows.sm,
-  },
-  presetImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 28,
-  },
-  presetCheckmark: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: Colors.light.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalFooterRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginTop: Spacing.md,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(20, 19, 18, 0.06)',
-  },
-  modalCancelBtn: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.lg,
-    backgroundColor: '#F2EFEB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalCancelBtnText: {
-    ...Typography.captionBold,
-    fontSize: 13,
-    color: Colors.light.textMuted,
-  },
-  modalSaveBtn: {
-    flex: 2,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.lg,
-    backgroundColor: Colors.light.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.sm,
-  },
-  modalSaveBtnText: {
-    ...Typography.captionBold,
-    fontSize: 13.5,
-    color: '#FFFFFF',
-  },
-  footerInfoCard: {
-    alignItems: 'center',
-    paddingVertical: Spacing.lg,
-    marginTop: Spacing.sm,
-  },
-  footerBrandName: {
-    ...Typography.captionBold,
-    letterSpacing: 2.5,
-    fontSize: 11,
-    color: Colors.light.primary,
-    marginBottom: 2,
-  },
-  footerVersion: {
-    ...Typography.caption,
-    fontSize: 11,
-    color: Colors.light.textMuted,
-    marginBottom: 4,
-  },
-  footerAffectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  footerDedicationText: {
-    fontSize: 13,
-    color: '#7D7571',
-    fontWeight: '500',
-    fontFamily: 'Inter, sans-serif',
-  },
-  storageStatusBox: {
-    padding: Spacing.md,
-    backgroundColor: 'rgba(212, 175, 55, 0.06)',
-    borderRadius: Radii.lg,
-    marginBottom: Spacing.xs,
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.2)',
-  },
-  storageStatusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: 4,
-  },
-  storageStatusTitle: {
-    ...Typography.captionBold,
-    fontSize: 13,
-    color: Colors.light.text,
-  },
-  storageStatusDesc: {
-    ...Typography.captionBold,
-    fontSize: 12,
-    color: Colors.light.primaryDark,
-    marginBottom: 2,
-  },
-  storageStatusSub: {
-    ...Typography.caption,
-    fontSize: 11,
-    color: Colors.light.textSecondary,
-    lineHeight: 14,
-  },
-  editModalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-  },
-  btnLogoutHero: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(224, 86, 102, 0.08)',
-    paddingHorizontal: Spacing.sm + 2,
-    paddingVertical: 4,
-    borderRadius: Radii.full,
-    borderWidth: 1,
-    borderColor: 'rgba(224, 86, 102, 0.2)',
-    gap: 4,
-  },
-  btnLogoutHeroText: {
-    ...Typography.captionBold,
-    fontSize: 11,
-    color: Colors.light.primary,
-  },
-  palettesScrollContent: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.xs,
-    gap: Spacing.sm,
-  },
-  paletteCard: {
-    width: 148,
-    backgroundColor: '#FFFFFF',
-    borderRadius: Radii.lg,
-    padding: Spacing.sm + 2,
-    borderWidth: 1.5,
-    borderColor: 'rgba(20, 19, 18, 0.06)',
-    position: 'relative',
-    ...Shadows.subtle,
-  },
-  paletteCardActive: {
-    borderColor: Colors.light.primary,
-    backgroundColor: 'rgba(224, 86, 102, 0.03)',
-  },
-  paletteSwatchesRow: {
-    flexDirection: 'row',
-    gap: 5,
-    marginBottom: Spacing.xs,
-  },
-  paletteColorDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-  },
-  paletteInfo: {
-    marginTop: 2,
-  },
-  paletteName: {
-    ...Typography.captionBold,
-    fontSize: 12,
-    color: Colors.light.text,
-    marginBottom: 1,
-  },
-  paletteSub: {
-    ...Typography.caption,
-    fontSize: 10,
-    color: Colors.light.textMuted,
-  },
-  paletteActiveBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.light.primary,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    gap: 3,
-    alignSelf: 'flex-start',
-    marginTop: 6,
-  },
-  paletteActiveBadgeText: {
-    fontFamily: Typography.family.medium,
-    fontSize: 9.5,
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  fulfilledSurprisesScroll: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: 2,
-    gap: Spacing.md,
-  },
-  fulfilledSurpriseCard: {
-    width: 220,
+    maxWidth: 420,
     backgroundColor: '#FFFFFF',
     borderRadius: Radii['2xl'],
-    overflow: 'hidden',
+    padding: Spacing.xl,
     borderWidth: 1,
-    borderColor: 'rgba(43, 33, 41, 0.08)',
-    ...Shadows.sm,
+    borderColor: 'rgba(58, 47, 56, 0.08)',
   },
-  fulfilledSurpriseImg: {
-    width: '100%',
-    height: 130,
-    backgroundColor: '#FAF5EA',
-  },
-  fulfilledSurpriseImgPlaceholder: {
-    width: '100%',
-    height: 130,
-    backgroundColor: '#FAF5EA',
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: Spacing.lg,
   },
-  fulfilledSurpriseContent: {
-    padding: Spacing.md,
+  modalTitle: {
+    ...Typography.h3,
+    fontSize: 18,
+    color: '#1E252B',
   },
-  fulfilledSurpriseTitle: {
-    ...Typography.bodyBold,
-    fontSize: 13,
-    color: '#3A2F38',
-    marginTop: Spacing.xs,
-    marginBottom: 4,
+  modalCloseText: {
+    fontSize: 16,
+    color: '#766B72',
+    fontWeight: '700',
   },
-  fulfilledSurpriseDate: {
-    ...Typography.captionBold,
-    fontSize: 11,
-    color: Colors.light.primary,
-    marginBottom: 2,
+  modalBody: {
+    marginBottom: Spacing.lg,
   },
-  fulfilledSurpriseSubdate: {
-    ...Typography.caption,
-    fontSize: 10,
+  modalInputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
     color: '#766B72',
     marginBottom: 4,
   },
-  fulfilledSurpriseReaction: {
-    ...Typography.caption,
-    fontSize: 11,
-    fontStyle: 'italic',
-    color: '#3A2F38',
-    marginTop: 4,
-    backgroundColor: '#FFF5F1',
-    padding: 6,
-    borderRadius: 8,
+  textInput: {
+    backgroundColor: '#FAF7F2',
+    borderRadius: Radii.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(58, 47, 56, 0.10)',
+    fontSize: 14,
+    color: '#1E252B',
+    marginBottom: Spacing.md,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: Radii.lg,
+    backgroundColor: 'rgba(58, 47, 56, 0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#766B72',
+  },
+  modalSaveBtn: {
+    flex: 1.2,
+    paddingVertical: 12,
+    borderRadius: Radii.lg,
+    backgroundColor: Colors.light.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSaveText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
