@@ -137,24 +137,22 @@ export function MapBottomSheet({
   ).filter(Boolean).length;
 
   const getTypeBadge = () => {
-    switch (place.type) {
-      case 'stage':
-        return <Badge variant="neutral">🏡 Etapa</Badge>;
-      case 'memory':
-        return <Badge variant="primary">♥ Recuerdo</Badge>;
-      case 'date':
-        return <Badge variant="butter">🥂 Cita</Badge>;
-      case 'restaurant':
-        return <Badge variant="butter">🍽️ Restaurante</Badge>;
-      case 'trip':
-        return <Badge variant="secondary">✈️ Viaje</Badge>;
-      case 'future_place':
-        return <Badge variant="mistBlue">✨ Sueño futuro</Badge>;
-      case 'surprise':
-        return <Badge variant="secondary">🎁 Sorpresa</Badge>;
-      default:
-        return <Badge variant="neutral">📍 Rincón</Badge>;
-    }
+    const isHotel = (place.type as string) === 'hotel' || (place.type === 'trip' && place.accommodation && !place.tripDurationDays);
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        {place.type === 'stage' && <Badge variant="neutral">🏡 Etapa</Badge>}
+        {place.type === 'trip' && !isHotel && <Badge variant="secondary">✈️ Viaje</Badge>}
+        {place.type === 'date' && <Badge variant="butter">🥂 Cita</Badge>}
+        {place.type === 'restaurant' && <Badge variant="butter">🍽️ Restaurante</Badge>}
+        {isHotel && <Badge variant="secondary">🏨 Hotel / Airbnb</Badge>}
+        {place.type === 'memory' && <Badge variant="primary">📍 Rincón Familiar</Badge>}
+        {place.type === 'future_place' && <Badge variant="mistBlue">✨ Futuro Deseo</Badge>}
+
+        {place.emotionTag ? (
+          <Badge variant="primary">✨ {place.emotionTag}</Badge>
+        ) : null}
+      </View>
+    );
   };
 
   return (
