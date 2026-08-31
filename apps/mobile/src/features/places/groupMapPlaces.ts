@@ -1,4 +1,4 @@
-﻿import { AndreaMapPlace, MapPlaceType } from '../../types/map';
+import { AndreaMapPlace, MapPlaceType } from '../../types/map';
 
 export const SAME_PLACE_DISTANCE_METERS = 20;
 
@@ -63,16 +63,20 @@ function getDominantType(items: AndreaMapPlace[]): MapPlaceType {
 
   // Priority order if count ties
   const priorityOrder: MapPlaceType[] = [
-    'memory',
+    'stage',
+    'getaway',
+    'trip',
+    'hotel',
+    'date',
     'restaurant',
+    'memory',
     'surprise',
     'important_date',
-    'trip',
     'future_place',
   ];
 
   let maxCount = -1;
-  let bestType: MapPlaceType = 'memory';
+  let bestType: MapPlaceType = items[0]?.type || 'memory';
 
   for (const t of priorityOrder) {
     const c = counts[t] || 0;

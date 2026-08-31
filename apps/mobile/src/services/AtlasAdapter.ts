@@ -23,6 +23,17 @@ export interface NormalizedAtlasState {
   chapterItems: AtlasChapterItem[];
 }
 
+function safeToISOString(dateStr?: string | null): string {
+  if (!dateStr) return new Date().toISOString();
+  try {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString();
+    }
+  } catch {}
+  return new Date().toISOString();
+}
+
 export class AtlasAdapter {
   public static normalizeLegacyPlaces(legacyPlaces: AndreaMapPlace[]): NormalizedAtlasState {
     const state: NormalizedAtlasState = {
@@ -45,8 +56,8 @@ export class AtlasAdapter {
       if (lp.type === 'restaurant') placeKind = 'restaurant';
       else if (lp.type === 'stage') placeKind = 'home';
       else if (lp.type === 'future_place') placeKind = 'future_destination';
-      else if (lp.type === 'trip') placeKind = 'landmark';
-      else if (lp.type === 'date') placeKind = 'venue';
+      else if (lp.type === 'trip' || lp.type === 'getaway') placeKind = 'landmark';
+      else if (lp.type === 'date' || (lp.type as string) === 'hotel') placeKind = 'venue';
       else if (lp.type === 'memory') placeKind = 'landmark';
 
       const place: AtlasPlace = {
@@ -63,16 +74,22 @@ export class AtlasAdapter {
         coverImageUrl: lp.imageUrl || (lp.photos && lp.photos[0]),
         photos: lp.photos || [],
         createdByUserId: 'tonet',
-        createdAt: lp.date ? new Date(lp.date).toISOString() : new Date().toISOString(),
+        createdAt: safeToISOString(lp.date || lp.startDate),
         updatedAt: new Date().toISOString(),
       };
       state.places.push(place);
 
-      // If legacy place was an experience (date, trip, surprise)
-      if (lp.type === 'date' || lp.type === 'trip' || lp.type === 'surprise') {
+      // If legacy place was an experience (date, trip, getaway, hotel, surprise)
+      if (
+        lp.type === 'date' ||
+        lp.type === 'trip' ||
+        lp.type === 'getaway' ||
+        (lp.type as string) === 'hotel' ||
+        lp.type === 'surprise'
+      ) {
         let expKind: ExperienceKind = 'plan';
         if (lp.type === 'date') expKind = 'date';
-        else if (lp.type === 'trip') expKind = 'trip';
+        else if (lp.type === 'trip' || lp.type === 'getaway') expKind = 'trip';
         else if (lp.type === 'surprise') expKind = 'surprise';
 
         const expId = 'exp_' + lp.id;
@@ -83,7 +100,7 @@ export class AtlasAdapter {
           status: 'completed',
           title: lp.title,
           summary: lp.description,
-          startsAt: lp.date,
+          startsAt: lp.date || lp.startDate,
           visibility: lp.isPrivate ? 'private' : 'shared',
           revealPolicy: lp.type === 'surprise' ? 'manual' : 'immediate',
           coverImageUrl: place.coverImageUrl,

@@ -506,6 +506,8 @@ export function AddPlaceLocationModal({
     Alert.alert('📍 Guardado con Éxito', `"${title.trim()}" sincronizado en el Atlas Global.`);
   };
 
+  if (!visible) return null;
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>

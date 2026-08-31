@@ -45,9 +45,10 @@ export default function MapScreen() {
       // 1. Load locally saved places (user edits override base constants)
       const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v7', []);
       let currentBase = DEMO_MAP_PLACES;
-      if (saved && saved.length > 0) {
+      const validSaved = Array.isArray(saved) ? saved.filter((sp) => sp && sp.id && typeof sp === 'object') : [];
+      if (validSaved.length > 0) {
         const placeMap = new Map(DEMO_MAP_PLACES.map((p) => [p.id, p]));
-        saved.forEach((sp) => placeMap.set(sp.id, sp));
+        validSaved.forEach((sp) => placeMap.set(sp.id, sp));
         currentBase = Array.from(placeMap.values());
       }
       setAllPlaces(currentBase);
@@ -58,36 +59,39 @@ export default function MapScreen() {
         try {
           const cloudState = await CloudSyncEngine.fetchFullCloudState();
           if (cloudState && cloudState.mapPlaces && cloudState.mapPlaces.length > 0) {
-            const cloudPlaces: AndreaMapPlace[] = cloudState.mapPlaces.map((mp: any) => ({
-              id: mp.id,
-              type: mp.category || mp.type || 'memory',
-              title: mp.title,
-              subtitle: mp.subtitle,
-              description: mp.story || mp.description,
-              latitude: Number(mp.lat || mp.latitude),
-              longitude: Number(mp.lng || mp.longitude),
-              precision: mp.locationPrecision || mp.precision || 'exact',
-              date: mp.date,
-              imageUrl: mp.photos?.[0] || mp.imageUrl,
-              photos: mp.photos || (mp.imageUrl ? [mp.imageUrl] : []),
-              city: mp.cityName || mp.city || 'Valencia',
-              formattedAddress: mp.subtitle,
-              source: 'google_places',
-              verifiedByUser: true,
-              startDate: mp.startDate,
-              endDate: mp.endDate,
-              isOngoing: mp.isOngoing,
-              stageSummary: mp.stageSummary,
-              hasDateRange: mp.hasDateRange,
-              dateRangeEnd: mp.dateRangeEnd,
-              emotionTag: mp.emotionTag,
-              invitedBy: mp.invitedBy,
-              destination1: mp.destination1,
-              destination2: mp.destination2,
-              accommodation: mp.accommodation,
-              tripDurationDays: mp.tripDurationDays,
-              visitedPlaces: mp.visitedPlaces,
-            }));
+            const cloudPlaces: AndreaMapPlace[] = cloudState.mapPlaces
+              .filter((mp: any) => mp && (mp.id || mp._id))
+              .map((mp: any) => ({
+                id: String(mp.id || mp._id),
+                type: mp.category || mp.type || 'memory',
+                title: mp.title || 'Rincón',
+                subtitle: mp.subtitle || '',
+                description: mp.story || mp.description || '',
+                latitude: Number(mp.lat ?? mp.latitude) || 39.4699,
+                longitude: Number(mp.lng ?? mp.longitude) || -0.3763,
+                precision: mp.locationPrecision || mp.precision || 'exact',
+                date: mp.date || undefined,
+                imageUrl: mp.photos?.[0] || mp.imageUrl || undefined,
+                photos: Array.isArray(mp.photos) ? mp.photos : (mp.imageUrl ? [mp.imageUrl] : []),
+                city: mp.cityName || mp.city || 'Valencia',
+                formattedAddress: mp.subtitle || undefined,
+                source: 'google_places',
+                verifiedByUser: true,
+                startDate: mp.startDate || undefined,
+                endDate: mp.endDate || undefined,
+                isOngoing: Boolean(mp.isOngoing),
+                stageSummary: mp.stageSummary || undefined,
+                linkedPlaceIds: Array.isArray(mp.linkedPlaceIds) ? mp.linkedPlaceIds : undefined,
+                hasDateRange: Boolean(mp.hasDateRange),
+                dateRangeEnd: mp.dateRangeEnd || undefined,
+                emotionTag: mp.emotionTag || undefined,
+                invitedBy: mp.invitedBy || undefined,
+                destination1: mp.destination1 || undefined,
+                destination2: mp.destination2 || undefined,
+                accommodation: mp.accommodation || undefined,
+                tripDurationDays: mp.tripDurationDays ? Number(mp.tripDurationDays) : undefined,
+                visitedPlaces: Array.isArray(mp.visitedPlaces) ? mp.visitedPlaces : undefined,
+              }));
 
             setAllPlaces((prev) => {
               const map = new Map(prev.map((p) => [p.id, p]));
@@ -117,34 +121,35 @@ export default function MapScreen() {
             });
           } else if (payload) {
             const updatedPlace: AndreaMapPlace = {
-              id: payload.id,
+              id: String(payload.id),
               type: payload.category || payload.type || 'memory',
-              title: payload.title,
-              subtitle: payload.subtitle,
-              description: payload.story || payload.description,
-              latitude: Number(payload.lat || payload.latitude),
-              longitude: Number(payload.lng || payload.longitude),
+              title: payload.title || 'Rincón',
+              subtitle: payload.subtitle || '',
+              description: payload.story || payload.description || '',
+              latitude: Number(payload.lat ?? payload.latitude) || 39.4699,
+              longitude: Number(payload.lng ?? payload.longitude) || -0.3763,
               precision: payload.locationPrecision || payload.precision || 'exact',
-              date: payload.date,
-              imageUrl: payload.photos?.[0] || payload.imageUrl,
-              photos: payload.photos || (payload.imageUrl ? [payload.imageUrl] : []),
+              date: payload.date || undefined,
+              imageUrl: payload.photos?.[0] || payload.imageUrl || undefined,
+              photos: Array.isArray(payload.photos) ? payload.photos : (payload.imageUrl ? [payload.imageUrl] : []),
               city: payload.cityName || payload.city || 'Valencia',
-              formattedAddress: payload.subtitle,
+              formattedAddress: payload.subtitle || undefined,
               source: 'google_places',
               verifiedByUser: true,
-              startDate: payload.startDate,
-              endDate: payload.endDate,
-              isOngoing: payload.isOngoing,
-              stageSummary: payload.stageSummary,
-              hasDateRange: payload.hasDateRange,
-              dateRangeEnd: payload.dateRangeEnd,
-              emotionTag: payload.emotionTag,
-              invitedBy: payload.invitedBy,
-              destination1: payload.destination1,
-              destination2: payload.destination2,
-              accommodation: payload.accommodation,
-              tripDurationDays: payload.tripDurationDays,
-              visitedPlaces: payload.visitedPlaces,
+              startDate: payload.startDate || undefined,
+              endDate: payload.endDate || undefined,
+              isOngoing: Boolean(payload.isOngoing),
+              stageSummary: payload.stageSummary || undefined,
+              linkedPlaceIds: Array.isArray(payload.linkedPlaceIds) ? payload.linkedPlaceIds : undefined,
+              hasDateRange: Boolean(payload.hasDateRange),
+              dateRangeEnd: payload.dateRangeEnd || undefined,
+              emotionTag: payload.emotionTag || undefined,
+              invitedBy: payload.invitedBy || undefined,
+              destination1: payload.destination1 || undefined,
+              destination2: payload.destination2 || undefined,
+              accommodation: payload.accommodation || undefined,
+              tripDurationDays: payload.tripDurationDays ? Number(payload.tripDurationDays) : undefined,
+              visitedPlaces: Array.isArray(payload.visitedPlaces) ? payload.visitedPlaces : undefined,
             };
 
             setAllPlaces((prev) => {
