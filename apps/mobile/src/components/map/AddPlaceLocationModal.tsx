@@ -111,13 +111,32 @@ export function AddPlaceLocationModal({
         setHasDateRange(Boolean(initialPlace.hasDateRange));
         setDateRangeEnd(initialPlace.dateRangeEnd || '');
         setEmotionTag(initialPlace.emotionTag || '');
-        setIsMemoryQuality(Boolean(initialPlace.emotionTag || initialPlace.description || initialPlace.type === 'memory' || initialPlace.photos?.length));
         setInvitedBy(initialPlace.invitedBy || 'both');
-        setDestination1(initialPlace.destination1 || '');
-        setDestination2(initialPlace.destination2 || '');
+
         setAccommodation(initialPlace.accommodation || '');
+        setAccommodationItem(null);
         setTripDurationDays(String(initialPlace.tripDurationDays || 3));
-        setVisitedPlacesText((initialPlace.visitedPlaces || []).join(', '));
+
+        if (Array.isArray(initialPlace.visitedPlaces) && initialPlace.visitedPlaces.length > 0) {
+          setVisitedPlaceItems(
+            initialPlace.visitedPlaces.map((name, i) => ({
+              id: 'visited_' + i,
+              name: String(name),
+              formattedAddress: initialPlace.formattedAddress || initialPlace.city || 'Valencia',
+              latitude: initialPlace.latitude,
+              longitude: initialPlace.longitude,
+              type: 'restaurant',
+            }))
+          );
+        } else {
+          setVisitedPlaceItems([]);
+        }
+
+        setDatePlanItems([]);
+        setHasDateInTrip(false);
+        setTripDatePlan('');
+        setTripDateRestaurantItem(null);
+        setTripDateInvitedBy('both');
 
         setStep('confirm_pin');
       } else {
@@ -142,11 +161,16 @@ export function AddPlaceLocationModal({
         setDateRangeEnd('');
         setEmotionTag('');
         setInvitedBy('both');
-        setDestination1('');
-        setDestination2('');
+
         setAccommodation('');
+        setAccommodationItem(null);
         setTripDurationDays('3');
-        setVisitedPlacesText('');
+        setVisitedPlaceItems([]);
+        setDatePlanItems([]);
+        setHasDateInTrip(false);
+        setTripDatePlan('');
+        setTripDateRestaurantItem(null);
+        setTripDateInvitedBy('both');
       }
     }
   }, [visible, initialPlace]);
