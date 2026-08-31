@@ -20,6 +20,7 @@ import { loadGoogleMapsSDK, ANDREA_GOOGLE_MAP_STYLES } from '../../lib/googleMap
 import { AndreaMapPlace, MapPlaceType, LocationPrecision, LocationSource } from '../../types/map';
 import { triggerHaptic } from '../../utils/haptics';
 import { PhotoUploadField } from '../ui/PhotoUploadField';
+import { GoogleMapsPlaceSearchField, SelectedPlaceItem } from './GoogleMapsPlaceSearchField';
 
 interface AddPlaceLocationModalProps {
   visible: boolean;
@@ -68,15 +69,20 @@ export function AddPlaceLocationModal({
   const [hasDateRange, setHasDateRange] = useState(false);
   const [dateRangeEnd, setDateRangeEnd] = useState('');
   const [emotionTag, setEmotionTag] = useState('');
-  const [isMemoryQuality, setIsMemoryQuality] = useState(true);
 
   const [invitedBy, setInvitedBy] = useState<'tonet' | 'andrea' | 'both'>('both');
-  const [destination1, setDestination1] = useState('');
-  const [destination2, setDestination2] = useState('');
+  const [datePlanItems, setDatePlanItems] = useState<SelectedPlaceItem[]>([]);
 
   const [accommodation, setAccommodation] = useState('');
+  const [accommodationItem, setAccommodationItem] = useState<SelectedPlaceItem | null>(null);
   const [tripDurationDays, setTripDurationDays] = useState('3');
-  const [visitedPlacesText, setVisitedPlacesText] = useState('');
+  const [visitedPlaceItems, setVisitedPlaceItems] = useState<SelectedPlaceItem[]>([]);
+
+  // Trip Date / Escapada within Trip
+  const [hasDateInTrip, setHasDateInTrip] = useState(false);
+  const [tripDatePlan, setTripDatePlan] = useState('');
+  const [tripDateRestaurantItem, setTripDateRestaurantItem] = useState<SelectedPlaceItem | null>(null);
+  const [tripDateInvitedBy, setTripDateInvitedBy] = useState<'tonet' | 'andrea' | 'both'>('both');
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -330,14 +336,10 @@ export function AddPlaceLocationModal({
 
     triggerHaptic('success');
 
-    const visitedPlaces = visitedPlacesText
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-
     const finalType: MapPlaceType = (type as string) === 'hotel' ? 'trip' : type;
 
-    const placeToSave: AndreaMapPlace = {
+    // 1. Primary Place to Save
+    const primaryPlace: AndreaMapPlace = {
       id: initialPlace?.id || ('place-verified-' + Date.now()),
       type: finalType,
       title: title.trim(),
@@ -354,30 +356,121 @@ export function AddPlaceLocationModal({
       photos: photoUrl
         ? Array.from(new Set([photoUrl, ...(initialPlace?.photos || [])]))
         : (initialPlace?.photos || []),
-      date: date || new Date().toISOString().split('T')[0],
+      date: (type === 'stage' || type === 'memory') ? undefined : (date || new Date().toISOString().split('T')[0]),
       isRevealed: true,
 
-      startDate: type === 'stage' ? startDate : undefined,
-      endDate: type === 'stage' ? (isOngoing ? undefined : endDate) : undefined,
+      startDate: type === 'stage' ? startDate : (type === 'trip' ? startDate : undefined),
+      endDate: type === 'stage' ? (isOngoing ? undefined : endDate) : (type === 'trip' ? endDate : undefined),
       isOngoing: type === 'stage' ? isOngoing : undefined,
       stageSummary: stageSummary || undefined,
 
-      hasDateRange: isMemoryQuality && hasDateRange,
-      dateRangeEnd: isMemoryQuality && hasDateRange ? dateRangeEnd : undefined,
-      emotionTag: isMemoryQuality ? emotionTag : undefined,
+      hasDateRange: type === 'memory' ? hasDateRange : undefined,
+      dateRangeEnd: type === 'memory' && hasDateRange ? dateRangeEnd : undefined,
+      emotionTag: (type === 'memory' || emotionTag) ? emotionTag : undefined,
 
       invitedBy: type === 'date' ? invitedBy : undefined,
-      destination1: type === 'date' ? destination1 : undefined,
-      destination2: type === 'date' ? destination2 : undefined,
+      destination1: type === 'date' ? (datePlanItems[0]?.name || undefined) : undefined,
+      destination2: type === 'date' ? (datePlanItems[1]?.name || undefined) : undefined,
 
-      accommodation: accommodation || (type === 'hotel' ? title : undefined),
+      accommodation: accommodationItem ? accommodationItem.name : (accommodation || (type === 'hotel' ? title.trim() : undefined)),
       tripDurationDays: type === 'trip' ? Number(tripDurationDays) || 3 : undefined,
-      visitedPlaces: type === 'trip' ? visitedPlaces : undefined,
+      visitedPlaces: visitedPlaceItems.length > 0
+        ? visitedPlaceItems.map((p) => p.name)
+        : undefined,
     };
 
-    onSavePlace(placeToSave);
+    onSavePlace(primaryPlace);
+
+    // 2. Cascade Global Persistence: Save child entities in the global map
+    if (type === 'trip') {
+      // Save Accommodation in global map
+      if (accommodationItem) {
+        const hotelPlace: AndreaMapPlace = {
+          id: 'hotel_' + accommodationItem.id,
+          type: 'trip',
+          title: accommodationItem.name,
+          subtitle: accommodationItem.formattedAddress,
+          latitude: accommodationItem.latitude,
+          longitude: accommodationItem.longitude,
+          city: accommodationItem.city || verifiedCity,
+          formattedAddress: accommodationItem.formattedAddress,
+          description: `Alojamiento de nuestro viaje a ${title.trim()}`,
+          date: startDate || date,
+          source: 'google_places',
+          precision: 'exact',
+          parentExperienceId: primaryPlace.id,
+        };
+        onSavePlace(hotelPlace);
+      }
+
+      // Save each visited restaurant / spot in global map
+      for (const item of visitedPlaceItems) {
+        const isGastronomic = item.type?.includes('restaurant') || item.type?.includes('food') || item.type?.includes('bar');
+        const childPlace: AndreaMapPlace = {
+          id: 'place_item_' + item.id,
+          type: isGastronomic ? 'restaurant' : 'memory',
+          title: item.name,
+          subtitle: item.formattedAddress,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          city: item.city || verifiedCity,
+          formattedAddress: item.formattedAddress,
+          description: `Rincón visitado durante nuestro viaje a ${title.trim()}`,
+          date: startDate || date,
+          source: 'google_places',
+          precision: 'exact',
+          parentExperienceId: primaryPlace.id,
+        };
+        onSavePlace(childPlace);
+      }
+
+      // Save romantic date in trip if configured
+      if (hasDateInTrip && (tripDatePlan || tripDateRestaurantItem)) {
+        const tripDatePlace: AndreaMapPlace = {
+          id: 'date_trip_' + primaryPlace.id,
+          type: 'date',
+          title: tripDatePlan || `Cita en ${tripDateRestaurantItem?.name || title.trim()}`,
+          subtitle: tripDateRestaurantItem?.formattedAddress || verifiedAddress,
+          latitude: tripDateRestaurantItem?.latitude || selectedCoordinates[1],
+          longitude: tripDateRestaurantItem?.longitude || selectedCoordinates[0],
+          city: tripDateRestaurantItem?.city || verifiedCity,
+          formattedAddress: tripDateRestaurantItem?.formattedAddress || verifiedAddress,
+          invitedBy: tripDateInvitedBy,
+          date: startDate || date,
+          description: `Cita especial durante nuestro viaje a ${title.trim()}`,
+          source: 'google_places',
+          precision: 'exact',
+          parentExperienceId: primaryPlace.id,
+        };
+        onSavePlace(tripDatePlace);
+      }
+    }
+
+    // Save date plan items in global map if defined
+    if (type === 'date' && datePlanItems.length > 0) {
+      for (const item of datePlanItems) {
+        const isGastronomic = item.type?.includes('restaurant') || item.type?.includes('food') || item.type?.includes('bar');
+        const planChildPlace: AndreaMapPlace = {
+          id: 'date_plan_' + item.id,
+          type: isGastronomic ? 'restaurant' : 'memory',
+          title: item.name,
+          subtitle: item.formattedAddress,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          city: item.city || verifiedCity,
+          formattedAddress: item.formattedAddress,
+          description: `Parada de nuestra cita "${title.trim()}"`,
+          date: date,
+          source: 'google_places',
+          precision: 'exact',
+          parentExperienceId: primaryPlace.id,
+        };
+        onSavePlace(planChildPlace);
+      }
+    }
+
     onClose();
-    Alert.alert('📍 Guardado con Éxito', '"' + title.trim() + '" sincronizado.');
+    Alert.alert('📍 Guardado con Éxito', `"${title.trim()}" sincronizado en el Atlas Global.`);
   };
 
   return (
@@ -593,72 +686,22 @@ export function AddPlaceLocationModal({
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.categoryPill, (type === 'hotel' || (type === 'trip' && accommodation)) && styles.categoryPillActive]}
+                  style={[styles.categoryPill, (type as string) === 'hotel' && styles.categoryPillActive]}
                   onPress={() => setType('hotel' as any)}
                 >
-                  <Text style={[styles.categoryPillText, (type === 'hotel' || (type === 'trip' && accommodation)) && styles.categoryPillTextActive]}>
+                  <Text style={[styles.categoryPillText, (type as string) === 'hotel' && styles.categoryPillTextActive]}>
                     🏨 Hotel / Airbnb
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.categoryPill, (type === 'memory' || type === 'family_home') && styles.categoryPillActive]}
+                  style={[styles.categoryPill, type === 'memory' && styles.categoryPillActive]}
                   onPress={() => setType('memory')}
                 >
-                  <Text style={[styles.categoryPillText, (type === 'memory' || type === 'family_home') && styles.categoryPillTextActive]}>
+                  <Text style={[styles.categoryPillText, type === 'memory' && styles.categoryPillTextActive]}>
                     📍 Lugar / Rincón Familiar
                   </Text>
                 </TouchableOpacity>
-              </View>
-
-              {/* ✨ CUALIDAD DE RECUERDO: PLUS EMOCIONAL APLICABLE A CUALQUIER ENTIDAD */}
-              <View style={styles.memoryQualityCard}>
-                <View style={styles.memoryQualityHeader}>
-                  <View style={{ flex: 1, paddingRight: 10 }}>
-                    <Text style={styles.memoryQualityTitle}>✨ Cualidad de Recuerdo</Text>
-                    <Text style={styles.memoryQualityDesc}>
-                      El alma del momento: añade emoción clave, anécdota y memoria a este rincón.
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.qualityToggle, isMemoryQuality && styles.qualityToggleActive]}
-                    onPress={() => setIsMemoryQuality(!isMemoryQuality)}
-                  >
-                    <View style={[styles.qualityToggleCircle, isMemoryQuality && styles.qualityToggleCircleActive]} />
-                  </TouchableOpacity>
-                </View>
-
-                {isMemoryQuality && (
-                  <View style={{ marginTop: 10 }}>
-                    <Text style={styles.subFieldLabel}>Significado / Emoción clave</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Ej: Magia & Destino, Primer beso, Primer encuentro con sus padres..."
-                      value={emotionTag}
-                      onChangeText={setEmotionTag}
-                    />
-
-                    <TouchableOpacity
-                      style={styles.checkboxRow}
-                      onPress={() => setHasDateRange(!hasDateRange)}
-                    >
-                      <Text style={styles.checkboxEmoji}>{hasDateRange ? '☑️' : '◻️'}</Text>
-                      <Text style={styles.checkboxLabel}>Fue un rango de días (ej: fin de semana o escapada)</Text>
-                    </TouchableOpacity>
-
-                    {hasDateRange && (
-                      <View style={{ marginTop: 6 }}>
-                        <Text style={styles.subFieldLabel}>Fecha de Fin</Text>
-                        <TextInput
-                          style={styles.textInput}
-                          placeholder="YYYY-MM-DD"
-                          value={dateRangeEnd}
-                          onChangeText={setDateRangeEnd}
-                        />
-                      </View>
-                    )}
-                  </View>
-                )}
               </View>
 
               <Text style={styles.fieldLabel}>Nombre / Título</Text>
@@ -674,13 +717,14 @@ export function AddPlaceLocationModal({
                     : type === 'restaurant'
                     ? 'Ej: Honest Greens, Latte & Farina...'
                     : (type as string) === 'hotel'
-                    ? 'Ej: Nuestro Segundo Airbnb Romántico, Hotel Boutique...'
+                    ? 'Ej: Segundo Airbnb Romántico, Hotel Boutique...'
                     : 'Ej: Casa de los padres de Andrea, Casa de los iaios...'
                 }
                 value={title}
                 onChangeText={setTitle}
               />
 
+              {/* 🏡 ETAPA DE VIDA (Contenedor Temporal) */}
               {type === 'stage' && (
                 <View style={styles.specificFieldsBox}>
                   <Text style={styles.specificBoxTitle}>🏡 Configuración de Etapa de Vida (Contenedor)</Text>
@@ -714,7 +758,7 @@ export function AddPlaceLocationModal({
                     onPress={() => setIsOngoing(!isOngoing)}
                   >
                     <Text style={styles.checkboxEmoji}>{isOngoing ? '☑️' : '◻️'}</Text>
-                    <Text style={styles.checkboxLabel}>Actualmente viviendo o conviviendo aquí (Hogar en curso)</Text>
+                    <Text style={styles.checkboxLabel}>Actualmente conviviendo aquí (Hogar actual)</Text>
                   </TouchableOpacity>
 
                   <Text style={styles.subFieldLabel}>Resumen de la etapa</Text>
@@ -727,45 +771,171 @@ export function AddPlaceLocationModal({
                 </View>
               )}
 
+              {/* ✈️ VIAJE (Constructor Interactivo con Google Maps y Cascada) */}
               {type === 'trip' && (
                 <View style={styles.specificFieldsBox}>
                   <Text style={styles.specificBoxTitle}>✈️ Configuración del Viaje (Contenedor)</Text>
                   <Text style={styles.boxHelperText}>
-                    Un viaje puede estar formado por hoteles, restaurantes, citas y paseos.
+                    Todos los restaurantes, hoteles y citas que añadas aquí se guardarán también en el Atlas Global.
                   </Text>
-                  <Text style={styles.subFieldLabel}>¿Dónde nos alojamos? (Hotel / Airbnb)</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Ej: Hotel Boutique, Airbnb frente al mar..."
-                    value={accommodation}
-                    onChangeText={setAccommodation}
+
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.subFieldLabel}>Fecha Salida</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="YYYY-MM-DD"
+                        value={startDate}
+                        onChangeText={setStartDate}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.subFieldLabel}>Días de Duración</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="Ej: 4"
+                        keyboardType="numeric"
+                        value={tripDurationDays}
+                        onChangeText={setTripDurationDays}
+                      />
+                    </View>
+                  </View>
+
+                  {/* Alojamiento con Maps */}
+                  <Text style={styles.subFieldLabel}>🏨 ¿Dónde dormisteis? (Hotel / Airbnb)</Text>
+                  {accommodationItem ? (
+                    <View style={styles.selectedItemCard}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.selectedItemName}>🏨 {accommodationItem.name}</Text>
+                        <Text style={styles.selectedItemAddr} numberOfLines={1}>{accommodationItem.formattedAddress}</Text>
+                      </View>
+                      <TouchableOpacity onPress={() => setAccommodationItem(null)} style={styles.removeBtn}>
+                        <Text style={styles.removeBtnText}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <GoogleMapsPlaceSearchField
+                      placeholder="Buscar Hotel / Airbnb en Google Maps..."
+                      buttonLabel="+ Añadir Hotel o Airbnb del Viaje"
+                      onPlaceSelected={(place) => {
+                        setAccommodationItem(place);
+                        setAccommodation(place.name);
+                      }}
+                    />
+                  )}
+
+                  {/* Lista de Restaurantes y Paradas con Google Maps */}
+                  <Text style={[styles.subFieldLabel, { marginTop: 12 }]}>
+                    🍽️ Restaurantes y paradas visitadas ({visitedPlaceItems.length})
+                  </Text>
+                  {visitedPlaceItems.map((item, idx) => (
+                    <View key={item.id || idx} style={styles.selectedItemCard}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.selectedItemName}>
+                          {item.type?.includes('restaurant') || item.type?.includes('food') ? '🍽️ ' : '📍 '}
+                          {item.name}
+                        </Text>
+                        <Text style={styles.selectedItemAddr} numberOfLines={1}>{item.formattedAddress}</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setVisitedPlaceItems(visitedPlaceItems.filter((_, i) => i !== idx));
+                        }}
+                        style={styles.removeBtn}
+                      >
+                        <Text style={styles.removeBtnText}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+
+                  <GoogleMapsPlaceSearchField
+                    placeholder="Buscar restaurante o parada en Maps..."
+                    buttonLabel="+ Añadir restaurante o parada visitada"
+                    onPlaceSelected={(place) => {
+                      setVisitedPlaceItems([...visitedPlaceItems, place]);
+                    }}
                   />
 
-                  <Text style={styles.subFieldLabel}>Días de duración</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Ej: 4"
-                    keyboardType="numeric"
-                    value={tripDurationDays}
-                    onChangeText={setTripDurationDays}
-                  />
+                  {/* ¿Tuvisteis alguna cita o cena romántica durante el viaje? */}
+                  <TouchableOpacity
+                    style={[styles.checkboxRow, { marginTop: 12 }]}
+                    onPress={() => setHasDateInTrip(!hasDateInTrip)}
+                  >
+                    <Text style={styles.checkboxEmoji}>{hasDateInTrip ? '☑️' : '◻️'}</Text>
+                    <Text style={styles.checkboxLabel}>Tuvimos una cita o cena especial en este viaje</Text>
+                  </TouchableOpacity>
 
-                  <Text style={styles.subFieldLabel}>Restaurantes y sitios visitados (separados por comas)</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Ej: Trattoria del Porto, Mirador del Faro, Café Central"
-                    value={visitedPlacesText}
-                    onChangeText={setVisitedPlacesText}
-                  />
+                  {hasDateInTrip && (
+                    <View style={styles.subDateBox}>
+                      <Text style={styles.subFieldLabel}>¿Quién invitó?</Text>
+                      <View style={styles.invitedRow}>
+                        <TouchableOpacity
+                          style={[styles.invitedPill, tripDateInvitedBy === 'tonet' && styles.invitedPillActive]}
+                          onPress={() => setTripDateInvitedBy('tonet')}
+                        >
+                          <Text style={styles.invitedPillText}>Tonet ❤️</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.invitedPill, tripDateInvitedBy === 'andrea' && styles.invitedPillActive]}
+                          onPress={() => setTripDateInvitedBy('andrea')}
+                        >
+                          <Text style={styles.invitedPillText}>Andrea 💖</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.invitedPill, tripDateInvitedBy === 'both' && styles.invitedPillActive]}
+                          onPress={() => setTripDateInvitedBy('both')}
+                        >
+                          <Text style={styles.invitedPillText}>Ambos ✨</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <Text style={styles.subFieldLabel}>Plan / Título de la cita</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="Ej: Cena romántica en el Trastevere"
+                        value={tripDatePlan}
+                        onChangeText={setTripDatePlan}
+                      />
+
+                      <Text style={styles.subFieldLabel}>Restaurante o Sitio de la cita</Text>
+                      {tripDateRestaurantItem ? (
+                        <View style={styles.selectedItemCard}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.selectedItemName}>🍽️ {tripDateRestaurantItem.name}</Text>
+                            <Text style={styles.selectedItemAddr} numberOfLines={1}>{tripDateRestaurantItem.formattedAddress}</Text>
+                          </View>
+                          <TouchableOpacity onPress={() => setTripDateRestaurantItem(null)} style={styles.removeBtn}>
+                            <Text style={styles.removeBtnText}>✕</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <GoogleMapsPlaceSearchField
+                          placeholder="Buscar restaurante de la cita en Google Maps..."
+                          buttonLabel="+ Seleccionar Restaurante de la Cita"
+                          onPlaceSelected={(place) => setTripDateRestaurantItem(place)}
+                        />
+                      )}
+                    </View>
+                  )}
                 </View>
               )}
 
+              {/* 🥂 CITA / ESCAPADA (Constructor de Paradas) */}
               {type === 'date' && (
                 <View style={styles.specificFieldsBox}>
                   <Text style={styles.specificBoxTitle}>🥂 Configuración de la Cita / Escapada</Text>
                   <Text style={styles.boxHelperText}>
-                    Una cita o escapada puede combinar cena, paseo y sitios especiales.
+                    Define el conjunto de planes y sitios de esta experiencia romántica.
                   </Text>
+
+                  <Text style={styles.subFieldLabel}>Fecha de la Cita</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="YYYY-MM-DD"
+                    value={date}
+                    onChangeText={setDate}
+                  />
+
                   <Text style={styles.subFieldLabel}>¿Quién invitó?</Text>
                   <View style={styles.invitedRow}>
                     <TouchableOpacity
@@ -788,50 +958,89 @@ export function AddPlaceLocationModal({
                     </TouchableOpacity>
                   </View>
 
-                  <Text style={styles.subFieldLabel}>Destino 1 (Plan / Sitio)</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Ej: Cines ABC Park"
-                    value={destination1}
-                    onChangeText={setDestination1}
-                  />
+                  <Text style={[styles.subFieldLabel, { marginTop: 8 }]}>
+                    📍 Conjunto de planes y sitios de la cita ({datePlanItems.length})
+                  </Text>
+                  {datePlanItems.map((item, idx) => (
+                    <View key={item.id || idx} style={styles.selectedItemCard}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.selectedItemName}>📍 {item.name}</Text>
+                        <Text style={styles.selectedItemAddr} numberOfLines={1}>{item.formattedAddress}</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setDatePlanItems(datePlanItems.filter((_, i) => i !== idx));
+                        }}
+                        style={styles.removeBtn}
+                      >
+                        <Text style={styles.removeBtnText}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
 
-                  <Text style={styles.subFieldLabel}>Destino 2 (Opcional: Segundo sitio / Cena)</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Ej: Cena en Don Salvatore"
-                    value={destination2}
-                    onChangeText={setDestination2}
+                  <GoogleMapsPlaceSearchField
+                    placeholder="Buscar plan (Restaurante, cine, mirador...) en Maps..."
+                    buttonLabel="+ Añadir parada o plan a la cita"
+                    onPlaceSelected={(place) => {
+                      setDatePlanItems([...datePlanItems, place]);
+                    }}
                   />
                 </View>
               )}
 
+              {/* 🏨 HOTEL / AIRBNB */}
               {(type as string) === 'hotel' && (
                 <View style={styles.specificFieldsBox}>
                   <Text style={styles.specificBoxTitle}>🏨 Alojamiento (Hotel / Airbnb)</Text>
                   <Text style={styles.boxHelperText}>
-                    Alojamiento romántico o estancia de escapada/viaje.
+                    Alojamiento romántico o estancia de viaje.
                   </Text>
                   <Text style={styles.subFieldLabel}>Detalles de la estancia</Text>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Ej: Apartamento acogedor con vistas, jacuzzi, fin de semana romántico..."
+                    placeholder="Ej: Apartamento acogedor con vistas, jacuzzi, fin de semana..."
                     value={stageSummary}
                     onChangeText={setStageSummary}
                   />
                 </View>
               )}
 
+              {/* 📍 LUGAR FAMILIAR / CASA (Atemporal) */}
               {type === 'memory' && (
                 <View style={styles.specificFieldsBox}>
-                  <Text style={styles.specificBoxTitle}>📍 Lugar o Rincón Familiar</Text>
+                  <Text style={styles.specificBoxTitle}>📍 Lugar o Rincón Familiar (Atemporal)</Text>
                   <Text style={styles.boxHelperText}>
-                    Para sitios como casa de los padres de Andrea, casa de los iaios, miradores o sitios propios.
+                    Los lugares físicos no tienen fecha principal: son atemporales en vuestro mapa.
                   </Text>
                   <Text style={styles.subFieldLabel}>Tipo o Vínculo Familiar</Text>
                   <TextInput
                     style={styles.textInput}
                     placeholder="Ej: Casa Padres Andrea, Casa Iaios Andrea, Casa Iaios Tonet..."
+                    value={stageSummary}
+                    onChangeText={setStageSummary}
+                  />
+
+                  <Text style={styles.subFieldLabel}>Emoción o Qué tiene de especial este sitio</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Ej: Comidas familiares de domingo, tardes de risas..."
+                    value={emotionTag}
+                    onChangeText={setEmotionTag}
+                  />
+                </View>
+              )}
+
+              {/* 🍽️ RESTAURANTE (Atemporal por defecto) */}
+              {type === 'restaurant' && (
+                <View style={styles.specificFieldsBox}>
+                  <Text style={styles.specificBoxTitle}>🍽️ Restaurante / Gastronomía</Text>
+                  <Text style={styles.boxHelperText}>
+                    Rincón culinario para disfrutar juntos.
+                  </Text>
+                  <Text style={styles.subFieldLabel}>Plato recomendado o Tipo de cocina</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Ej: Pasta fresca al pesto, Brunch saludable, Tartar..."
                     value={stageSummary}
                     onChangeText={setStageSummary}
                   />
@@ -1224,13 +1433,41 @@ const styles = StyleSheet.create({
     color: '#766B72',
     marginBottom: 8,
   },
-  memoryQualityCard: {
-    backgroundColor: '#FFF9F5',
-    padding: 12,
-    borderRadius: 14,
-    marginTop: 10,
+  selectedItemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(239, 130, 106, 0.25)',
+    borderColor: 'rgba(58, 47, 56, 0.1)',
+    marginVertical: 3,
+  },
+  selectedItemName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#3A2F38',
+  },
+  selectedItemAddr: {
+    fontSize: 10,
+    color: '#766B72',
+  },
+  removeBtn: {
+    padding: 6,
+  },
+  removeBtnText: {
+    fontSize: 13,
+    color: '#EF826A',
+    fontWeight: '700',
+  },
+  subDateBox: {
+    backgroundColor: '#FFF8F4',
+    padding: 10,
+    borderRadius: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 130, 106, 0.2)',
   },
   memoryQualityHeader: {
     flexDirection: 'row',
