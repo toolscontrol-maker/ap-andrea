@@ -8,7 +8,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AndreaMap } from '../../../src/components/map/AndreaMap';
-import { MapFilters, MapFilterKey, FILTER_TYPE_MAP } from '../../../src/components/map/MapFilters';
+import { MapExplorationMode } from '@andrea/types';
+import { AtlasAdapter } from '../../../src/services/AtlasAdapter';
+import { MapFilters, MODE_FILTERS } from '../../../src/components/map/MapFilters';
 import { MapBottomSheet } from '../../../src/components/map/MapBottomSheet';
 import { AddPlaceLocationModal } from '../../../src/components/map/AddPlaceLocationModal';
 import { PlaceDetailModal } from '../../../src/components/map/PlaceDetailModal';
@@ -24,7 +26,8 @@ import { triggerHaptic } from '../../../src/utils/haptics';
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
 
-  const [activeFilter, setActiveFilter] = useState<MapFilterKey>('all');
+  const [explorationMode, setExplorationMode] = useState<MapExplorationMode>('places');
+  const [activeFilter, setActiveFilter] = useState<string>('all');
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
@@ -170,11 +173,42 @@ export default function MapScreen() {
     StorageEngine.setItem('andrea_map_places_v7', allPlaces);
   }, [allPlaces, isLoaded]);
 
+  const atlasState = useMemo(() => {
+    return AtlasAdapter.normalizeLegacyPlaces(allPlaces);
+  }, [allPlaces]);
+
+  const mapMarkers = useMemo(() => {
+    return AtlasAdapter.deriveMapMarkers(atlasState, explorationMode, activeFilter);
+  }, [atlasState, explorationMode, activeFilter]);
+
   const filteredPlaces = useMemo(() => {
-    const filterTypes = FILTER_TYPE_MAP[activeFilter];
-    if (filterTypes === 'all') return allPlaces;
-    return allPlaces.filter((p) => filterTypes.includes(p.type));
-  }, [allPlaces, activeFilter]);
+    return mapMarkers.map((m) => {
+      const existing = allPlaces.find((p) => p.id === m.entityId);
+      if (existing) return existing;
+      return {
+        id: m.entityId,
+        type: (m.kind as any) || 'memory',
+        title: m.title,
+        subtitle: m.subtitle,
+        description: m.subtitle,
+        latitude: m.latitude,
+        longitude: m.longitude,
+        precision: 'exact',
+        source: 'google_places',
+        imageUrl: m.imageUrl,
+        photos: m.photos,
+      } as AndreaMapPlace;
+    });
+  }, [mapMarkers, allPlaces]);
+
+  const filterCounts = useMemo(() => {
+    const subFilters = MODE_FILTERS[explorationMode] || [];
+    const counts: Record<string, number> = {};
+    for (const sf of subFilters) {
+      counts[sf.key] = AtlasAdapter.deriveMapMarkers(atlasState, explorationMode, sf.key).length;
+    }
+    return counts;
+  }, [atlasState, explorationMode]);
 
   const currentGroups = useMemo(() => {
     return groupMapPlaces(filteredPlaces);
@@ -189,18 +223,6 @@ export default function MapScreen() {
     if (!selectedGroupId) return null;
     return currentGroups.find((g) => g.id === selectedGroupId) || null;
   }, [currentGroups, selectedGroupId]);
-
-  const filterCounts = useMemo(() => {
-    return {
-      all: allPlaces.length,
-      stages: allPlaces.filter((p) => FILTER_TYPE_MAP.stages.includes(p.type)).length,
-      memories: allPlaces.filter((p) => FILTER_TYPE_MAP.memories.includes(p.type)).length,
-      dates: allPlaces.filter((p) => FILTER_TYPE_MAP.dates.includes(p.type)).length,
-      restaurants: allPlaces.filter((p) => FILTER_TYPE_MAP.restaurants.includes(p.type)).length,
-      trips: allPlaces.filter((p) => FILTER_TYPE_MAP.trips.includes(p.type)).length,
-      dreams: allPlaces.filter((p) => FILTER_TYPE_MAP.dreams.includes(p.type)).length,
-    };
-  }, [allPlaces]);
 
   const handlePlacePress = useCallback((place: AndreaMapPlace) => {
     triggerHaptic('medium');
@@ -440,6 +462,13 @@ export default function MapScreen() {
       />
 
       <MapFilters
+        mode={explorationMode}
+        onModeChange={(newMode) => {
+          setExplorationMode(newMode);
+          setActiveFilter('all');
+          setSelectedPlaceId(null);
+          setSelectedGroupId(null);
+        }}
         activeFilter={activeFilter}
         onFilterChange={(filter) => {
           triggerHaptic('selection');

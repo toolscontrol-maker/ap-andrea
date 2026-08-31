@@ -1,52 +1,112 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { MapPlaceType } from '../../types/map';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform } from 'react-native';
+import { MapExplorationMode } from '@andrea/types';
 import { triggerHaptic } from '../../utils/haptics';
 
-export type MapFilterKey = 'all' | 'stages' | 'memories' | 'dates' | 'restaurants' | 'trips' | 'dreams';
+export type MapFilterKey = string;
 
-export const FILTER_TYPE_MAP: Record<MapFilterKey, MapPlaceType[] | 'all'> = {
-  all: 'all',
-  stages: ['stage'],
-  memories: ['memory', 'important_date'],
-  dates: ['date'],
-  restaurants: ['restaurant'],
-  trips: ['trip'],
-  dreams: ['future_place', 'surprise'],
+export interface SubFilterOption {
+  key: string;
+  label: string;
+  icon: string;
+}
+
+export const MODE_FILTERS: Record<MapExplorationMode, SubFilterOption[]> = {
+  places: [
+    { key: 'all', label: 'Todo', icon: '✦' },
+    { key: 'food', label: 'Comer', icon: '🍽️' },
+    { key: 'stay', label: 'Alojarse', icon: '🏨' },
+    { key: 'home', label: 'Hogares', icon: '🏡' },
+    { key: 'nature', label: 'Naturaleza', icon: '🌿' },
+  ],
+  moments: [
+    { key: 'all', label: 'Todo', icon: '✦' },
+    { key: 'memories', label: 'Recuerdos', icon: '❤️' },
+    { key: 'dates', label: 'Citas', icon: '🥂' },
+    { key: 'trips', label: 'Viajes', icon: '✈️' },
+    { key: 'surprises', label: 'Sorpresas', icon: '🎁' },
+  ],
+  chapters: [
+    { key: 'all', label: 'Todo', icon: '✦' },
+    { key: 'home', label: 'Hogares', icon: '🏡' },
+    { key: 'life_stage', label: 'Etapas', icon: '📖' },
+    { key: 'city', label: 'Ciudades', icon: '🏙️' },
+  ],
 };
 
 interface MapFiltersProps {
-  activeFilter: MapFilterKey;
-  onFilterChange: (filter: MapFilterKey) => void;
-  counts?: Record<MapFilterKey, number>;
-  onSearchPress?: () => void;
+  mode: MapExplorationMode;
+  onModeChange: (mode: MapExplorationMode) => void;
+  activeFilter: string;
+  onFilterChange: (filter: string) => void;
+  counts?: Record<string, number>;
   topOffset?: number;
 }
 
 export function MapFilters({
+  mode,
+  onModeChange,
   activeFilter,
   onFilterChange,
   counts,
   topOffset = 12,
 }: MapFiltersProps) {
-  const filters: { key: MapFilterKey; label: string; icon: string }[] = [
-    { key: 'all', label: 'Todo', icon: '✦' },
-    { key: 'stages', label: 'Etapas', icon: '🏡' },
-    { key: 'memories', label: 'Recuerdos', icon: '❤️' },
-    { key: 'dates', label: 'Citas', icon: '🥂' },
-    { key: 'restaurants', label: 'Restaurantes', icon: '🍽️' },
-    { key: 'trips', label: 'Viajes', icon: '✈️' },
-    { key: 'dreams', label: 'Sueños', icon: '✨' },
-  ];
+  const subFilters = MODE_FILTERS[mode] || MODE_FILTERS.places;
 
   return (
     <View style={[styles.container, { top: topOffset }]}>
+      {/* Tier 1: Exploration Mode Segmented Switcher */}
+      <View style={styles.modeSwitcherCard}>
+        <TouchableOpacity
+          style={[styles.modeTab, mode === 'places' && styles.modeTabActive]}
+          activeOpacity={0.8}
+          onPress={() => {
+            triggerHaptic('selection');
+            onModeChange('places');
+            onFilterChange('all');
+          }}
+        >
+          <Text style={[styles.modeTabText, mode === 'places' && styles.modeTabTextActive]}>
+            📍 Lugares
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.modeTab, mode === 'moments' && styles.modeTabActive]}
+          activeOpacity={0.8}
+          onPress={() => {
+            triggerHaptic('selection');
+            onModeChange('moments');
+            onFilterChange('all');
+          }}
+        >
+          <Text style={[styles.modeTabText, mode === 'moments' && styles.modeTabTextActive]}>
+            ❤️ Momentos
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.modeTab, mode === 'chapters' && styles.modeTabActive]}
+          activeOpacity={0.8}
+          onPress={() => {
+            triggerHaptic('selection');
+            onModeChange('chapters');
+            onFilterChange('all');
+          }}
+        >
+          <Text style={[styles.modeTabText, mode === 'chapters' && styles.modeTabTextActive]}>
+            🏡 Capítulos
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Tier 2: Horizontal Scrollable Sub-filter Chips */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {filters.map((f) => {
+        {subFilters.map((f) => {
           const isActive = activeFilter === f.key;
           const count = counts ? counts[f.key] : undefined;
 
@@ -85,57 +145,92 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 15,
+    alignItems: 'center',
+    gap: 8,
+  },
+  modeSwitcherCard: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    padding: 3,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(58, 47, 56, 0.08)',
+    shadowColor: '#3A2F38',
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  modeTab: {
+    paddingVertical: 7,
+    paddingHorizontal: 15,
+    borderRadius: 18,
+  },
+  modeTabActive: {
+    backgroundColor: '#3A2F38',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  modeTabText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#766B72',
+  },
+  modeTabTextActive: {
+    color: '#FFFFFF',
   },
   scrollContent: {
     paddingHorizontal: 16,
     gap: 8,
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    backgroundColor: '#FFFFFF',
+    gap: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderWidth: 1,
     borderColor: 'rgba(58, 47, 56, 0.08)',
     shadowColor: '#3A2F38',
     shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
   chipActive: {
-    backgroundColor: '#3A2F38',
-    borderColor: '#3A2F38',
+    backgroundColor: '#EF826A',
+    borderColor: '#EF826A',
   },
   chipIcon: {
-    fontSize: 13,
+    fontSize: 12,
   },
   chipText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#3A2F38',
-    fontFamily: 'Inter, sans-serif',
   },
   chipTextActive: {
     color: '#FFFFFF',
     fontWeight: '700',
   },
   countBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 999,
-    backgroundColor: '#F5EFE8',
+    backgroundColor: '#F0ECE8',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 8,
+    marginLeft: 2,
   },
   countBadgeActive: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
   },
   countText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: '#766B72',
   },

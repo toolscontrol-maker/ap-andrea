@@ -8,3 +8,4 @@ export * from './rituals.js';
 export * from './aya.js';
 export * from './feelings.js';
 export * from './surprises.js';
+export * from './atlas.js';
