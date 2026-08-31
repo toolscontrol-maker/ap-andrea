@@ -227,6 +227,7 @@ export function ExpandedCalendarModal({
               daysTogether={daysTogether}
               daysSinceMet={daysSinceMet}
               partnerName={partnerName}
+              onOpenMap={onOpenRestaurants}
             />
           )}
         </ScrollView>
