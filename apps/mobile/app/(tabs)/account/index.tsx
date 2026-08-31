@@ -469,13 +469,17 @@ export default function AccountScreen() {
               Cómo recibir Notificaciones en tu iPhone
             </Text>
           </View>
-          <Text style={{ fontSize: 13, color: Colors.light.textSecondary, lineHeight: 18, fontFamily: 'Inter, sans-serif' }}>
-            1. Abre <Text style={{ fontWeight: '700' }}>ap-andrea.vercel.app</Text> en Safari de tu iPhone.{'
-'}
-            2. Pulsa el botón <Text style={{ fontWeight: '700' }}>Compartir (⬆️)</Text> y elige <Text style={{ fontWeight: '700' }}>"Añadir a pantalla de inicio"</Text>.{'
-'}
-            3. Abre el icono desde tu pantalla de inicio y pulsa <Text style={{ fontWeight: '700' }}>"Permitir"</Text> cuando te solicite notificaciones.
-          </Text>
+          <View style={{ gap: 4, marginTop: 4 }}>
+            <Text style={{ fontSize: 13, color: Colors.light.textSecondary, lineHeight: 18, fontFamily: 'Inter, sans-serif' }}>
+              1. Abre <Text style={{ fontWeight: '700' }}>ap-andrea.vercel.app</Text> en Safari de tu iPhone.
+            </Text>
+            <Text style={{ fontSize: 13, color: Colors.light.textSecondary, lineHeight: 18, fontFamily: 'Inter, sans-serif' }}>
+              2. Pulsa el botón <Text style={{ fontWeight: '700' }}>Compartir (⬆️)</Text> y elige <Text style={{ fontWeight: '700' }}>"Añadir a pantalla de inicio"</Text>.
+            </Text>
+            <Text style={{ fontSize: 13, color: Colors.light.textSecondary, lineHeight: 18, fontFamily: 'Inter, sans-serif' }}>
+              3. Abre el icono desde tu pantalla de inicio y pulsa <Text style={{ fontWeight: '700' }}>"Permitir"</Text> cuando te solicite notificaciones.
+            </Text>
+          </View>
         </View>
 
         {/* ── 3. PERSONALIZACIÓN & SUBPÁGINAS ── */}
