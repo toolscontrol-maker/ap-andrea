@@ -28,10 +28,25 @@ export function MapMarker({
     if (place.color) return place.color;
     switch (place.type) {
       case 'memory':
-        return '#E05666'; // Coral primary
+      case 'date':
+        return '#E05666'; // Romantic Coral
       case 'restaurant':
         return '#D4AF37'; // Butter / Gold
+      case 'cafe':
+        return '#C88A58'; // Warm Mocha
+      case 'bar':
+        return '#9B5DE5'; // Grape / Tardeo
+      case 'home':
+      case 'stage':
+        return '#E76F51'; // Terracotta
+      case 'hotel':
+        return '#3A86FF'; // Ocean Stay
+      case 'nature':
+        return '#2A9D8F'; // Sage Nature
+      case 'shop':
+        return '#F15BB5'; // Pink Boutique
       case 'trip':
+      case 'getaway':
       case 'future_place':
         return '#5C9F9A'; // Lavanda / Teal
       case 'surprise':
@@ -49,12 +64,20 @@ export function MapMarker({
 
     switch (place.type) {
       case 'memory':
+      case 'date':
+      case 'home':
+      case 'stage':
         return <IconHeart size={iconSize} color={iconColor} strokeWidth={2.4} />;
       case 'restaurant':
+      case 'cafe':
         return <IconUtensils size={iconSize} color={iconColor} strokeWidth={2.4} />;
+      case 'bar':
       case 'trip':
+      case 'getaway':
       case 'future_place':
+      case 'nature':
         return <IconSparkles size={iconSize} color={iconColor} strokeWidth={2.4} />;
+      case 'shop':
       case 'surprise':
         return <IconGift size={iconSize} color={iconColor} strokeWidth={2.4} />;
       case 'important_date':

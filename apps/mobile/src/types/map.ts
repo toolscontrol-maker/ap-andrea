@@ -1,14 +1,19 @@
 export type MapPlaceType =
   | 'memory'        // Recuerdo especial / Rincón familiar
   | 'restaurant'    // Restaurante / Gastronomía
+  | 'cafe'          // Cafetería / Brunch
+  | 'bar'           // Bar / Cóctel / Tardeo
+  | 'home'          // Hogar / Nuestro Nido
+  | 'hotel'         // Alojamiento / Hotel / Airbnb
+  | 'nature'        // Parque / Mirador / Playa / Naturaleza
+  | 'shop'          // Tienda / Moda / Rincón Especial
   | 'stage'         // Etapa de vida (Canet, Comte del Real)
   | 'date'          // Cita romántica
   | 'getaway'       // Escapada de fin de semana
   | 'trip'          // Gran Viaje
-  | 'hotel'         // Alojamiento / Hotel / Airbnb
   | 'future_place'  // Sueño futuro
   | 'surprise'      // Sorpresa
-  | 'important_date';
+  | 'important_date'; // Hito oficial / Primer beso / Aniversario
 
 export type LocationSource =
   | 'google_places'

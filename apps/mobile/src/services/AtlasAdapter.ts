@@ -53,12 +53,25 @@ export class AtlasAdapter {
 
       // Map kind
       let placeKind: PlaceKind = 'other';
-      if (lp.type === 'restaurant') placeKind = 'restaurant';
-      else if (lp.type === 'stage') placeKind = 'home';
-      else if (lp.type === 'future_place') placeKind = 'future_destination';
-      else if (lp.type === 'trip' || lp.type === 'getaway') placeKind = 'landmark';
-      else if (lp.type === 'date' || (lp.type as string) === 'hotel') placeKind = 'venue';
-      else if (lp.type === 'memory') placeKind = 'landmark';
+      if (lp.type === 'restaurant' || lp.type === 'cafe' || lp.type === 'bar') {
+        placeKind = lp.type as PlaceKind;
+      } else if (lp.type === 'stage' || lp.type === 'home') {
+        placeKind = 'home';
+      } else if (lp.type === 'hotel') {
+        placeKind = 'hotel';
+      } else if (lp.type === 'nature') {
+        placeKind = 'nature';
+      } else if (lp.type === 'shop') {
+        placeKind = 'venue';
+      } else if (lp.type === 'future_place') {
+        placeKind = 'future_destination';
+      } else if (lp.type === 'trip' || lp.type === 'getaway') {
+        placeKind = 'landmark';
+      } else if (lp.type === 'date') {
+        placeKind = 'venue';
+      } else if (lp.type === 'memory') {
+        placeKind = 'landmark';
+      }
 
       const place: AtlasPlace = {
         id: lp.id,
@@ -202,6 +215,7 @@ export class AtlasAdapter {
         else if (['home', 'family_home'].includes(place.kind)) category = 'home';
         else if (['hotel', 'accommodation'].includes(place.kind)) category = 'travel';
         else if (['nature', 'landmark'].includes(place.kind)) category = 'nature';
+        else if (place.kind === 'venue') category = 'shop';
         else if (place.kind === 'future_destination') category = 'future';
 
         // Subfilter matching
@@ -210,6 +224,7 @@ export class AtlasAdapter {
           if (filterKey === 'stay' && category !== 'travel') continue;
           if (filterKey === 'home' && category !== 'home') continue;
           if (filterKey === 'nature' && category !== 'nature') continue;
+          if (filterKey === 'shop' && category !== 'shop') continue;
         }
 
         markers.push({

@@ -14,10 +14,11 @@ export interface SubFilterOption {
 export const MODE_FILTERS: Record<MapExplorationMode, SubFilterOption[]> = {
   places: [
     { key: 'all', label: 'Todo', icon: '✦' },
-    { key: 'food', label: 'Comer', icon: '🍽️' },
+    { key: 'food', label: 'Comer y Beber', icon: '🍽️' },
     { key: 'stay', label: 'Alojarse', icon: '🏨' },
     { key: 'home', label: 'Hogares', icon: '🏡' },
     { key: 'nature', label: 'Naturaleza', icon: '🌿' },
+    { key: 'shop', label: 'Tiendas & Rincones', icon: '🛍️' },
   ],
   moments: [
     { key: 'all', label: 'Todo', icon: '✦' },

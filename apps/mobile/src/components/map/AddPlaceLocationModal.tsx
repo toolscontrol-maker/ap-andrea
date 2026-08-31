@@ -90,7 +90,7 @@ const SUB_CATEGORIES_MAP: Record<PrimaryEntityType, SubCategoryOption[]> = {
     },
     {
       id: 'home',
-      mapType: 'memory',
+      mapType: 'home',
       title: 'Hogar / Nuestro Nido',
       emoji: '🏡',
       desc: 'Nuestra casa, rincón familiar o espacio de convivencia.',
@@ -104,21 +104,28 @@ const SUB_CATEGORIES_MAP: Record<PrimaryEntityType, SubCategoryOption[]> = {
     },
     {
       id: 'cafe',
-      mapType: 'restaurant',
+      mapType: 'cafe',
       title: 'Cafetería & Brunch',
       emoji: '☕',
       desc: 'Desayunos, meriendas y cafeterías con encanto.',
     },
     {
+      id: 'bar',
+      mapType: 'bar',
+      title: 'Bar & Cóctel / Tardeo',
+      emoji: '🍸',
+      desc: 'Copas, terrazas, tardeo y música.',
+    },
+    {
       id: 'outdoor',
-      mapType: 'memory',
+      mapType: 'nature',
       title: 'Parque / Mirador / Playa',
       emoji: '🌿',
       desc: 'Paseos al aire libre, miradores, naturaleza o calas.',
     },
     {
       id: 'shop',
-      mapType: 'memory',
+      mapType: 'shop',
       title: 'Tienda & Rincón Especial',
       emoji: '🛍️',
       desc: 'Tiendas de moda, deco o lugares favoritos.',
@@ -286,6 +293,21 @@ export function AddPlaceLocationModal({
         } else if (initialPlace.type === 'restaurant') {
           setPrimaryEntity('place');
           setSelectedSubCategoryId('restaurant');
+        } else if (initialPlace.type === 'cafe') {
+          setPrimaryEntity('place');
+          setSelectedSubCategoryId('cafe');
+        } else if (initialPlace.type === 'bar') {
+          setPrimaryEntity('place');
+          setSelectedSubCategoryId('bar');
+        } else if (initialPlace.type === 'nature') {
+          setPrimaryEntity('place');
+          setSelectedSubCategoryId('outdoor');
+        } else if (initialPlace.type === 'shop') {
+          setPrimaryEntity('place');
+          setSelectedSubCategoryId('shop');
+        } else if (initialPlace.type === 'home') {
+          setPrimaryEntity('place');
+          setSelectedSubCategoryId('home');
         } else {
           setPrimaryEntity('place');
           setSelectedSubCategoryId('home');
