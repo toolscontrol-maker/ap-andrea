@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ViewStyle, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Radii, Spacing, Typography } from '../../theme/tokens';
 import { IconCamera, IconPlus } from './Icons';
@@ -105,6 +105,18 @@ export function PhotoUploadField({
                 muted
                 playsInline
                 style={{ width: '100%', height: '100%', objectFit: 'cover' } as any}
+              />
+            ) : Platform.OS === 'web' ? (
+              <img
+                src={cleanPreviewUri}
+                alt="Preview"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  borderRadius: 16,
+                  display: 'block',
+                }}
               />
             ) : (
               <Image

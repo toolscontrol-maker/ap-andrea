@@ -8,14 +8,15 @@ export interface PickedImageResult {
   mimeType?: string;
 }
 
-function compressImage(base64: string, maxWidth = 2048, maxHeight = 2048, quality = 0.92): Promise<string> {
+function compressImage(base64OrBlobUrl: string, maxWidth = 1600, maxHeight = 1600, quality = 0.85): Promise<string> {
   return new Promise((resolve) => {
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      resolve(base64);
+    if (typeof window === 'undefined' || typeof document === 'undefined' || !base64OrBlobUrl) {
+      resolve(base64OrBlobUrl);
       return;
     }
-    const timeout = setTimeout(() => resolve(base64), 2000);
+    const timeout = setTimeout(() => resolve(base64OrBlobUrl), 3000);
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => {
       clearTimeout(timeout);
       try {
@@ -23,11 +24,10 @@ function compressImage(base64: string, maxWidth = 2048, maxHeight = 2048, qualit
         let height = img.naturalHeight || img.height;
 
         if (!width || !height) {
-          resolve(base64);
+          resolve(base64OrBlobUrl);
           return;
         }
 
-        // Only scale down if image exceeds 2048px Ultra HD boundary
         if (width > maxWidth || height > maxHeight) {
           if (width > height) {
             height = Math.round((height * maxWidth) / width);
@@ -43,39 +43,37 @@ function compressImage(base64: string, maxWidth = 2048, maxHeight = 2048, qualit
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          resolve(base64);
+          resolve(base64OrBlobUrl);
           return;
         }
-        
-        // High quality image smoothing
+
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Try WebP first for superior compression without loss of crispness, fallback to JPEG
         let compressed = '';
         try {
-          compressed = canvas.toDataURL('image/webp', quality);
-        } catch {}
-
-        if (!compressed || compressed.startsWith('data:image/png') || compressed.length < 100) {
           compressed = canvas.toDataURL('image/jpeg', quality);
+        } catch {
+          try {
+            compressed = canvas.toDataURL('image/png');
+          } catch {}
         }
 
-        if (!compressed || compressed === 'data:,' || compressed.length < 100) {
-          resolve(base64);
-        } else {
+        if (compressed && compressed.length > 100) {
           resolve(compressed);
+        } else {
+          resolve(base64OrBlobUrl);
         }
       } catch {
-        resolve(base64);
+        resolve(base64OrBlobUrl);
       }
     };
     img.onerror = () => {
       clearTimeout(timeout);
-      resolve(base64);
+      resolve(base64OrBlobUrl);
     };
-    img.src = base64;
+    img.src = base64OrBlobUrl;
   });
 }
 

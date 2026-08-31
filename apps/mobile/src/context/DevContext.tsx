@@ -463,6 +463,20 @@ export function DevProvider({ children }: { children: ReactNode }) {
               category: 'daily_checkin',
             });
           } else if (record.id?.startsWith('weekly-photo-')) {
+            try {
+              if (record.body) {
+                const parsed = JSON.parse(record.body);
+                if (parsed?.weekId) {
+                  setWeeklyPhotos((prev) => {
+                    const updated = { ...prev, [parsed.weekId]: parsed };
+                    try {
+                      StorageEngine.setItem(STORAGE_KEYS.WEEKLY_PHOTOS, updated);
+                    } catch {}
+                    return updated;
+                  });
+                }
+              }
+            } catch {}
             pushNotificationService.showLocalNotification({
               title: '📸 Álbum Semanal',
               body: 'Se han actualizado las fotos de la semana',
@@ -506,6 +520,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
           savedUsers,
           savedAuth,
           savedTheme,
+          savedWeeklyPhotos,
+          savedCheckIns,
         ] = await Promise.all([
           StorageEngine.getItem<'user1' | 'user2'>(STORAGE_KEYS.ACTIVE_USER, 'user2'),
           StorageEngine.getItem<WishlistItem[] | null>(STORAGE_KEYS.WISHES, null),
@@ -516,10 +532,20 @@ export function DevProvider({ children }: { children: ReactNode }) {
           StorageEngine.getItem<{ user1: DevUser; user2: DevUser } | null>('andrea_users_v5', null),
           StorageEngine.getItem<{ email: string; role: 'user1' | 'user2'; timestamp?: number } | null>(AUTH_SESSION_KEY, null),
           StorageEngine.getItem<'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux' | null>('andrea_theme_palette_v5', null),
+          StorageEngine.getItem<Record<string, WeeklyPhotoEntry> | null>(STORAGE_KEYS.WEEKLY_PHOTOS, null),
+          StorageEngine.getItem<Record<string, DailyMeetingCheckIn> | null>(STORAGE_KEYS.DAILY_CHECKINS, null),
         ]);
 
         if (savedTheme) {
           setThemePaletteState(savedTheme);
+        }
+
+        if (savedWeeklyPhotos) {
+          setWeeklyPhotos(savedWeeklyPhotos);
+        }
+
+        if (savedCheckIns) {
+          setDailyCheckIns(savedCheckIns);
         }
 
         // Validate 24-hour expiration window
@@ -581,7 +607,31 @@ export function DevProvider({ children }: { children: ReactNode }) {
             if (cloudState.savedPlaces && cloudState.savedPlaces.length > 0) setSavedPlaces(cloudState.savedPlaces);
             if (cloudState.mapPlaces && cloudState.mapPlaces.length > 0) setMapPlaces(cloudState.mapPlaces);
             if (cloudState.coupleEvents && cloudState.coupleEvents.length > 0) setCoupleEvents(cloudState.coupleEvents);
-            if (cloudState.ritualSeeds && cloudState.ritualSeeds.length > 0) setRitualSeeds(cloudState.ritualSeeds);
+            if (cloudState.ritualSeeds && cloudState.ritualSeeds.length > 0) {
+              setRitualSeeds(cloudState.ritualSeeds);
+              const weeklyPhotoMap: Record<string, WeeklyPhotoEntry> = {};
+              const checkInMap: Record<string, DailyMeetingCheckIn> = {};
+              cloudState.ritualSeeds.forEach((s) => {
+                if (s.id?.startsWith('weekly-photo-') && s.body) {
+                  try {
+                    const parsed = JSON.parse(s.body);
+                    if (parsed?.weekId) weeklyPhotoMap[parsed.weekId] = parsed;
+                  } catch {}
+                }
+                if (s.id?.startsWith('checkin-') && s.body) {
+                  try {
+                    const parsed = JSON.parse(s.body);
+                    if (parsed?.date) checkInMap[parsed.date] = parsed;
+                  } catch {}
+                }
+              });
+              if (Object.keys(weeklyPhotoMap).length > 0) {
+                setWeeklyPhotos((prev) => ({ ...prev, ...weeklyPhotoMap }));
+              }
+              if (Object.keys(checkInMap).length > 0) {
+                setDailyCheckIns((prev) => ({ ...prev, ...checkInMap }));
+              }
+            }
           }
         } catch (cloudErr) {
           console.warn('[DevContext] Background Cloud hydration error:', cloudErr);
@@ -1362,6 +1412,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
     photoUrl: string,
     caption?: string
   ) => {
+    // 1. Immediate local UI update for instant feedback
     setWeeklyPhotos((prev) => {
       const existing = prev[weekId] || {
         weekId,
@@ -1382,8 +1433,52 @@ export function DevProvider({ children }: { children: ReactNode }) {
         },
       };
 
-      StorageEngine.setItem(STORAGE_KEYS.WEEKLY_PHOTOS, updated);
-      CloudSyncEngine.syncWeeklyPhoto(updated[weekId]);
+      try {
+        StorageEngine.setItem(STORAGE_KEYS.WEEKLY_PHOTOS, updated);
+      } catch {}
+      return updated;
+    });
+
+    // 2. Upload to Supabase Storage if data / blob URI
+    let finalPhotoUrl = photoUrl;
+    if (photoUrl && (photoUrl.startsWith('data:') || photoUrl.startsWith('blob:'))) {
+      try {
+        finalPhotoUrl = await CloudSyncEngine.uploadMediaImage(
+          photoUrl,
+          `weekly_${weekId}_${type}_${Date.now()}.jpg`
+        );
+      } catch (err) {
+        console.warn('[DevContext] Failed to upload weekly photo to storage:', err);
+      }
+    }
+
+    // 3. Update with permanent CDN URL and sync with partner
+    setWeeklyPhotos((prev) => {
+      const existing = prev[weekId] || {
+        weekId,
+        weekRangeLabel: 'Semana Actual',
+      };
+
+      const updatedEntry: WeeklyPhotoEntry = {
+        ...existing,
+        photoTogether: type === 'together' ? finalPhotoUrl : existing.photoTogether,
+        photoTonet: type === 'tonet' ? finalPhotoUrl : existing.photoTonet,
+        photoAndrea: type === 'andrea' ? finalPhotoUrl : existing.photoAndrea,
+        captionTogether: type === 'together' ? (caption || existing.captionTogether) : existing.captionTogether,
+        captionTonet: type === 'tonet' ? (caption || existing.captionTonet) : existing.captionTonet,
+        captionAndrea: type === 'andrea' ? (caption || existing.captionAndrea) : existing.captionAndrea,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const updated: Record<string, WeeklyPhotoEntry> = {
+        ...prev,
+        [weekId]: updatedEntry,
+      };
+
+      try {
+        StorageEngine.setItem(STORAGE_KEYS.WEEKLY_PHOTOS, updated);
+      } catch {}
+      CloudSyncEngine.syncWeeklyPhoto(updatedEntry);
       return updated;
     });
   };
