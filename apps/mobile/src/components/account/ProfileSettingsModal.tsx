@@ -10,7 +10,8 @@ import {
   Alert,
   Modal,
   TextInput,
-  Platform
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDev } from '../../context/DevContext';
@@ -92,6 +93,7 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
   const [isPhotoModalVisible, setIsPhotoModalVisible] = useState(false);
   const [editName, setEditName] = useState(currentDevUser.name);
   const [editPhotoUrl, setEditPhotoUrl] = useState(currentDevUser.avatarPhoto || '');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   const isTonet = activeRole === 'user1';
   const roleLabel = isTonet ? 'Novio & Creador' : 'Novia & Amor de mi vida';
@@ -104,15 +106,23 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
   };
 
   const handleSavePhotoProfile = async () => {
-    triggerHaptic('success');
-    const finalName = editName.trim() || currentDevUser.name;
-    await updateUserProfile(currentDevUser.id, {
-      name: finalName,
-      avatarPhoto: editPhotoUrl || undefined,
-      avatar: finalName[0].toUpperCase(),
-    });
-    setIsPhotoModalVisible(false);
-    Alert.alert('✨ Perfil Actualizado', `Tu perfil de ${finalName} se ha guardado con éxito.`);
+    triggerHaptic('selection');
+    setIsSavingProfile(true);
+    try {
+      const finalName = editName.trim() || currentDevUser.name;
+      await updateUserProfile(currentDevUser.id, {
+        name: finalName,
+        avatarPhoto: editPhotoUrl || undefined,
+        avatar: finalName[0].toUpperCase(),
+      });
+      triggerHaptic('success');
+      setIsPhotoModalVisible(false);
+      Alert.alert('✨ Perfil Actualizado', `Tu perfil de ${finalName} se ha guardado con éxito.`);
+    } catch (err) {
+      Alert.alert('⚠️ Error', 'No se pudo guardar el perfil. Inténtalo de nuevo.');
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const handleSwitchUser = () => {
@@ -766,8 +776,20 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
                     onPhotoRemoved={() => setEditPhotoUrl('')}
                   />
 
-                  <TouchableOpacity style={styles.saveBtn} onPress={handleSavePhotoProfile} activeOpacity={0.85}>
-                    <Text style={styles.saveBtnText}>Guardar Mi Perfil ✨</Text>
+                  <TouchableOpacity
+                    style={[styles.saveBtn, isSavingProfile && { opacity: 0.65 }]}
+                    onPress={handleSavePhotoProfile}
+                    disabled={isSavingProfile}
+                    activeOpacity={0.85}
+                  >
+                    {isSavingProfile ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                        <Text style={styles.saveBtnText}>Guardando y subiendo...</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.saveBtnText}>Guardar Mi Perfil ✨</Text>
+                    )}
                   </TouchableOpacity>
                 </ScrollView>
               </View>

@@ -267,6 +267,15 @@ class CloudSyncEngineService {
       this.channel = supabase
         .channel('andrea-tonet-cloud-room')
         .on(
+          'broadcast',
+          { event: 'heartbeat' },
+          (payload: any) => {
+            if (payload?.payload) {
+              this.notifyListeners('feelings', 'INSERT', payload.payload);
+            }
+          }
+        )
+        .on(
           'postgres_changes',
           { event: '*', schema: 'public', filter: `couple_id=eq.${COUPLE_ID}` },
           (payload: any) => {
@@ -668,11 +677,25 @@ class CloudSyncEngineService {
 
   public async syncHeartbeat(senderUserId: string, senderName: string) {
     const payload = {
+      id: `heartbeat-${Date.now()}`,
       senderUserId,
       senderName,
       timestamp: Date.now(),
     };
     this.broadcastLocal('feelings', 'INSERT', payload);
+
+    try {
+      if (this.channel && typeof this.channel.send === 'function') {
+        this.channel.send({
+          type: 'broadcast',
+          event: 'heartbeat',
+          payload,
+        });
+      }
+    } catch (bcErr) {
+      console.warn('[CloudSync] Broadcast heartbeat error:', bcErr);
+    }
+
     try {
       if (this.isSupabaseConfigured()) {
         const seedPayload: RitualSeed = {

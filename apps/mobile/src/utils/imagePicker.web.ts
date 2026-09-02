@@ -77,6 +77,29 @@ function compressImage(base64OrBlobUrl: string, maxWidth = 1600, maxHeight = 160
   });
 }
 
+function getOrCreateHiddenInput(id: string, accept: string, capture?: string): HTMLInputElement {
+  let input = document.getElementById(id) as HTMLInputElement;
+  if (!input) {
+    input = document.createElement('input');
+    input.id = id;
+    input.type = 'file';
+    input.style.position = 'fixed';
+    input.style.top = '-9999px';
+    input.style.left = '-9999px';
+    input.style.opacity = '0';
+    input.style.pointerEvents = 'none';
+    document.body.appendChild(input);
+  }
+  input.accept = accept;
+  if (capture) {
+    input.setAttribute('capture', capture);
+  } else {
+    input.removeAttribute('capture');
+  }
+  input.value = '';
+  return input;
+}
+
 /**
  * Web implementation using standard HTML input element
  * 100% reliable, zero native module mismatch, works on Mobile Web (Safari/Chrome) and Desktop Web
@@ -87,10 +110,12 @@ export async function pickImageFromGallery(
   return new Promise((resolve) => {
     triggerHaptic('light');
 
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*,video/*';
-    input.style.display = 'none';
+    if (typeof document === 'undefined') {
+      resolve(null);
+      return;
+    }
+
+    const input = getOrCreateHiddenInput('__app_single_gallery_input__', 'image/*,video/*');
 
     input.onchange = async (event: any) => {
       const file = event.target?.files?.[0];
@@ -120,8 +145,8 @@ export async function pickImageFromGallery(
       const reader = new FileReader();
       reader.onload = async (e) => {
         const rawBase64 = e.target?.result as string;
-        const targetQuality = options.quality ?? 0.92;
-        const compressedBase64 = await compressImage(rawBase64, 2048, 2048, targetQuality);
+        const targetQuality = options.quality ?? 0.85;
+        const compressedBase64 = await compressImage(rawBase64, 1600, 1600, targetQuality);
         triggerHaptic('selection');
         resolve({
           uri: compressedBase64,
@@ -135,11 +160,7 @@ export async function pickImageFromGallery(
       reader.readAsDataURL(file);
     };
 
-    document.body.appendChild(input);
     input.click();
-    setTimeout(() => {
-      document.body.removeChild(input);
-    }, 1000);
   });
 }
 
@@ -152,11 +173,12 @@ export async function takePhotoWithCamera(
   return new Promise((resolve) => {
     triggerHaptic('light');
 
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment';
-    input.style.display = 'none';
+    if (typeof document === 'undefined') {
+      resolve(null);
+      return;
+    }
+
+    const input = getOrCreateHiddenInput('__app_single_camera_input__', 'image/*', 'environment');
 
     input.onchange = async (event: any) => {
       const file = event.target?.files?.[0];
@@ -168,8 +190,8 @@ export async function takePhotoWithCamera(
       const reader = new FileReader();
       reader.onload = async (e) => {
         const rawBase64 = e.target?.result as string;
-        const targetQuality = options.quality ?? 0.92;
-        const compressedBase64 = await compressImage(rawBase64, 2048, 2048, targetQuality);
+        const targetQuality = options.quality ?? 0.85;
+        const compressedBase64 = await compressImage(rawBase64, 1600, 1600, targetQuality);
         triggerHaptic('selection');
         resolve({
           uri: compressedBase64,
@@ -183,11 +205,7 @@ export async function takePhotoWithCamera(
       reader.readAsDataURL(file);
     };
 
-    document.body.appendChild(input);
     input.click();
-    setTimeout(() => {
-      document.body.removeChild(input);
-    }, 1000);
   });
 }
 

@@ -243,6 +243,11 @@ export interface DevContextType {
   toggleUser1Consent: () => void;
   toggleUser2Consent: () => void;
 
+  // Heartbeat & Connection stats
+  heartbeatCount: number;
+  todayHeartbeatCount: number;
+  lastReceivedHeartbeat: { senderName: string; timestamp: number } | null;
+
   // Cloud Sync & Realtime
   isCloudConnected: boolean;
   cloudSyncStatus: string;
@@ -355,6 +360,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const [entries, setEntries] = useState<DiaryEntryUI[]>(INITIAL_ENTRIES);
   const [dailyCheckIns, setDailyCheckIns] = useState<Record<string, DailyMeetingCheckIn>>({});
   const [weeklyPhotos, setWeeklyPhotos] = useState<Record<string, WeeklyPhotoEntry>>({});
+  const [lastReceivedHeartbeat, setLastReceivedHeartbeat] = useState<{ senderName: string; timestamp: number } | null>(null);
   const [user1Email, setUser1Email] = useState<string>('hwrtseo@gmail.com');
   const [user2Email, setUser2Email] = useState<string>('andrea@amor.com');
   const [user1Password, setUser1Password] = useState<string>('611171571');
@@ -505,6 +511,10 @@ export function DevProvider({ children }: { children: ReactNode }) {
           }
         } else if (entity === 'feelings') {
           if (record.senderName) {
+            setLastReceivedHeartbeat({
+              senderName: record.senderName,
+              timestamp: record.timestamp || Date.now(),
+            });
             pushNotificationService.showLocalNotification({
               title: '💓 ¡Latido de Amor!',
               body: `${record.senderName} te acaba de enviar un latido ❤️`,
@@ -1630,7 +1640,31 @@ export function DevProvider({ children }: { children: ReactNode }) {
     return CloudSyncEngine.uploadMediaImage(fileBase64OrUri, fileName);
   };
 
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const heartbeatSeeds = ritualSeeds.filter(
+    (s) => s.id?.startsWith('heartbeat-') || s.title?.toLowerCase().includes('latido')
+  );
+  const heartbeatCount = Math.max(heartbeatSeeds.length, 1);
+  const todayHeartbeatCount = heartbeatSeeds.filter(
+    (s) => s.date === todayDateStr || s.createdAt?.startsWith(todayDateStr)
+  ).length;
+
   const sendHeartbeat = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const newSeed: RitualSeed = {
+      id: `heartbeat-${Date.now()}`,
+      coupleId: 'andrea-tonet',
+      authorId: currentDevUser.id,
+      date: today,
+      type: 'daily_reflection',
+      title: `💓 Latido de amor de ${currentDevUser.name}`,
+      body: `Latido enviado con amor`,
+      mood: 'love',
+      isSharedWithPartner: true,
+      partnerResponded: false,
+      createdAt: new Date().toISOString(),
+    };
+    setRitualSeeds((prev) => [newSeed, ...prev]);
     CloudSyncEngine.syncHeartbeat(currentDevUser.id, currentDevUser.name);
   };
 
@@ -1662,6 +1696,9 @@ export function DevProvider({ children }: { children: ReactNode }) {
         isPremium,
         user1Consent,
         user2Consent,
+        heartbeatCount,
+        todayHeartbeatCount,
+        lastReceivedHeartbeat,
         isCloudConnected,
         cloudSyncStatus,
         forceCloudSync,

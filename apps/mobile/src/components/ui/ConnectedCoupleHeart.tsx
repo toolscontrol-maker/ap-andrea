@@ -29,6 +29,9 @@ export interface ConnectedCoupleHeartProps {
   daysTogether: number;
   startDateFormatted?: string;
   onHeartPress?: () => void;
+  heartbeatCount?: number;
+  todayHeartbeatCount?: number;
+  lastReceivedHeartbeat?: { senderName: string; timestamp: number } | null;
 }
 
 interface FloatingParticle {
@@ -54,7 +57,10 @@ export function ConnectedCoupleHeart({
   currentUserName,
   daysTogether,
   startDateFormatted = '15 de Febrero de 2025',
-  onHeartPress
+  onHeartPress,
+  heartbeatCount = 0,
+  todayHeartbeatCount = 0,
+  lastReceivedHeartbeat,
 }: ConnectedCoupleHeartProps) {
   // Animation values
   const heartbeatScale = useRef(new Animated.Value(1)).current;
@@ -204,6 +210,92 @@ export function ConnectedCoupleHeart({
       auraAnim.stop();
     };
   }, []);
+
+  // 6. Live Reactive Remote Heartbeat from Partner
+  useEffect(() => {
+    if (!lastReceivedHeartbeat || !lastReceivedHeartbeat.timestamp) return;
+
+    triggerHaptic('heavy');
+    Animated.sequence([
+      Animated.timing(heartbeatScale, {
+        toValue: 1.6,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+      Animated.spring(heartbeatScale, {
+        toValue: 1.0,
+        friction: 3,
+        tension: 90,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Spawn rich celebration particles
+    const symbols = ['💓', '💖', '✨', '❤️', '🌸'];
+    const newParticles: FloatingParticle[] = Array.from({ length: 8 }).map((_, i) => {
+      const p = {
+        id: Date.now() + i + Math.random(),
+        x: new Animated.Value(0),
+        y: new Animated.Value(0),
+        opacity: new Animated.Value(1),
+        scale: new Animated.Value(0.4),
+        symbol: symbols[i % symbols.length],
+      };
+
+      const targetX = (Math.random() - 0.5) * 140;
+      const targetY = -80 - Math.random() * 90;
+
+      Animated.parallel([
+        Animated.timing(p.x, {
+          toValue: targetX,
+          duration: 1000,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(p.y, {
+          toValue: targetY,
+          duration: 1000,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(p.scale, {
+          toValue: 1.4 + Math.random() * 0.4,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.delay(500),
+          Animated.timing(p.opacity, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start();
+
+      return p;
+    });
+
+    setFloatingParticles((prev) => [...prev, ...newParticles]);
+    setTimeout(() => {
+      setFloatingParticles((prev) => prev.filter((p) => !newParticles.includes(p)));
+    }, 1100);
+
+    setHeartbeatToast(`¡${lastReceivedHeartbeat.senderName} te ha enviado un latido! 💓`);
+    Animated.sequence([
+      Animated.timing(toastOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.delay(2600),
+      Animated.timing(toastOpacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setHeartbeatToast(null));
+  }, [lastReceivedHeartbeat?.timestamp]);
 
   const handleTapHeart = () => {
     // 1. Double tactile haptic rhythm
@@ -432,10 +524,17 @@ export function ConnectedCoupleHeart({
           </Animated.View>
         </TouchableOpacity>
 
-        {/* Days Together Metric */}
-        <View style={styles.daysBadge}>
-          <Text style={styles.daysNumberText}>{daysTogether}</Text>
-          <Text style={styles.daysLabelText}>días</Text>
+        {/* Days Together & Live Heartbeats Metric Badges */}
+        <View style={styles.metricsContainer}>
+          <View style={styles.daysBadge}>
+            <Text style={styles.daysNumberText}>{daysTogether}</Text>
+            <Text style={styles.daysLabelText}>días</Text>
+          </View>
+          <View style={styles.heartbeatsBadge}>
+            <Text style={styles.heartbeatsEmoji}>💓</Text>
+            <Text style={styles.heartbeatsNumberText}>{todayHeartbeatCount || heartbeatCount || 0}</Text>
+            <Text style={styles.heartbeatsLabelText}>latidos</Text>
+          </View>
         </View>
 
         {/* Floating Tap Particles */}
@@ -675,27 +774,56 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: '#FFFFFF',
   },
-  daysBadge: {
+  metricsContainer: {
     marginTop: Spacing.xs,
+    alignItems: 'center',
+    gap: 3,
+  },
+  daysBadge: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 3,
     backgroundColor: 'rgba(212, 175, 55, 0.12)',
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 1.5,
     borderRadius: Radii.full,
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.28)',
   },
+  heartbeatsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(224, 86, 102, 0.12)',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 1.5,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    borderColor: 'rgba(224, 86, 102, 0.3)',
+  },
+  heartbeatsEmoji: {
+    fontSize: 9,
+  },
+  heartbeatsNumberText: {
+    ...Typography.captionBold,
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#E05666',
+  },
+  heartbeatsLabelText: {
+    ...Typography.caption,
+    fontSize: 9,
+    color: Colors.light.textMuted,
+  },
   daysNumberText: {
     ...Typography.captionBold,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     color: Colors.light.primary,
   },
   daysLabelText: {
     ...Typography.caption,
-    fontSize: 10,
+    fontSize: 9.5,
     color: Colors.light.textMuted,
   },
   floatingParticle: {

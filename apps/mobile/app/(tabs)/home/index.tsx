@@ -60,6 +60,9 @@ export default function HomeScreen() {
     getRandomAyaQuestion,
     convertWishToSurprise,
     sendHeartbeat,
+    heartbeatCount,
+    todayHeartbeatCount,
+    lastReceivedHeartbeat,
   } = useDev();
 
   const [activeRitualType, setActiveRitualType] = useState<DailyRitualType>('gratitude_note');
@@ -296,6 +299,9 @@ export default function HomeScreen() {
           daysTogether={daysTogether}
           startDateFormatted="15 de Febrero de 2025"
           onHeartPress={sendHeartbeat}
+          heartbeatCount={heartbeatCount}
+          todayHeartbeatCount={todayHeartbeatCount}
+          lastReceivedHeartbeat={lastReceivedHeartbeat}
         />
       </View>
 
