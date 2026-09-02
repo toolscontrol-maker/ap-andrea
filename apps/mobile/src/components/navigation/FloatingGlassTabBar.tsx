@@ -52,8 +52,9 @@ const NUM_TABS = 4;
 const TAB_ITEM_WIDTH = INNER_WIDTH / NUM_TABS; // 76
 
 export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-  const { themePalette } = useDev();
+  const { themePalette, customAccentColor } = useDev();
   const currentTheme = THEME_PALETTES[themePalette] || THEME_PALETTES.atelier;
+  const activePrimary = customAccentColor || currentTheme.primary;
 
   // Filter only the 4 visible main routes
   const visibleRoutes = state.routes.filter((route) => {
@@ -94,8 +95,8 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
             {
               width: TAB_ITEM_WIDTH,
               transform: [{ translateX: pillTranslateX }],
-              backgroundColor: `${currentTheme.primary}48`,
-              borderColor: `${currentTheme.primary}99`,
+              backgroundColor: `${activePrimary}48`,
+              borderColor: `${activePrimary}99`,
             },
           ]}
         />

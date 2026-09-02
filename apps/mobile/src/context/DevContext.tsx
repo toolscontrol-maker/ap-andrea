@@ -324,10 +324,12 @@ export interface DevContextType {
   changeUserEmail: (role: 'user1' | 'user2', newEmail: string) => Promise<{ success: boolean; message: string }>;
 
   // Theme Palette & Visual Effects state
-  themePalette: 'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux';
-  setThemePalette: (theme: 'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux') => Promise<void>;
+  themePalette: ThemePaletteId;
+  setThemePalette: (theme: ThemePaletteId) => Promise<void>;
+  customAccentColor: string | null;
+  setCustomAccentColor: (hex: string | null) => Promise<void>;
   visualEffects: VisualEffects;
-  setVisualEffect: (key: keyof VisualEffects, value: boolean) => Promise<void>;
+  setVisualEffect: <K extends keyof VisualEffects>(key: K, value: VisualEffects[K]) => Promise<void>;
 
   // Andrea Onboarding
   hasSeenAndreaOnboarding: boolean;
@@ -341,11 +343,15 @@ export interface DevContextType {
   importAllUserData: (jsonString: string) => Promise<{ success: boolean; importedKeys: number; error?: string }>;
 }
 
+export type ThemePaletteId = 'atelier' | 'olive' | 'velvet' | 'lavender' | 'bordeaux' | 'ocean' | 'midnight' | 'honey';
+
 export interface VisualEffects {
   glassEffect: boolean;
   continuousSquircle: boolean;
   subtleGradients: boolean;
   compactCards: boolean;
+  hapticFeedback: 'off' | 'soft' | 'medium' | 'crisp';
+  fontStyle: 'modern' | 'editorial' | 'playful';
 }
 
 export const DEFAULT_VISUAL_EFFECTS: VisualEffects = {
@@ -353,6 +359,8 @@ export const DEFAULT_VISUAL_EFFECTS: VisualEffects = {
   continuousSquircle: true,
   subtleGradients: true,
   compactCards: false,
+  hapticFeedback: 'medium',
+  fontStyle: 'modern',
 };
 
 const DevContext = createContext<DevContextType | undefined>(undefined);
@@ -364,7 +372,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const [user1Consent, setUser1Consent] = useState<boolean>(true);
   const [user2Consent, setUser2Consent] = useState<boolean>(true);
 
-  const [themePalette, setThemePaletteState] = useState<'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux'>('atelier');
+  const [themePalette, setThemePaletteState] = useState<ThemePaletteId>('atelier');
+  const [customAccentColor, setCustomAccentColorState] = useState<string | null>(null);
   const [visualEffects, setVisualEffects] = useState<VisualEffects>(DEFAULT_VISUAL_EFFECTS);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
@@ -595,6 +604,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
           savedWeeklyPhotos,
           savedCheckIns,
           savedVisualEffects,
+          savedCustomAccent,
         ] = await Promise.all([
           StorageEngine.getItem<'user1' | 'user2'>(STORAGE_KEYS.ACTIVE_USER, 'user2'),
           StorageEngine.getItem<WishlistItem[] | null>(STORAGE_KEYS.WISHES, null),
@@ -604,14 +614,19 @@ export function DevProvider({ children }: { children: ReactNode }) {
           StorageEngine.getItem<DiaryEntryUI[] | null>('andrea_entries_v5', null),
           StorageEngine.getItem<{ user1: DevUser; user2: DevUser } | null>('andrea_users_v5', null),
           StorageEngine.getItem<{ email: string; role: 'user1' | 'user2'; timestamp?: number } | null>(AUTH_SESSION_KEY, null),
-          StorageEngine.getItem<'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux' | null>('andrea_theme_palette_v5', null),
+          StorageEngine.getItem<ThemePaletteId | null>('andrea_theme_palette_v5', null),
           StorageEngine.getItem<Record<string, WeeklyPhotoEntry> | null>(STORAGE_KEYS.WEEKLY_PHOTOS, null),
           StorageEngine.getItem<Record<string, DailyMeetingCheckIn> | null>(STORAGE_KEYS.DAILY_CHECKINS, null),
           StorageEngine.getItem<VisualEffects | null>('andrea_visual_effects_v1', null),
+          StorageEngine.getItem<string | null>('andrea_custom_accent_v1', null),
         ]);
 
         if (savedTheme) {
           setThemePaletteState(savedTheme);
+        }
+
+        if (savedCustomAccent) {
+          setCustomAccentColorState(savedCustomAccent);
         }
 
         if (savedVisualEffects) {
@@ -655,9 +670,11 @@ export function DevProvider({ children }: { children: ReactNode }) {
             user2: { ...prev.user2, ...(savedUsers.user2 || {}) },
           }));
         }
-        if (savedTheme) {
-          setThemePaletteState(savedTheme);
-          applyThemePalette(savedTheme);
+        if (savedTheme || savedCustomAccent) {
+          const effectiveTheme = savedTheme || 'atelier';
+          setThemePaletteState(effectiveTheme);
+          if (savedCustomAccent) setCustomAccentColorState(savedCustomAccent);
+          applyThemePalette(effectiveTheme, savedCustomAccent);
         }
       } catch (e) {
         console.warn('Error loading persisted data:', e);
@@ -934,13 +951,19 @@ export function DevProvider({ children }: { children: ReactNode }) {
     return { success: true, message: 'Tu contraseña de perfil se ha guardado y sincronizado.' };
   };
 
-  const setThemePalette = async (newTheme: 'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux') => {
-    applyThemePalette(newTheme);
+  const setThemePalette = async (newTheme: ThemePaletteId) => {
+    applyThemePalette(newTheme, customAccentColor);
     setThemePaletteState(newTheme);
     await StorageEngine.setItem('andrea_theme_palette_v5', newTheme);
   };
 
-  const setVisualEffect = async (key: keyof VisualEffects, value: boolean) => {
+  const setCustomAccentColor = async (hex: string | null) => {
+    applyThemePalette(themePalette, hex);
+    setCustomAccentColorState(hex);
+    await StorageEngine.setItem('andrea_custom_accent_v1', hex);
+  };
+
+  const setVisualEffect = async <K extends keyof VisualEffects>(key: K, value: VisualEffects[K]) => {
     setVisualEffects((prev) => {
       const next = { ...prev, [key]: value };
       StorageEngine.setItem('andrea_visual_effects_v1', next);
@@ -1763,6 +1786,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
         changeUserEmail,
         themePalette,
         setThemePalette,
+        customAccentColor,
+        setCustomAccentColor,
         visualEffects,
         setVisualEffect,
         hasSeenAndreaOnboarding,
