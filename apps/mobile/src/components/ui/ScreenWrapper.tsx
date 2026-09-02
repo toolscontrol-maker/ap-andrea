@@ -1,6 +1,8 @@
 import React, { ReactNode } from 'react';
 import { View, StyleSheet, SafeAreaView, ViewStyle, ScrollView, Platform } from 'react-native';
 import { Colors, Space, Layout } from '../../theme';
+import { useDev } from '../../context/DevContext';
+import { THEME_PALETTES } from '../../theme/colors';
 
 export interface ScreenWrapperProps {
   children: ReactNode;
@@ -25,7 +27,9 @@ export function ScreenWrapper({
   scrollable = true,
   bottomSpacing = true,
 }: ScreenWrapperProps) {
-  const resolvedBg = backgroundColor || Colors.light.background;
+  const { themePalette } = useDev();
+  const currentTheme = THEME_PALETTES[themePalette] || THEME_PALETTES.atelier;
+  const resolvedBg = backgroundColor || currentTheme.background;
   const horizontalPadding = fullBleed
     ? 0
     : compact

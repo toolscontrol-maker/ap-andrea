@@ -2,9 +2,10 @@ import { useState, useCallback } from 'react';
 import { SanitizedEventItem } from '../domain/calendar.types';
 
 export function useCalendarState() {
-  const [currentYear, setCurrentYear] = useState<number>(2026);
-  const [currentMonthIndex, setCurrentMonthIndex] = useState<number>(7); // 7 = Agosto
-  const [selectedDate, setSelectedDate] = useState<string>('2026-08-23');
+  const now = new Date();
+  const [currentYear, setCurrentYear] = useState<number>(now.getFullYear());
+  const [currentMonthIndex, setCurrentMonthIndex] = useState<number>(now.getMonth());
+  const [selectedDate, setSelectedDate] = useState<string>(now.toISOString().split('T')[0]);
 
   // Modals & Bottom Sheets
   const [isIdeasSheetOpen, setIsIdeasSheetOpen] = useState<boolean>(false);

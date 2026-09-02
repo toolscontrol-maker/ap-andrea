@@ -642,11 +642,6 @@ export function ProfileSettingsModal({ visible, onClose }: ProfileSettingsModalP
             subtitle="Temas visuales y estética"
           >
             <AppearanceSettingsSubpage
-              currentPalette={themePalette}
-              onSelectPalette={(p) => {
-                setThemePalette(p);
-                setActiveSubpage(null);
-              }}
               onClose={() => setActiveSubpage(null)}
             />
           </SettingsSubpageContainer>

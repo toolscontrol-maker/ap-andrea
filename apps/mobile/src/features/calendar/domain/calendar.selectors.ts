@@ -1,5 +1,6 @@
 import { CoupleEvent } from '@andrea/types';
 import { SanitizedEventItem } from './calendar.types';
+import { normalizeDateStr } from '../utils/calendarDateUtils';
 
 /**
  * Anti-spoiler selector that transforms raw CoupleEvents into a sanitized view
@@ -8,21 +9,25 @@ import { SanitizedEventItem } from './calendar.types';
 export function sanitizeCoupleEvents(
   events: CoupleEvent[],
   currentUserId: string,
-  currentDateIso: string = '2026-08-23T18:00:00'
+  currentDateIso?: string
 ): SanitizedEventItem[] {
+  const effectiveCurrentDateIso = currentDateIso || new Date().toISOString();
+
   return events.map((ev) => {
     const isOwner = ev.ownerId === currentUserId;
     const isAlreadyRevealed =
       ev.status === 'revealed' ||
       ev.revealPolicy === 'immediately' ||
-      (ev.revealAt && currentDateIso >= ev.revealAt);
+      (ev.revealAt && effectiveCurrentDateIso >= ev.revealAt);
+
+    const normDate = normalizeDateStr(ev.date);
 
     if (isOwner) {
       // Owner sees everything clearly (title, notes, location)
       return {
         id: ev.id,
         eventType: ev.eventType,
-        date: ev.date,
+        date: normDate,
         time: ev.time,
         title: ev.ownerView.title,
         subtitle: ev.ownerView.subtitle,
@@ -44,7 +49,7 @@ export function sanitizeCoupleEvents(
       return {
         id: ev.id,
         eventType: 'surprise',
-        date: ev.date,
+        date: normDate,
         time: ev.partnerView.isSecret ? undefined : ev.time,
         title: ev.partnerView.title || '✨ Tienes un plan especial',
         subtitle: ev.partnerView.subtitle || 'Prepárate para un momento bonito juntos.',
@@ -64,7 +69,7 @@ export function sanitizeCoupleEvents(
     return {
       id: ev.id,
       eventType: ev.eventType,
-      date: ev.date,
+      date: normDate,
       time: ev.time,
       title: ev.ownerView.title,
       subtitle: ev.ownerView.subtitle,
@@ -84,8 +89,9 @@ export function sanitizeCoupleEvents(
 export function groupEventsByDate(events: SanitizedEventItem[]): Record<string, SanitizedEventItem[]> {
   const map: Record<string, SanitizedEventItem[]> = {};
   for (const ev of events) {
-    if (!map[ev.date]) map[ev.date] = [];
-    map[ev.date].push(ev);
+    const norm = normalizeDateStr(ev.date);
+    if (!map[norm]) map[norm] = [];
+    map[norm].push({ ...ev, date: norm });
   }
   return map;
 }

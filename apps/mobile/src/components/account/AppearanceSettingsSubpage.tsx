@@ -1,57 +1,54 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 'react-native';
 import { Colors, THEME_PALETTES, ThemePalette } from '../../theme/colors';
 import { Spacing, Radii, Typography } from '../../theme/tokens';
 import { triggerHaptic } from '../../utils/haptics';
 import { IconCheck, IconSliders, IconSparkles } from '../ui/Icons';
 import { Badge } from '../ui/Badge';
+import { useDev } from '../../context/DevContext';
 
 interface AppearanceSettingsSubpageProps {
-  currentPalette: ThemePalette;
-  onSelectPalette: (palette: ThemePalette) => void;
+  currentPalette?: ThemePalette;
+  onSelectPalette?: (palette: ThemePalette) => void;
   onClose: () => void;
 }
 
 export function AppearanceSettingsSubpage({
-  currentPalette,
-  onSelectPalette,
   onClose,
 }: AppearanceSettingsSubpageProps) {
-  const [glassEffect, setGlassEffect] = useState(true);
-  const [continuousSquircle, setContinuousSquircle] = useState(true);
-  const [subtleGradients, setSubtleGradients] = useState(true);
-  const [compactCards, setCompactCards] = useState(false);
+  const { themePalette, setThemePalette, visualEffects, setVisualEffect } = useDev();
+  const currentTheme = THEME_PALETTES[themePalette] || THEME_PALETTES.atelier;
 
   const palettesList: { id: ThemePalette; name: string; desc: string; colors: string[] }[] = [
     {
       id: 'atelier',
       name: 'Atelier Calme',
-      desc: 'Blanco perla, crema y coral suave. El look original y romántico.',
+      desc: 'Blanco perla, crema y coral cálido. El look original y romántico.',
       colors: ['#FFF8F2', '#EF826A', '#3A2F38', '#FBE0DA'],
     },
     {
       id: 'velvet',
       name: 'Rosa Terciopelo',
-      desc: 'Tonos rubor cálido, carmín y fresa empolvada.',
-      colors: ['#FFF5F6', '#E05666', '#38262C', '#FCDCE1'],
+      desc: 'Tonos rubor sedoso, frambuesa y fresa empolvada.',
+      colors: ['#FFF0F3', '#E05666', '#38262C', '#FCDCE1'],
     },
     {
       id: 'lavender',
       name: 'Lavanda Silvestre',
-      desc: 'Lilas suaves, violeta etéreo y noche provenzal.',
-      colors: ['#F9F7FC', '#9E8ACD', '#2F293A', '#ECE7F7'],
+      desc: 'Lilas provenzales, violeta etéreo y noche suave.',
+      colors: ['#F4EFFF', '#8A6FC9', '#2F293A', '#ECE4FB'],
     },
     {
       id: 'olive',
       name: 'Salvia & Olivo',
       desc: 'Frescura botánica, tonos salvia y tierra mediterránea.',
-      colors: ['#F6F9F6', '#83A98C', '#28342B', '#E3EEE4'],
+      colors: ['#EDF4ED', '#4E8752', '#243026', '#D6EAD8'],
     },
     {
       id: 'bordeaux',
       name: 'Burdeos Romance',
       desc: 'Granate elegante, vino tinto y rosa suave.',
-      colors: ['#FAF6F6', '#8E283B', '#332024', '#F5D7DC'],
+      colors: ['#F7ECEF', '#9E2A3B', '#332024', '#F4D3D9'],
     },
   ];
 
@@ -74,7 +71,7 @@ export function AppearanceSettingsSubpage({
                 activeOpacity={0.8}
                 onPress={() => {
                   triggerHaptic('selection');
-                  onSelectPalette(p.id);
+                  setThemePalette(p.id);
                 }}
               >
                 <View style={styles.paletteColorDots}>
@@ -85,7 +82,7 @@ export function AppearanceSettingsSubpage({
 
                 <View style={styles.paletteTextCol}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={[styles.paletteName, isSelected && { color: Colors.light.primary, fontWeight: '700' }]}>
+                    <Text style={[styles.paletteName, isSelected && { color: currentTheme.primary, fontWeight: '700' }]}>
                       {p.name}
                     </Text>
                     {isSelected && <Badge variant="primary" size="sm">Activo</Badge>}
@@ -94,7 +91,7 @@ export function AppearanceSettingsSubpage({
                 </View>
 
                 {isSelected && (
-                  <View style={styles.checkCircle}>
+                  <View style={[styles.checkCircle, { backgroundColor: currentTheme.primary }]}>
                     <IconCheck size={14} color="#FFFFFF" strokeWidth={2.5} />
                   </View>
                 )}
@@ -117,12 +114,12 @@ export function AppearanceSettingsSubpage({
             <Text style={styles.toggleDesc}>Fondos con desenfoque suave y materiales sutiles</Text>
           </View>
           <Switch
-            value={glassEffect}
+            value={visualEffects.glassEffect}
             onValueChange={(val) => {
               triggerHaptic('selection');
-              setGlassEffect(val);
+              setVisualEffect('glassEffect', val);
             }}
-            trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+            trackColor={{ false: '#E6DFD5', true: currentTheme.primary }}
             thumbColor="#FFFFFF"
           />
         </View>
@@ -135,12 +132,12 @@ export function AppearanceSettingsSubpage({
             <Text style={styles.toggleDesc}>Curvatura superelíptica Apple en tarjetas y modales</Text>
           </View>
           <Switch
-            value={continuousSquircle}
+            value={visualEffects.continuousSquircle}
             onValueChange={(val) => {
               triggerHaptic('selection');
-              setContinuousSquircle(val);
+              setVisualEffect('continuousSquircle', val);
             }}
-            trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+            trackColor={{ false: '#E6DFD5', true: currentTheme.primary }}
             thumbColor="#FFFFFF"
           />
         </View>
@@ -153,12 +150,12 @@ export function AppearanceSettingsSubpage({
             <Text style={styles.toggleDesc}>Auras de luz cálida en la cabecera del Nido</Text>
           </View>
           <Switch
-            value={subtleGradients}
+            value={visualEffects.subtleGradients}
             onValueChange={(val) => {
               triggerHaptic('selection');
-              setSubtleGradients(val);
+              setVisualEffect('subtleGradients', val);
             }}
-            trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+            trackColor={{ false: '#E6DFD5', true: currentTheme.primary }}
             thumbColor="#FFFFFF"
           />
         </View>
@@ -171,12 +168,12 @@ export function AppearanceSettingsSubpage({
             <Text style={styles.toggleDesc}>Mayor densidad de contenido con menor espaciado</Text>
           </View>
           <Switch
-            value={compactCards}
+            value={visualEffects.compactCards}
             onValueChange={(val) => {
               triggerHaptic('selection');
-              setCompactCards(val);
+              setVisualEffect('compactCards', val);
             }}
-            trackColor={{ false: '#E6DFD5', true: Colors.light.primary }}
+            trackColor={{ false: '#E6DFD5', true: currentTheme.primary }}
             thumbColor="#FFFFFF"
           />
         </View>

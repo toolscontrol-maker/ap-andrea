@@ -56,20 +56,20 @@ export const ThemePalettes = {
   atelier: {
     id: 'atelier',
     name: 'Atelier Calme',
-    background: Palette.cream,
+    background: Palette.cream, // #FFF8F2
     surface: Palette.blush,
     surfaceElevated: Palette.white,
     text: Palette.plum,
     textSecondary: Palette.mauve,
-    primary: Palette.coral,
-    primarySoft: Palette.coralSoft,
+    primary: Palette.coral, // #EF826A
+    primarySoft: Palette.coralSoft, // #FBE0DA
     border: Palette.line,
   },
   velvet: {
     id: 'velvet',
     name: 'Rosa Terciopelo',
-    background: '#FFF5F6',
-    surface: '#FFFBFB',
+    background: '#FFF0F3',
+    surface: '#FFF8FA',
     surfaceElevated: Palette.white,
     text: '#38262C',
     textSecondary: '#785D66',
@@ -80,37 +80,37 @@ export const ThemePalettes = {
   lavender: {
     id: 'lavender',
     name: 'Lavanda Silvestre',
-    background: '#F9F7FC',
-    surface: '#FCFBFE',
+    background: '#F4EFFF',
+    surface: '#FAF7FF',
     surfaceElevated: Palette.white,
     text: '#2F293A',
     textSecondary: '#6A6378',
-    primary: Palette.lavender,
-    primarySoft: Palette.lavenderSoft,
+    primary: '#8A6FC9',
+    primarySoft: '#ECE4FB',
     border: 'rgba(47, 41, 58, 0.08)',
   },
   olive: {
     id: 'olive',
     name: 'Salvia & Olivo',
-    background: '#F6F9F6',
-    surface: '#FAFCFA',
+    background: '#EDF4ED',
+    surface: '#F5FAF5',
     surfaceElevated: Palette.white,
-    text: '#28342B',
-    textSecondary: '#5E6E62',
-    primary: Palette.sage,
-    primarySoft: Palette.sageSoft,
-    border: 'rgba(40, 52, 43, 0.08)',
+    text: '#243026',
+    textSecondary: '#546B57',
+    primary: '#4E8752',
+    primarySoft: '#D6EAD8',
+    border: 'rgba(36, 48, 38, 0.08)',
   },
   bordeaux: {
     id: 'bordeaux',
     name: 'Burdeos Romance',
-    background: '#FAF6F6',
-    surface: '#FCF8F8',
+    background: '#F7ECEF',
+    surface: '#FCF5F7',
     surfaceElevated: Palette.white,
     text: '#332024',
     textSecondary: '#705459',
-    primary: '#8E283B',
-    primarySoft: '#F5D7DC',
+    primary: '#9E2A3B',
+    primarySoft: '#F4D3D9',
     border: 'rgba(51, 32, 36, 0.08)',
   },
 } as const;
@@ -135,6 +135,27 @@ export function applyThemePalette(paletteKey: ThemePalette | string) {
       document.body.style.backgroundColor = p.background;
       const root = document.getElementById('root');
       if (root) root.style.backgroundColor = p.background;
+
+      let styleEl = document.getElementById('andrea-dynamic-theme-vars') as HTMLStyleElement;
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'andrea-dynamic-theme-vars';
+        document.head.appendChild(styleEl);
+      }
+      styleEl.innerHTML = `
+        :root {
+          --app-bg: ${p.background} !important;
+          --app-surface: ${p.surface} !important;
+          --app-primary: ${p.primary} !important;
+          --app-primary-soft: ${p.primarySoft} !important;
+          --app-text: ${p.text} !important;
+          --app-text-secondary: ${p.textSecondary} !important;
+          --app-border: ${p.border} !important;
+        }
+        body, html, #root {
+          background-color: ${p.background} !important;
+        }
+      `;
     } catch {}
   }
 }

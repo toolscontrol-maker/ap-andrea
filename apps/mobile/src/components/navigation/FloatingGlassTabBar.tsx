@@ -10,6 +10,8 @@ import {
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { IconHome, IconGift, IconCalendar, IconCompass } from '../ui/Icons';
 import { triggerHaptic } from '../../utils/haptics';
+import { useDev } from '../../context/DevContext';
+import { THEME_PALETTES } from '../../theme/colors';
 
 interface TabItemConfig {
   label: string;
@@ -50,6 +52,9 @@ const NUM_TABS = 4;
 const TAB_ITEM_WIDTH = INNER_WIDTH / NUM_TABS; // 76
 
 export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const { themePalette } = useDev();
+  const currentTheme = THEME_PALETTES[themePalette] || THEME_PALETTES.atelier;
+
   // Filter only the 4 visible main routes
   const visibleRoutes = state.routes.filter((route) => {
     const { options } = descriptors[route.key];
@@ -82,13 +87,15 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
   return (
     <View style={styles.outerWrapper} pointerEvents="box-none">
       <View style={styles.glassPill}>
-        {/* Animated Sliding Coral Glass Indicator Pill */}
+        {/* Animated Sliding Glass Indicator Pill with Dynamic Theme Accent */}
         <Animated.View
           style={[
             styles.slidingIndicatorPill,
             {
               width: TAB_ITEM_WIDTH,
               transform: [{ translateX: pillTranslateX }],
+              backgroundColor: `${currentTheme.primary}48`,
+              borderColor: `${currentTheme.primary}99`,
             },
           ]}
         />

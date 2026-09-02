@@ -11,12 +11,34 @@ export interface MonthGridDay {
   isToday: boolean;
 }
 
+export function normalizeDateStr(dateStr?: string | null): string {
+  if (!dateStr) return '';
+  const trimmed = dateStr.trim().split('T')[0];
+  const parts = trimmed.split(/[-/]/);
+  if (parts.length === 3) {
+    let [p1, p2, p3] = parts;
+    // Format is DD-MM-YYYY
+    if (p1.length <= 2 && p3.length === 4) {
+      const year = p3;
+      const month = p2.padStart(2, '0');
+      const day = p1.padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    // Format is YYYY-MM-DD (or YYYY-M-D)
+    const year = p1.padStart(4, '2026');
+    const month = p2.padStart(2, '0');
+    const day = p3.padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  return trimmed;
+}
+
 export function buildMonthGrid(year: number, monthIndex: number): MonthGridDay[] {
   const firstDay = new Date(year, monthIndex, 1).getDay();
   const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1; // 0 = Lunes, 6 = Domingo
   const totalDays = new Date(year, monthIndex + 1, 0).getDate();
 
-  const todayStr = '2026-08-23'; // Reference current date
+  const todayStr = new Date().toISOString().split('T')[0];
   const grid: MonthGridDay[] = [];
 
   // Blank days before first day of month
@@ -40,7 +62,8 @@ export function buildMonthGrid(year: number, monthIndex: number): MonthGridDay[]
 
 export function formatDateNice(dateStr: string): string {
   try {
-    const [y, m, d] = dateStr.split('-').map(Number);
+    const normalized = normalizeDateStr(dateStr);
+    const [y, m, d] = normalized.split('-').map(Number);
     if (!y || !m || !d) return dateStr;
     return `${d} de ${MONTH_NAMES_ES[m - 1]} de ${y}`;
   } catch {
@@ -50,8 +73,10 @@ export function formatDateNice(dateStr: string): string {
 
 export function getDaysUntil(targetDateStr: string): number {
   try {
-    const now = new Date('2026-08-23T00:00:00');
-    const target = new Date(`${targetDateStr}T00:00:00`);
+    const todayStr = new Date().toISOString().split('T')[0];
+    const now = new Date(`${todayStr}T00:00:00`);
+    const normalizedTarget = normalizeDateStr(targetDateStr);
+    const target = new Date(`${normalizedTarget}T00:00:00`);
     const diffTime = target.getTime() - now.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   } catch {

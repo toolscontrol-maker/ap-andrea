@@ -32,7 +32,7 @@ import { Radii, Shadows, Spacing, Typography } from '../../../theme/tokens';
 import { Colors } from '../../../theme/colors';
 import { triggerHaptic } from '../../../utils/haptics';
 import { Badge } from '../../../components/ui/Badge';
-import { formatDateNice } from '../utils/calendarDateUtils';
+import { formatDateNice, normalizeDateStr } from '../utils/calendarDateUtils';
 
 const RELATIONSHIP_START_DATE = '2025-02-15';
 const RELATIONSHIP_MET_DATE = '2024-11-23';
@@ -75,7 +75,8 @@ export function CalendarScreen() {
 
   // 3. Events for selected date
   const eventsForSelectedDate = useMemo(() => {
-    return eventsByDate[store.selectedDate] || [];
+    const norm = normalizeDateStr(store.selectedDate);
+    return eventsByDate[norm] || [];
   }, [eventsByDate, store.selectedDate]);
 
   // 4. Upcoming events (next 3 to 5 items)

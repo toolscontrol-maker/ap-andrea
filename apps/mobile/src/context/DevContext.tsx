@@ -323,9 +323,11 @@ export interface DevContextType {
   changeAppPassword: (currentPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
   changeUserEmail: (role: 'user1' | 'user2', newEmail: string) => Promise<{ success: boolean; message: string }>;
 
-  // Theme Palette state
+  // Theme Palette & Visual Effects state
   themePalette: 'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux';
   setThemePalette: (theme: 'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux') => Promise<void>;
+  visualEffects: VisualEffects;
+  setVisualEffect: (key: keyof VisualEffects, value: boolean) => Promise<void>;
 
   // Andrea Onboarding
   hasSeenAndreaOnboarding: boolean;
@@ -339,6 +341,20 @@ export interface DevContextType {
   importAllUserData: (jsonString: string) => Promise<{ success: boolean; importedKeys: number; error?: string }>;
 }
 
+export interface VisualEffects {
+  glassEffect: boolean;
+  continuousSquircle: boolean;
+  subtleGradients: boolean;
+  compactCards: boolean;
+}
+
+export const DEFAULT_VISUAL_EFFECTS: VisualEffects = {
+  glassEffect: true,
+  continuousSquircle: true,
+  subtleGradients: true,
+  compactCards: false,
+};
+
 const DevContext = createContext<DevContextType | undefined>(undefined);
 
 export function DevProvider({ children }: { children: ReactNode }) {
@@ -349,6 +365,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const [user2Consent, setUser2Consent] = useState<boolean>(true);
 
   const [themePalette, setThemePaletteState] = useState<'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux'>('atelier');
+  const [visualEffects, setVisualEffects] = useState<VisualEffects>(DEFAULT_VISUAL_EFFECTS);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
   const [hasSeenAndreaOnboarding, setHasSeenAndreaOnboardingState] = useState<boolean>(false);
@@ -577,6 +594,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
           savedTheme,
           savedWeeklyPhotos,
           savedCheckIns,
+          savedVisualEffects,
         ] = await Promise.all([
           StorageEngine.getItem<'user1' | 'user2'>(STORAGE_KEYS.ACTIVE_USER, 'user2'),
           StorageEngine.getItem<WishlistItem[] | null>(STORAGE_KEYS.WISHES, null),
@@ -589,10 +607,15 @@ export function DevProvider({ children }: { children: ReactNode }) {
           StorageEngine.getItem<'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux' | null>('andrea_theme_palette_v5', null),
           StorageEngine.getItem<Record<string, WeeklyPhotoEntry> | null>(STORAGE_KEYS.WEEKLY_PHOTOS, null),
           StorageEngine.getItem<Record<string, DailyMeetingCheckIn> | null>(STORAGE_KEYS.DAILY_CHECKINS, null),
+          StorageEngine.getItem<VisualEffects | null>('andrea_visual_effects_v1', null),
         ]);
 
         if (savedTheme) {
           setThemePaletteState(savedTheme);
+        }
+
+        if (savedVisualEffects) {
+          setVisualEffects(savedVisualEffects);
         }
 
         if (savedWeeklyPhotos) {
@@ -917,6 +940,14 @@ export function DevProvider({ children }: { children: ReactNode }) {
     await StorageEngine.setItem('andrea_theme_palette_v5', newTheme);
   };
 
+  const setVisualEffect = async (key: keyof VisualEffects, value: boolean) => {
+    setVisualEffects((prev) => {
+      const next = { ...prev, [key]: value };
+      StorageEngine.setItem('andrea_visual_effects_v1', next);
+      return next;
+    });
+  };
+
   const setHasSeenAndreaOnboarding = async (val: boolean) => {
     setHasSeenAndreaOnboardingState(val);
     await StorageEngine.setItem('andrea_onboarding_seen_v1', val);
@@ -1186,15 +1217,27 @@ export function DevProvider({ children }: { children: ReactNode }) {
     const newId = 'cev-' + Date.now();
     const isSurprise = payload.eventType === 'surprise';
 
+    const rawDate = payload.date?.trim() || new Date().toISOString().split('T')[0];
+    const parts = rawDate.split(/[-/]/);
+    let normalizedDate = rawDate;
+    if (parts.length === 3) {
+      let [p1, p2, p3] = parts;
+      if (p1.length <= 2 && p3.length === 4) {
+        normalizedDate = `${p3}-${p2.padStart(2, '0')}-${p1.padStart(2, '0')}`;
+      } else {
+        normalizedDate = `${p1.padStart(4, '2026')}-${p2.padStart(2, '0')}-${p3.padStart(2, '0')}`;
+      }
+    }
+
     const event: CoupleEvent = {
       id: newId,
       coupleId: 'andrea-tonet',
       ownerId: currentDevUser.id,
       partnerId: partnerDevUser.id,
       eventType: payload.eventType,
-      date: payload.date,
+      date: normalizedDate,
       time: payload.time,
-      actualStartAt: `${payload.date}T${payload.time || '20:00'}:00`,
+      actualStartAt: `${normalizedDate}T${payload.time || '20:00'}:00`,
       ownerView: {
         title: payload.title,
         subtitle: payload.subtitle,
@@ -1720,6 +1763,8 @@ export function DevProvider({ children }: { children: ReactNode }) {
         changeUserEmail,
         themePalette,
         setThemePalette,
+        visualEffects,
+        setVisualEffect,
         hasSeenAndreaOnboarding,
         setHasSeenAndreaOnboarding,
         activeRole,
