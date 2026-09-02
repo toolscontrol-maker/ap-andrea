@@ -354,6 +354,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
   const [ritualSeeds, setRitualSeeds] = useState<RitualSeed[]>(INITIAL_RITUAL_SEEDS);
   const [entries, setEntries] = useState<DiaryEntryUI[]>(INITIAL_ENTRIES);
   const [dailyCheckIns, setDailyCheckIns] = useState<Record<string, DailyMeetingCheckIn>>({});
+  const [weeklyPhotos, setWeeklyPhotos] = useState<Record<string, WeeklyPhotoEntry>>({});
   const [user1Email, setUser1Email] = useState<string>('hwrtseo@gmail.com');
   const [user2Email, setUser2Email] = useState<string>('andrea@amor.com');
   const [user1Password, setUser1Password] = useState<string>('611171571');
