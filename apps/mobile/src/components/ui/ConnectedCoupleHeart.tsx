@@ -75,10 +75,28 @@ export function ConnectedCoupleHeart({
   const [floatingParticles, setFloatingParticles] = useState<FloatingParticle[]>([]);
   const [heartbeatToast, setHeartbeatToast] = useState<string | null>(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
+  const counterBounceScale = useRef(new Animated.Value(1)).current;
 
   // Image load error fallback state
   const [img1Error, setImg1Error] = useState(false);
   const [img2Error, setImg2Error] = useState(false);
+
+  // Live bounce when heartbeat counter updates in real time
+  useEffect(() => {
+    Animated.sequence([
+      Animated.timing(counterBounceScale, {
+        toValue: 1.25,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.spring(counterBounceScale, {
+        toValue: 1.0,
+        friction: 4,
+        tension: 110,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [todayHeartbeatCount, heartbeatCount]);
 
   useEffect(() => {
     // 1. Biological Double Systolic Heartbeat Loop (Lubb-Dubb)
@@ -530,11 +548,16 @@ export function ConnectedCoupleHeart({
             <Text style={styles.daysNumberText}>{daysTogether}</Text>
             <Text style={styles.daysLabelText}>días</Text>
           </View>
-          <View style={styles.heartbeatsBadge}>
+          <Animated.View
+            style={[
+              styles.heartbeatsBadge,
+              { transform: [{ scale: counterBounceScale }] },
+            ]}
+          >
             <Text style={styles.heartbeatsEmoji}>💓</Text>
-            <Text style={styles.heartbeatsNumberText}>{todayHeartbeatCount || heartbeatCount || 0}</Text>
-            <Text style={styles.heartbeatsLabelText}>latidos</Text>
-          </View>
+            <Text style={styles.heartbeatsNumberText}>{todayHeartbeatCount}</Text>
+            <Text style={styles.heartbeatsLabelText}>hoy · {heartbeatCount} tot</Text>
+          </Animated.View>
         </View>
 
         {/* Floating Tap Particles */}

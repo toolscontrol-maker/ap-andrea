@@ -512,10 +512,34 @@ export function DevProvider({ children }: { children: ReactNode }) {
           }
         } else if (entity === 'feelings') {
           if (record.senderName) {
+            const seedId = record.id || `heartbeat-${record.timestamp || Date.now()}`;
+            const today = new Date().toISOString().split('T')[0];
+            const incomingSeed: RitualSeed = {
+              id: seedId,
+              coupleId: 'andrea-tonet',
+              authorId: record.senderUserId || record.senderId || 'partner',
+              date: today,
+              type: 'daily_reflection',
+              title: `💓 Latido de amor de ${record.senderName}`,
+              body: `Latido recibido con amor`,
+              mood: 'love',
+              isSharedWithPartner: true,
+              partnerResponded: false,
+              createdAt: new Date().toISOString(),
+            };
+
+            setRitualSeeds((prev) => {
+              if (prev.some((s) => s.id === seedId)) return prev;
+              const next = [incomingSeed, ...prev];
+              StorageEngine.setItem(STORAGE_KEYS.SEEDS, next);
+              return next;
+            });
+
             setLastReceivedHeartbeat({
               senderName: record.senderName,
               timestamp: record.timestamp || Date.now(),
             });
+
             pushNotificationService.showLocalNotification({
               title: '💓 ¡Latido de Amor!',
               body: `${record.senderName} te acaba de enviar un latido ❤️`,
@@ -1670,7 +1694,11 @@ export function DevProvider({ children }: { children: ReactNode }) {
       partnerResponded: false,
       createdAt: new Date().toISOString(),
     };
-    setRitualSeeds((prev) => [newSeed, ...prev]);
+    setRitualSeeds((prev) => {
+      const next = [newSeed, ...prev];
+      StorageEngine.setItem(STORAGE_KEYS.SEEDS, next);
+      return next;
+    });
     CloudSyncEngine.syncHeartbeat(currentDevUser.id, currentDevUser.name);
   };
 
