@@ -42,8 +42,9 @@ export function PostEventMemoryModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <View style={styles.card} onStartShouldSetResponder={() => true}>
+      <View style={styles.modalContainer}>
+        <TouchableOpacity style={styles.backdropOverlay} activeOpacity={1} onPress={onClose} />
+        <View style={styles.card}>
           <View style={styles.iconCircle}>
             <Text style={{ fontSize: 26 }}>✨</Text>
           </View>
@@ -71,18 +72,21 @@ export function PostEventMemoryModal({
             </Button>
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(20, 27, 32, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.lg,
+  },
+  backdropOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(20, 27, 32, 0.45)',
   },
   card: {
     width: '100%',

@@ -3,7 +3,7 @@ import { CoupleEvent, CoupleEventType, EventView, RevealPolicy } from '@andrea/t
 export type SurpriseActivationMode = 'self' | 'invite' | 'both' | 'total_secret';
 
 export interface SurpriseCreationPayload {
-  category: 'cena' | 'regalo' | 'flores' | 'escapada' | 'plan_juntos' | 'carta' | 'especial';
+  category: 'cena' | 'regalo' | 'flores' | 'escapada' | 'plan_juntos' | 'carta' | 'recordatorio' | 'especial';
   title: string;
   date: string; // YYYY-MM-DD
   time: string; // HH:MM
@@ -64,6 +64,7 @@ export type UniversalEventType =
   | 'surprise'
   | 'trip'
   | 'wishlist'
+  | 'reminder'
   | 'important_date'
   | 'memory';
 

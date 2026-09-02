@@ -118,29 +118,52 @@ class PushNotificationService {
     if (!this.preferences.enabled) return;
     if (params.category && !this.preferences[params.category]) return;
 
-    if (this.checkSupport() && Notification.permission === 'granted') {
-      try {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        // Try Service Worker registration first (required for iOS PWA & modern browsers)
         if ('serviceWorker' in navigator) {
-          const reg = await navigator.serviceWorker.getRegistration();
-          if (reg && reg.showNotification) {
-            reg.showNotification(params.title, {
-              body: params.body,
-              icon: '/assets/icon.png',
-              badge: '/assets/icon.png',
-              tag: params.tag || 'andrea-instant',
-              data: { url: params.url || '/' },
-              vibrate: [200, 100, 200],
-            } as any);
-            return;
+          try {
+            let reg: ServiceWorkerRegistration | null = null;
+            try {
+              reg = await navigator.serviceWorker.ready;
+            } catch {}
+
+            if (!reg) {
+              reg = await navigator.serviceWorker.getRegistration();
+            }
+
+            if (!reg) {
+              reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+            }
+
+            if (reg && typeof reg.showNotification === 'function') {
+              await reg.showNotification(params.title, {
+                body: params.body,
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+                tag: params.tag || `andrea-${Date.now()}`,
+                data: { url: params.url || '/' },
+                vibrate: [200, 100, 200],
+              } as any);
+              return;
+            }
+          } catch (swErr) {
+            console.warn('⚠️ [PushNotificationService] SW Notification error:', swErr);
           }
         }
-        new Notification(params.title, {
-          body: params.body,
-          icon: '/assets/icon.png',
-          tag: params.tag || 'andrea-instant',
-        });
-      } catch (err) {
-        console.warn('⚠️ [PushNotificationService] Error mostrando notificación local:', err);
+
+        // Fallback to window.Notification if constructor is available
+        try {
+          if (typeof window.Notification === 'function') {
+            new Notification(params.title, {
+              body: params.body,
+              icon: '/favicon.ico',
+              tag: params.tag || `andrea-${Date.now()}`,
+            });
+          }
+        } catch (winErr) {
+          console.warn('⚠️ [PushNotificationService] Window Notification error:', winErr);
+        }
       }
     }
   }

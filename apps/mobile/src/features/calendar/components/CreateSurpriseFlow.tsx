@@ -36,6 +36,7 @@ const SURPRISE_TYPES = [
   { id: 'escapada', label: '✈️ Escapada', icon: '✈️' },
   { id: 'plan_juntos', label: '🎬 Plan juntos', icon: '🎬' },
   { id: 'carta', label: '💌 Carta o Nota', icon: '💌' },
+  { id: 'recordatorio', label: '📌 Recordatorio / Nota', icon: '📌' },
   { id: 'especial', label: '✨ Algo diferente', icon: '✨' },
 ] as const;
 
@@ -118,14 +119,14 @@ export function CreateSurpriseFlow({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
+        style={styles.modalContainer}
       >
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-          <View style={styles.sheet} onStartShouldSetResponder={() => true}>
-            <View style={styles.grabber} />
+        <TouchableOpacity style={styles.backdropOverlay} activeOpacity={1} onPress={onClose} />
+        <View style={styles.sheet}>
+          <View style={styles.grabber} />
 
-            {/* Header */}
-            <View style={styles.header}>
+          {/* Header */}
+          <View style={styles.header}>
               <View>
                 <Text style={styles.title}>Preparar una Sorpresa</Text>
                 <Text style={styles.subtitle}>Para sorprender con cariño a {partnerDevUser.name}</Text>
@@ -300,18 +301,20 @@ export function CreateSurpriseFlow({
                 Guardar sorpresa ✨
               </Button>
             </ScrollView>
-          </View>
-        </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(20, 27, 32, 0.45)',
     justifyContent: 'flex-end',
+  },
+  backdropOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(20, 27, 32, 0.45)',
   },
   sheet: {
     backgroundColor: '#FFFFFF',
@@ -320,6 +323,7 @@ const styles = StyleSheet.create({
     maxHeight: '92%',
     paddingTop: Spacing.md,
     ...Shadows.lg,
+    zIndex: 10,
   },
   grabber: {
     width: 36,

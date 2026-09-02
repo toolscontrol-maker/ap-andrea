@@ -35,8 +35,9 @@ export function IdeasLibrarySheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+      <View style={styles.modalContainer}>
+        <TouchableOpacity style={styles.backdropOverlay} activeOpacity={1} onPress={onClose} />
+        <View style={styles.sheet}>
           <View style={styles.grabber} />
 
           {/* Header */}
@@ -101,16 +102,19 @@ export function IdeasLibrarySheet({
             </View>
           </ScrollView>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(20, 27, 32, 0.45)',
     justifyContent: 'flex-end',
+  },
+  backdropOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(20, 27, 32, 0.45)',
   },
   sheet: {
     backgroundColor: '#FFFFFF',
@@ -120,6 +124,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing['2xl'],
     ...Shadows.lg,
+    zIndex: 10,
   },
   grabber: {
     width: 36,

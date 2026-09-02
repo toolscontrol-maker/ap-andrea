@@ -36,8 +36,9 @@ export function FutureLetterModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+      <View style={styles.modalContainer}>
+        <TouchableOpacity style={styles.backdropOverlay} activeOpacity={1} onPress={onClose} />
+        <View style={styles.sheet}>
           <View style={styles.grabber} />
 
           <View style={styles.header}>
@@ -96,16 +97,19 @@ export function FutureLetterModal({
             </Button>
           </ScrollView>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(20, 27, 32, 0.45)',
     justifyContent: 'flex-end',
+  },
+  backdropOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(20, 27, 32, 0.45)',
   },
   sheet: {
     backgroundColor: '#FFFFFF',
@@ -113,6 +117,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: Radii['2xl'],
     maxHeight: '90%',
     paddingTop: Spacing.md,
+    zIndex: 10,
     ...Shadows.lg,
   },
   grabber: {

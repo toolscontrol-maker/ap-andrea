@@ -80,8 +80,9 @@ export function EventDetailSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+      <View style={styles.modalContainer}>
+        <TouchableOpacity style={styles.backdropOverlay} activeOpacity={1} onPress={onClose} />
+        <View style={styles.sheet}>
           <View style={styles.grabber} />
 
           {/* Header */}
@@ -214,16 +215,19 @@ export function EventDetailSheet({
             </View>
           </ScrollView>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(20, 27, 32, 0.45)',
     justifyContent: 'flex-end',
+  },
+  backdropOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(20, 27, 32, 0.45)',
   },
   sheet: {
     backgroundColor: Platform.OS === 'web' ? 'rgba(253, 252, 250, 0.90)' : '#FFFFFF',
@@ -233,6 +237,7 @@ const styles = StyleSheet.create({
           WebkitBackdropFilter: 'blur(30px) saturate(180%)',
         } as any)
       : {}),
+    zIndex: 10,
     borderTopLeftRadius: 4, // Squared corners
     borderTopRightRadius: 4, // Squared corners
     borderTopWidth: 1,

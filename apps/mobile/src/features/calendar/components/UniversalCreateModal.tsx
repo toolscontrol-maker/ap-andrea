@@ -73,6 +73,14 @@ const MENU_OPTIONS: MenuOption[] = [
     borderColor: '#D4AF37',
   },
   {
+    id: 'reminder',
+    title: 'Recordatorio Básico',
+    subtitle: 'Aviso simple de cita, recado o nota para los dos',
+    emoji: '📌',
+    iconBg: 'rgba(131, 169, 140, 0.15)',
+    borderColor: '#83A98C',
+  },
+  {
     id: 'important_date',
     title: 'Fecha Importante / Aniversario',
     subtitle: 'Un día imprescindible para vuestra historia de amor',
@@ -104,17 +112,16 @@ export function UniversalCreateModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.backdrop}>
-          <TouchableWithoutFeedback>
-            <View style={styles.sheetCard}>
-              {/* Header Handle */}
-              <View style={styles.handleContainer}>
-                <View style={styles.sheetHandle} />
-              </View>
+      <View style={styles.modalContainer}>
+        <TouchableOpacity style={styles.backdropOverlay} activeOpacity={1} onPress={onClose} />
+        <View style={styles.sheetCard}>
+          {/* Header Handle */}
+          <View style={styles.handleContainer}>
+            <View style={styles.sheetHandle} />
+          </View>
 
-              {/* Title Header */}
-              <View style={styles.headerRow}>
+          {/* Title Header */}
+          <View style={styles.headerRow}>
                 <View>
                   <Text style={styles.headerEyebrow}>NUESTRO TIEMPO JUNTOS</Text>
                   <Text style={styles.headerTitle}>¿Qué queréis guardar?</Text>
@@ -165,19 +172,20 @@ export function UniversalCreateModal({
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            </View>
-          </TouchableWithoutFeedback>
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.52)',
     justifyContent: 'flex-end',
+  },
+  backdropOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.52)',
   },
   sheetCard: {
     backgroundColor: '#FFFFFF',
@@ -188,6 +196,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? Spacing['2xl'] + 10 : Spacing.xl,
     maxHeight: '82%',
     ...Shadows.lg,
+    zIndex: 10,
   },
   handleContainer: {
     alignItems: 'center',

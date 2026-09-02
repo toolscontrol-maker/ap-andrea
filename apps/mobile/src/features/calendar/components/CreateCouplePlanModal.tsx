@@ -72,6 +72,14 @@ const PLAN_TYPE_OPTIONS: PlanTypeOption[] = [
     defaultTitle: 'Celebración especial',
   },
   {
+    id: 'reminder',
+    eventType: 'shared_plan',
+    label: '📌 Recordatorio Básico',
+    emoji: '📌',
+    color: '#83A98C',
+    defaultTitle: 'Recordatorio para los dos',
+  },
+  {
     id: 'memory',
     eventType: 'ritual',
     label: '🌿 Recuerdo de Hoy',
@@ -183,14 +191,14 @@ export function CreateCouplePlanModal({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
+        style={styles.modalContainer}
       >
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-          <View style={styles.sheet} onStartShouldSetResponder={() => true}>
-            <View style={styles.grabber} />
+        <TouchableOpacity style={styles.backdropOverlay} activeOpacity={1} onPress={onClose} />
+        <View style={styles.sheet}>
+          <View style={styles.grabber} />
 
-            {/* Header */}
-            <View style={styles.header}>
+          {/* Header */}
+          <View style={styles.header}>
               <View>
                 <Text style={styles.title}>Guardar en el Calendario</Text>
                 <Text style={styles.subtitle}>
@@ -388,18 +396,20 @@ export function CreateCouplePlanModal({
                   : 'Guardar plan en el Calendario ✨'}
               </Button>
             </ScrollView>
-          </View>
-        </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(20, 27, 32, 0.45)',
     justifyContent: 'flex-end',
+  },
+  backdropOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(20, 27, 32, 0.45)',
   },
   sheet: {
     backgroundColor: '#FFFFFF',
@@ -408,6 +418,7 @@ const styles = StyleSheet.create({
     maxHeight: '92%',
     paddingTop: Spacing.md,
     ...Shadows.lg,
+    zIndex: 10,
   },
   grabber: {
     width: 36,
