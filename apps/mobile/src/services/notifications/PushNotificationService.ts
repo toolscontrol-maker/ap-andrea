@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../../services/supabase/client';
+import { supabase } from '../../lib/supabase';
 
 export interface NotificationPreferences {
   enabled: boolean;
