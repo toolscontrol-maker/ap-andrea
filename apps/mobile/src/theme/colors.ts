@@ -116,3 +116,25 @@ export const ThemePalettes = {
 } as const;
 
 export type ThemePaletteKey = keyof typeof ThemePalettes;
+export type ThemePalette = ThemePaletteKey;
+export const THEME_PALETTES = ThemePalettes;
+
+export function applyThemePalette(paletteKey: ThemePalette | string) {
+  const p = (ThemePalettes as any)[paletteKey] || ThemePalettes.atelier;
+  (Colors.light as any).background = p.background;
+  (Colors.light as any).surface = p.surface;
+  (Colors.light as any).surfaceElevated = p.surfaceElevated;
+  (Colors.light as any).text = p.text;
+  (Colors.light as any).textSecondary = p.textSecondary;
+  (Colors.light as any).primary = p.primary;
+  (Colors.light as any).primarySoft = p.primarySoft;
+  (Colors.light as any).border = p.border;
+
+  if (typeof document !== 'undefined') {
+    try {
+      document.body.style.backgroundColor = p.background;
+      const root = document.getElementById('root');
+      if (root) root.style.backgroundColor = p.background;
+    } catch {}
+  }
+}

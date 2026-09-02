@@ -48,10 +48,10 @@ export function AppearanceSettingsSubpage({
       colors: ['#F6F9F6', '#83A98C', '#28342B', '#E3EEE4'],
     },
     {
-      id: 'sunset',
-      name: 'Atardecer en Canet',
-      desc: 'Dorados de costa, arena tibia y ámbar atardecer.',
-      colors: ['#FFF9F2', '#F4C95D', '#362E25', '#FFF3CD'],
+      id: 'bordeaux',
+      name: 'Burdeos Romance',
+      desc: 'Granate elegante, vino tinto y rosa suave.',
+      colors: ['#FAF6F6', '#8E283B', '#332024', '#F5D7DC'],
     },
   ];
 

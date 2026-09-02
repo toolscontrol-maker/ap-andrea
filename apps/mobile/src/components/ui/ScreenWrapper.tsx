@@ -21,10 +21,11 @@ export function ScreenWrapper({
   fullBleed = false,
   compact = false,
   withTopInset = false,
-  backgroundColor = Colors.light.background,
+  backgroundColor,
   scrollable = true,
   bottomSpacing = true,
 }: ScreenWrapperProps) {
+  const resolvedBg = backgroundColor || Colors.light.background;
   const horizontalPadding = fullBleed
     ? 0
     : compact
@@ -35,8 +36,8 @@ export function ScreenWrapper({
 
   if (!scrollable) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor }, style]}>
-        <View style={[styles.rootContainer, { backgroundColor }]}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: resolvedBg }, style]}>
+        <View style={[styles.rootContainer, { backgroundColor: resolvedBg }]}>
           <View
             style={[
               styles.contentContainer,
@@ -56,8 +57,8 @@ export function ScreenWrapper({
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor }, style]}>
-      <View style={[styles.rootContainer, { backgroundColor }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: resolvedBg }, style]}>
+      <View style={[styles.rootContainer, { backgroundColor: resolvedBg }]}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={[

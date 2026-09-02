@@ -148,7 +148,11 @@ export default function HomeScreen() {
     }
   };
 
-  const nextUpcomingEvent = coupleEvents.find((e) => e.status === 'scheduled');
+  const todayDateOnly = new Date().toISOString().split('T')[0];
+  const upcomingScheduledEvents = coupleEvents
+    .filter((e) => e.status === 'scheduled' && e.date >= todayDateOnly)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const nextUpcomingEvent = upcomingScheduledEvents[0] || null;
   const partnerWishes = wishes.filter(
     (w) =>
       w.status !== 'fulfilled' &&

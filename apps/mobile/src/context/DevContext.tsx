@@ -17,6 +17,7 @@ import {
 import { StorageEngine, STORAGE_KEYS } from '../services/storage';
 import { CloudSyncEngine } from '../services/cloud-sync/CloudSyncEngine';
 import { pushNotificationService } from '../services/notifications/PushNotificationService';
+import { applyThemePalette, ThemePalette } from '../theme/colors';
 
 export const AUTH_SESSION_KEY = 'andrea_auth_session_v7';
 export const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -607,6 +608,10 @@ export function DevProvider({ children }: { children: ReactNode }) {
             user2: { ...prev.user2, ...(savedUsers.user2 || {}) },
           }));
         }
+        if (savedTheme) {
+          setThemePaletteState(savedTheme);
+          applyThemePalette(savedTheme);
+        }
       } catch (e) {
         console.warn('Error loading persisted data:', e);
       } finally {
@@ -883,6 +888,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
   };
 
   const setThemePalette = async (newTheme: 'atelier' | 'velvet' | 'lavender' | 'olive' | 'bordeaux') => {
+    applyThemePalette(newTheme);
     setThemePaletteState(newTheme);
     await StorageEngine.setItem('andrea_theme_palette_v5', newTheme);
   };

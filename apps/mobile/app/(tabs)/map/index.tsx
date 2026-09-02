@@ -22,9 +22,11 @@ import { IconPlus, IconLocateFixed } from '../../../src/components/ui/Icons';
 import { StorageEngine } from '../../../src/services/storage';
 import { CloudSyncEngine } from '../../../src/services/cloud-sync/CloudSyncEngine';
 import { triggerHaptic } from '../../../src/utils/haptics';
+import { useDev } from '../../../src/context/DevContext';
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
+  const { savedPlaces, mapPlaces } = useDev();
 
   const [explorationMode, setExplorationMode] = useState<MapExplorationMode>('places');
   const [activeFilter, setActiveFilter] = useState<string>('all');
@@ -40,66 +42,130 @@ export default function MapScreen() {
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
   const [activeDetailPlace, setActiveDetailPlace] = useState<AndreaMapPlace | null>(null);
 
+  // Convert DevContext savedPlaces into AndreaMapPlace format
+  const devSavedPlacesAsMap = useMemo(() => {
+    return (savedPlaces || []).map((sp) => ({
+      id: String(sp.id),
+      type: (sp.category as any) || 'restaurant',
+      title: sp.name || 'Rincón',
+      subtitle: sp.address || sp.city || 'Valencia',
+      description: sp.note || '',
+      latitude: Number(sp.latitude) || 39.4699,
+      longitude: Number(sp.longitude) || -0.3763,
+      precision: 'exact' as const,
+      date: sp.createdAt ? sp.createdAt.split('T')[0] : undefined,
+      imageUrl: sp.coverImageUrl || sp.photos?.[0] || undefined,
+      photos: Array.isArray(sp.photos) && sp.photos.length > 0 ? sp.photos : (sp.coverImageUrl ? [sp.coverImageUrl] : []),
+      city: sp.city || 'Valencia',
+      formattedAddress: sp.address || sp.city || 'Valencia',
+      source: 'google_places',
+      verifiedByUser: true,
+    }));
+  }, [savedPlaces]);
+
+  // Sync devSavedPlacesAsMap into allPlaces
+  useEffect(() => {
+    if (devSavedPlacesAsMap.length > 0) {
+      setAllPlaces((prev) => {
+        const map = new Map(prev.map((p) => [p.id, p]));
+        devSavedPlacesAsMap.forEach((sp) => map.set(sp.id, { ...map.get(sp.id), ...sp }));
+        return Array.from(map.values());
+      });
+    }
+  }, [devSavedPlacesAsMap]);
+
   useEffect(() => {
     async function loadPlaces() {
       // 1. Load locally saved places (user edits override base constants)
       const saved = await StorageEngine.getItem<AndreaMapPlace[]>('andrea_map_places_v7', []);
       let currentBase = DEMO_MAP_PLACES;
       const validSaved = Array.isArray(saved) ? saved.filter((sp) => sp && sp.id && typeof sp === 'object') : [];
-      if (validSaved.length > 0) {
-        const placeMap = new Map(DEMO_MAP_PLACES.map((p) => [p.id, p]));
-        validSaved.forEach((sp) => placeMap.set(sp.id, sp));
-        currentBase = Array.from(placeMap.values());
-      }
+      
+      const placeMap = new Map<string, AndreaMapPlace>();
+      DEMO_MAP_PLACES.forEach((p) => placeMap.set(p.id, p));
+      devSavedPlacesAsMap.forEach((p) => placeMap.set(p.id, p));
+      validSaved.forEach((sp) => placeMap.set(sp.id, sp));
+      currentBase = Array.from(placeMap.values());
+
       setAllPlaces(currentBase);
       setIsLoaded(true);
 
-      // 2. Fetch full Supabase Cloud State with rich fields decoded
+      // 2. Fetch full Supabase Cloud State with both mapPlaces and savedPlaces decoded
       if (CloudSyncEngine.isSupabaseConfigured()) {
         try {
           const cloudState = await CloudSyncEngine.fetchFullCloudState();
-          if (cloudState && cloudState.mapPlaces && cloudState.mapPlaces.length > 0) {
-            const cloudPlaces: AndreaMapPlace[] = cloudState.mapPlaces
-              .filter((mp: any) => mp && (mp.id || mp._id))
-              .map((mp: any) => ({
-                id: String(mp.id || mp._id),
-                type: mp.category || mp.type || 'memory',
-                title: mp.title || 'Rincón',
-                subtitle: mp.subtitle || '',
-                description: mp.story || mp.description || '',
-                latitude: Number(mp.lat ?? mp.latitude) || 39.4699,
-                longitude: Number(mp.lng ?? mp.longitude) || -0.3763,
-                precision: mp.locationPrecision || mp.precision || 'exact',
-                date: mp.date || undefined,
-                imageUrl: mp.photos?.[0] || mp.imageUrl || undefined,
-                photos: Array.isArray(mp.photos) ? mp.photos : (mp.imageUrl ? [mp.imageUrl] : []),
-                city: mp.cityName || mp.city || 'Valencia',
-                formattedAddress: mp.subtitle || undefined,
-                source: 'google_places',
-                verifiedByUser: true,
-                startDate: mp.startDate || undefined,
-                endDate: mp.endDate || undefined,
-                isOngoing: Boolean(mp.isOngoing),
-                stageSummary: mp.stageSummary || undefined,
-                linkedPlaceIds: Array.isArray(mp.linkedPlaceIds) ? mp.linkedPlaceIds : undefined,
-                hasDateRange: Boolean(mp.hasDateRange),
-                dateRangeEnd: mp.dateRangeEnd || undefined,
-                emotionTag: mp.emotionTag || undefined,
-                invitedBy: mp.invitedBy || undefined,
-                destination1: mp.destination1 || undefined,
-                destination2: mp.destination2 || undefined,
-                accommodation: mp.accommodation || undefined,
-                tripDurationDays: mp.tripDurationDays ? Number(mp.tripDurationDays) : undefined,
-                visitedPlaces: Array.isArray(mp.visitedPlaces) ? mp.visitedPlaces : undefined,
-              }));
+          if (cloudState) {
+            const combinedCloud: AndreaMapPlace[] = [];
 
-            setAllPlaces((prev) => {
-              const map = new Map(prev.map((p) => [p.id, p]));
-              cloudPlaces.forEach((cp) => map.set(cp.id, cp));
-              const merged = Array.from(map.values());
-              StorageEngine.setItem('andrea_map_places_v7', merged);
-              return merged;
-            });
+            if (cloudState.mapPlaces && cloudState.mapPlaces.length > 0) {
+              const cloudMapPlaces: AndreaMapPlace[] = cloudState.mapPlaces
+                .filter((mp: any) => mp && (mp.id || mp._id))
+                .map((mp: any) => ({
+                  id: String(mp.id || mp._id),
+                  type: mp.category || mp.type || 'memory',
+                  title: mp.title || 'Rincón',
+                  subtitle: mp.subtitle || '',
+                  description: mp.story || mp.description || '',
+                  latitude: Number(mp.lat ?? mp.latitude) || 39.4699,
+                  longitude: Number(mp.lng ?? mp.longitude) || -0.3763,
+                  precision: mp.locationPrecision || mp.precision || 'exact',
+                  date: mp.date || undefined,
+                  imageUrl: mp.photos?.[0] || mp.imageUrl || undefined,
+                  photos: Array.isArray(mp.photos) ? mp.photos : (mp.imageUrl ? [mp.imageUrl] : []),
+                  city: mp.cityName || mp.city || 'Valencia',
+                  formattedAddress: mp.subtitle || undefined,
+                  source: 'google_places',
+                  verifiedByUser: true,
+                  startDate: mp.startDate || undefined,
+                  endDate: mp.endDate || undefined,
+                  isOngoing: Boolean(mp.isOngoing),
+                  stageSummary: mp.stageSummary || undefined,
+                  linkedPlaceIds: Array.isArray(mp.linkedPlaceIds) ? mp.linkedPlaceIds : undefined,
+                  hasDateRange: Boolean(mp.hasDateRange),
+                  dateRangeEnd: mp.dateRangeEnd || undefined,
+                  emotionTag: mp.emotionTag || undefined,
+                  invitedBy: mp.invitedBy || undefined,
+                  destination1: mp.destination1 || undefined,
+                  destination2: mp.destination2 || undefined,
+                  accommodation: mp.accommodation || undefined,
+                  tripDurationDays: mp.tripDurationDays ? Number(mp.tripDurationDays) : undefined,
+                  visitedPlaces: Array.isArray(mp.visitedPlaces) ? mp.visitedPlaces : undefined,
+                }));
+              combinedCloud.push(...cloudMapPlaces);
+            }
+
+            if (cloudState.savedPlaces && cloudState.savedPlaces.length > 0) {
+              const cloudSavedPlaces: AndreaMapPlace[] = cloudState.savedPlaces
+                .filter((sp: any) => sp && sp.id)
+                .map((sp: any) => ({
+                  id: String(sp.id),
+                  type: (sp.category as any) || 'restaurant',
+                  title: sp.name || 'Rincón',
+                  subtitle: sp.address || sp.city || 'Valencia',
+                  description: sp.note || '',
+                  latitude: Number(sp.latitude) || 39.4699,
+                  longitude: Number(sp.longitude) || -0.3763,
+                  precision: 'exact' as const,
+                  date: sp.createdAt ? sp.createdAt.split('T')[0] : undefined,
+                  imageUrl: sp.coverImageUrl || sp.photos?.[0] || undefined,
+                  photos: Array.isArray(sp.photos) && sp.photos.length > 0 ? sp.photos : (sp.coverImageUrl ? [sp.coverImageUrl] : []),
+                  city: sp.city || 'Valencia',
+                  formattedAddress: sp.address || sp.city || 'Valencia',
+                  source: 'google_places',
+                  verifiedByUser: true,
+                }));
+              combinedCloud.push(...cloudSavedPlaces);
+            }
+
+            if (combinedCloud.length > 0) {
+              setAllPlaces((prev) => {
+                const map = new Map(prev.map((p) => [p.id, p]));
+                combinedCloud.forEach((cp) => map.set(cp.id, cp));
+                const merged = Array.from(map.values());
+                StorageEngine.setItem('andrea_map_places_v7', merged);
+                return merged;
+              });
+            }
           }
         } catch (e) {
           console.warn('[Map] Cloud hydration error:', e);
@@ -109,10 +175,10 @@ export default function MapScreen() {
 
     loadPlaces();
 
-    // 3. Realtime Supabase & Broadcast Subscription
+    // 3. Realtime Supabase & Broadcast Subscription for both map_places and saved_places
     const unsubscribe = CloudSyncEngine.subscribe({
       onEntityChange: (entity, eventType, payload) => {
-        if (entity === 'map_places') {
+        if (entity === 'map_places' || entity === 'saved_places') {
           if (eventType === 'DELETE') {
             setAllPlaces((prev) => {
               const next = prev.filter((p) => p.id !== payload.id);
@@ -122,18 +188,18 @@ export default function MapScreen() {
           } else if (payload) {
             const updatedPlace: AndreaMapPlace = {
               id: String(payload.id),
-              type: payload.category || payload.type || 'memory',
-              title: payload.title || 'Rincón',
-              subtitle: payload.subtitle || '',
-              description: payload.story || payload.description || '',
+              type: payload.category || payload.type || 'restaurant',
+              title: payload.title || payload.name || 'Rincón',
+              subtitle: payload.subtitle || payload.address || '',
+              description: payload.story || payload.description || payload.note || '',
               latitude: Number(payload.lat ?? payload.latitude) || 39.4699,
               longitude: Number(payload.lng ?? payload.longitude) || -0.3763,
               precision: payload.locationPrecision || payload.precision || 'exact',
-              date: payload.date || undefined,
-              imageUrl: payload.photos?.[0] || payload.imageUrl || undefined,
-              photos: Array.isArray(payload.photos) ? payload.photos : (payload.imageUrl ? [payload.imageUrl] : []),
+              date: payload.date || (payload.createdAt ? payload.createdAt.split('T')[0] : undefined),
+              imageUrl: payload.photos?.[0] || payload.coverImageUrl || payload.imageUrl || undefined,
+              photos: Array.isArray(payload.photos) ? payload.photos : (payload.coverImageUrl ? [payload.coverImageUrl] : (payload.imageUrl ? [payload.imageUrl] : [])),
               city: payload.cityName || payload.city || 'Valencia',
-              formattedAddress: payload.subtitle || undefined,
+              formattedAddress: payload.subtitle || payload.address || undefined,
               source: 'google_places',
               verifiedByUser: true,
               startDate: payload.startDate || undefined,
@@ -171,7 +237,7 @@ export default function MapScreen() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [devSavedPlacesAsMap]);
 
   useEffect(() => {
     if (!isLoaded) return;
