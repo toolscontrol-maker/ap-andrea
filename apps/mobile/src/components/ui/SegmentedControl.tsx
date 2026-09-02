@@ -23,8 +23,8 @@ export function SegmentedControl<T extends string>({
   selected,
   onSelect,
   style,
-  activeColor = Colors.light.surface,
-  activeTextColor = Colors.light.primaryDark,
+  activeColor = '#FFFFFF',
+  activeTextColor = '#1F1B1E',
 }: SegmentedControlProps<T>) {
   return (
     <View style={[styles.container, style]}>
@@ -49,8 +49,10 @@ export function SegmentedControl<T extends string>({
               {opt.label}
             </Text>
             {opt.badgeCount !== undefined && opt.badgeCount > 0 ? (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{opt.badgeCount}</Text>
+              <View style={[styles.badge, isSelected && styles.badgeActive]}>
+                <Text style={[styles.badgeText, isSelected && styles.badgeTextActive]}>
+                  {opt.badgeCount}
+                </Text>
               </View>
             ) : null}
           </TouchableOpacity>
@@ -63,10 +65,12 @@ export function SegmentedControl<T extends string>({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: Colors.light.surfaceSubtle,
+    backgroundColor: '#FAF5EE',
     borderRadius: Radii.xl,
     padding: Spacing.xs,
     marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(31, 27, 30, 0.06)',
   },
   segmentBtn: {
     flex: 1,
@@ -82,20 +86,29 @@ const styles = StyleSheet.create({
   },
   segmentText: {
     ...Typography.captionBold,
-    color: Colors.light.textSecondary,
+    fontSize: 12,
+    color: '#554A53',
+    fontWeight: '700',
   },
   segmentTextActive: {
+    color: '#1F1B1E',
     fontWeight: '800',
   },
   badge: {
-    backgroundColor: 'rgba(58, 47, 56, 0.1)',
+    backgroundColor: 'rgba(31, 27, 30, 0.08)',
     borderRadius: Radii.full,
     paddingHorizontal: Spacing.xs + 2,
     paddingVertical: 1,
   },
+  badgeActive: {
+    backgroundColor: 'rgba(31, 27, 30, 0.12)',
+  },
   badgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: '#554A53',
+  },
+  badgeTextActive: {
+    color: '#1F1B1E',
   },
 });

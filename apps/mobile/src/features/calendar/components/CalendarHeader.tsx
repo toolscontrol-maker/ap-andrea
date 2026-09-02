@@ -194,10 +194,9 @@ const styles = StyleSheet.create({
     ...Shadows.subtle,
   },
   arrowText: {
-    ...Typography.bodyMedium,
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: '#1F1B1E',
     marginTop: -2,
   },
   monthBadge: {
@@ -213,7 +212,7 @@ const styles = StyleSheet.create({
     ...Typography.h2,
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.light.text,
+    color: '#1F1B1E',
     letterSpacing: -0.2,
   },
   addButton: {
@@ -255,10 +254,11 @@ const styles = StyleSheet.create({
   modeTabText: {
     ...Typography.captionBold,
     fontSize: 12,
-    color: Colors.light.textMuted,
+    color: '#554A53',
   },
   modeTabTextActive: {
-    color: Colors.light.text,
+    color: '#1F1B1E',
+    fontWeight: '800',
   },
   expandBtn: {
     flexDirection: 'row',

@@ -545,7 +545,8 @@ const styles = StyleSheet.create({
   upcomingTitle: {
     ...Typography.h2,
     fontSize: 16,
-    color: Colors.light.text,
+    fontWeight: '800',
+    color: '#1F1B1E',
   },
   upcomingSeeAllText: {
     ...Typography.captionBold,
@@ -588,13 +589,14 @@ const styles = StyleSheet.create({
     ...Typography.bodyMedium,
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: '#1F1B1E',
     marginBottom: 1,
   },
   upcomingItemDate: {
     ...Typography.caption,
     fontSize: 11.5,
-    color: Colors.light.textMuted,
+    fontWeight: '600',
+    color: '#554A53',
   },
 });
 

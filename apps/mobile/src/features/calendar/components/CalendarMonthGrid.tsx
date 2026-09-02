@@ -158,10 +158,11 @@ const styles = StyleSheet.create({
   },
   weekdayLabel: {
     ...Typography.captionBold,
-    color: Colors.light.textMuted,
+    color: '#554A53',
     width: 42,
     textAlign: 'center',
     fontSize: 12,
+    fontWeight: '700',
   },
   daysGrid: {
     flexDirection: 'row',
@@ -205,7 +206,7 @@ const styles = StyleSheet.create({
     ...Typography.bodyMedium,
     fontSize: 14.5,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: '#1F1B1E',
   },
   dayNumberTextSelected: {
     color: '#FFFFFF',

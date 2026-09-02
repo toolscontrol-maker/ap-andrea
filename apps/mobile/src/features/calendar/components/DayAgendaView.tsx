@@ -196,12 +196,14 @@ const styles = StyleSheet.create({
   dateTitle: {
     ...Typography.h2,
     fontSize: 16,
-    color: Colors.light.text,
+    fontWeight: '800',
+    color: '#1F1B1E',
   },
   dateSub: {
     ...Typography.caption,
-    color: Colors.light.textMuted,
+    color: '#554A53',
     marginTop: 2,
+    fontWeight: '600',
   },
   addPlanBtn: {
     backgroundColor: 'rgba(224, 86, 102, 0.08)',
@@ -244,25 +246,25 @@ const styles = StyleSheet.create({
   eventTimeText: {
     ...Typography.captionBold,
     fontSize: 12,
-    color: Colors.light.textMuted,
+    color: '#554A53',
   },
   eventTitle: {
     ...Typography.bodyMedium,
     fontSize: 14.5,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: '#1F1B1E',
     marginBottom: 2,
   },
   eventSubtitle: {
     ...Typography.caption,
     fontSize: 12,
-    color: Colors.light.textMuted,
+    color: '#554A53',
     lineHeight: 16,
   },
   eventLocation: {
     ...Typography.caption,
     fontSize: 11.5,
-    color: Colors.light.textMuted,
+    color: '#554A53',
     marginTop: 4,
   },
   privateNotesHint: {
@@ -296,14 +298,14 @@ const styles = StyleSheet.create({
     ...Typography.bodyMedium,
     fontSize: 14.5,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: '#1F1B1E',
     marginBottom: 4,
     textAlign: 'center',
   },
   emptyText: {
     ...Typography.caption,
     fontSize: 12,
-    color: Colors.light.textMuted,
+    color: '#554A53',
     textAlign: 'center',
     lineHeight: 16,
     marginBottom: Spacing.md,

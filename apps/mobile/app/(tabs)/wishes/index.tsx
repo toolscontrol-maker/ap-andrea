@@ -746,16 +746,17 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(43, 33, 41, 0.08)',
   },
   categoryChipActive: {
-    backgroundColor: '#2B2129',
-    borderColor: '#2B2129',
+    backgroundColor: '#1F1B1E',
+    borderColor: '#1F1B1E',
   },
   categoryChipText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#766B72',
+    fontWeight: '700',
+    color: '#554A53',
   },
   categoryChipTextActive: {
     color: '#FFFFFF',
+    fontWeight: '800',
   },
   listContainer: {
     paddingBottom: 120,

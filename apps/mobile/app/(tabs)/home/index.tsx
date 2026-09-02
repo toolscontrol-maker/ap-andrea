@@ -965,12 +965,14 @@ const styles = StyleSheet.create({
   ritualTabText: {
     ...Typography.caption,
     fontSize: 11.5,
-    color: Colors.light.textSecondary,
+    color: '#554A53',
+    fontWeight: '600',
   },
   ritualTabTextActive: {
     ...Typography.captionBold,
     fontSize: 11.5,
-    color: Colors.light.text,
+    color: '#1F1B1E',
+    fontWeight: '800',
   },
   ritualPromptBox: {
     backgroundColor: '#FAF8F5',
@@ -988,8 +990,8 @@ const styles = StyleSheet.create({
   },
   ritualPromptText: {
     ...Typography.body,
-    fontWeight: '600',
-    color: Colors.light.text,
+    fontWeight: '700',
+    color: '#1F1B1E',
     fontStyle: 'italic',
     marginBottom: Spacing.sm,
     lineHeight: 20,
@@ -1001,7 +1003,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     padding: Spacing.md,
     fontSize: 13.5,
-    color: Colors.light.text,
+    color: '#1F1B1E',
     minHeight: 68,
     textAlignVertical: 'top',
     marginBottom: Spacing.sm,
@@ -1019,7 +1021,7 @@ const styles = StyleSheet.create({
   ritualPrivacyHint: {
     ...Typography.caption,
     fontSize: 10.5,
-    color: Colors.light.textMuted,
+    color: '#554A53',
   },
   weeklySummaryBox: {
     flexDirection: 'row',
@@ -1055,7 +1057,7 @@ const styles = StyleSheet.create({
   weeklySummaryDesc: {
     ...Typography.caption,
     fontSize: 12,
-    color: Colors.light.text,
+    color: '#1F1B1E',
     marginTop: 1,
     lineHeight: 16,
   },
@@ -1109,18 +1111,21 @@ const styles = StyleSheet.create({
   upcomingTime: {
     ...Typography.caption,
     fontSize: 11.5,
-    color: Colors.light.textMuted,
+    color: '#554A53',
+    fontWeight: '600',
   },
   upcomingTitle: {
     ...Typography.headline,
     fontSize: 15,
-    color: Colors.light.text,
+    fontWeight: '700',
+    color: '#1F1B1E',
   },
   upcomingSubtitle: {
     ...Typography.caption,
     fontSize: 12,
-    color: Colors.light.textSecondary,
+    color: '#554A53',
     marginTop: 2,
+    fontWeight: '500',
   },
   secretClueBox: {
     marginTop: Spacing.sm,
