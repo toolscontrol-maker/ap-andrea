@@ -207,7 +207,8 @@ export function applyThemePalette(paletteKey: ThemePalette | string, customAccen
 
   if (typeof document !== 'undefined') {
     try {
-      document.body.style.backgroundColor = p.background;
+      if (document.documentElement) document.documentElement.style.backgroundColor = p.background;
+      if (document.body) document.body.style.backgroundColor = p.background;
       const root = document.getElementById('root');
       if (root) root.style.backgroundColor = p.background;
 
@@ -228,7 +229,7 @@ export function applyThemePalette(paletteKey: ThemePalette | string, customAccen
           --app-text-secondary: ${p.textSecondary} !important;
           --app-border: ${p.border} !important;
         }
-        body, html, #root {
+        html, body, #root, #root > div {
           background-color: ${p.background} !important;
           color: ${p.text} !important;
         }
