@@ -18,6 +18,7 @@ import { StorageEngine, STORAGE_KEYS } from '../services/storage';
 import { CloudSyncEngine } from '../services/cloud-sync/CloudSyncEngine';
 import { pushNotificationService } from '../services/notifications/PushNotificationService';
 import { applyThemePalette, ThemePalette } from '../theme/colors';
+import { DEMO_MAP_PLACES } from '../components/map/map.constants';
 
 export const AUTH_SESSION_KEY = 'andrea_auth_session_v7';
 export const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -74,9 +75,34 @@ export const DEV_USERS: { user1: DevUser; user2: DevUser } = {
 
 export const INITIAL_WISHES: WishlistItem[] = [];
 
-export const INITIAL_SAVED_PLACES: Place[] = [];
+export const INITIAL_SAVED_PLACES: Place[] = DEMO_MAP_PLACES.map((p) => ({
+  id: p.id,
+  coupleId: 'andrea-tonet',
+  createdByUserId: '11111111-aaaa-bbbb-cccc-111111111111',
+  name: p.title,
+  category: p.type === 'restaurant' ? 'restaurant' : p.type === 'trip' ? 'trip' : 'memory_spot',
+  status: 'visited',
+  address: p.formattedAddress || p.subtitle,
+  city: p.city || 'Valencia',
+  latitude: p.latitude,
+  longitude: p.longitude,
+  note: p.description,
+  createdAt: p.date ? `${p.date}T12:00:00.000Z` : '2025-02-15T12:00:00.000Z',
+  updatedAt: p.date ? `${p.date}T12:00:00.000Z` : '2025-02-15T12:00:00.000Z',
+}));
 
-export const SAMPLE_MAP_PLACES: MapPlace[] = [];
+export const SAMPLE_MAP_PLACES: MapPlace[] = DEMO_MAP_PLACES.map((p) => ({
+  id: p.id,
+  type: p.type as any,
+  title: p.title,
+  subtitle: p.subtitle,
+  story: p.description,
+  lat: p.latitude,
+  lng: p.longitude,
+  locationPrecision: p.precision,
+  date: p.date,
+  cityName: p.city || 'Valencia',
+}));
 
 export const INITIAL_ENTRIES: DiaryEntryUI[] = [];
 
@@ -660,7 +686,15 @@ export function DevProvider({ children }: { children: ReactNode }) {
         }
 
         if (savedWishes !== null && Array.isArray(savedWishes)) setWishes(savedWishes);
-        if (savedPlacesData !== null && Array.isArray(savedPlacesData)) setSavedPlaces(savedPlacesData);
+        if (savedPlacesData !== null && Array.isArray(savedPlacesData)) {
+          const map = new Map(INITIAL_SAVED_PLACES.map((p) => [p.id, p]));
+          savedPlacesData.forEach((p) => {
+            if (p && p.id) map.set(p.id, p);
+          });
+          setSavedPlaces(Array.from(map.values()));
+        } else {
+          setSavedPlaces(INITIAL_SAVED_PLACES);
+        }
         if (savedEvents !== null && Array.isArray(savedEvents)) setCoupleEvents(savedEvents);
         if (savedSeeds !== null && Array.isArray(savedSeeds)) setRitualSeeds(savedSeeds);
         if (savedEntries !== null && Array.isArray(savedEntries)) setEntries(savedEntries);
@@ -703,8 +737,26 @@ export function DevProvider({ children }: { children: ReactNode }) {
               });
             }
             if (cloudState.wishes && cloudState.wishes.length > 0) setWishes(cloudState.wishes);
-            if (cloudState.savedPlaces && cloudState.savedPlaces.length > 0) setSavedPlaces(cloudState.savedPlaces);
-            if (cloudState.mapPlaces && cloudState.mapPlaces.length > 0) setMapPlaces(cloudState.mapPlaces);
+            if (cloudState.savedPlaces && cloudState.savedPlaces.length > 0) {
+              setSavedPlaces((prev) => {
+                const map = new Map(INITIAL_SAVED_PLACES.map((p) => [p.id, p]));
+                prev.forEach((p) => map.set(p.id, p));
+                cloudState.savedPlaces.forEach((cp: any) => {
+                  if (cp && cp.id) map.set(cp.id, cp);
+                });
+                return Array.from(map.values());
+              });
+            }
+            if (cloudState.mapPlaces && cloudState.mapPlaces.length > 0) {
+              setMapPlaces((prev) => {
+                const map = new Map(SAMPLE_MAP_PLACES.map((p) => [p.id, p]));
+                prev.forEach((p) => map.set(p.id, p));
+                cloudState.mapPlaces.forEach((cp: any) => {
+                  if (cp && (cp.id || cp._id)) map.set(cp.id || cp._id, cp);
+                });
+                return Array.from(map.values());
+              });
+            }
             if (cloudState.coupleEvents && cloudState.coupleEvents.length > 0) setCoupleEvents(cloudState.coupleEvents);
             if (cloudState.ritualSeeds && cloudState.ritualSeeds.length > 0) {
               setRitualSeeds(cloudState.ritualSeeds);
@@ -838,10 +890,28 @@ export function DevProvider({ children }: { children: ReactNode }) {
             });
           }
           if (cloudState.wishes && cloudState.wishes.length > 0) setWishes(cloudState.wishes);
-          if (cloudState.savedPlaces && cloudState.savedPlaces.length > 0) setSavedPlaces(cloudState.savedPlaces);
-          if (cloudState.mapPlaces && cloudState.mapPlaces.length > 0) setMapPlaces(cloudState.mapPlaces);
+          if (cloudState.savedPlaces && cloudState.savedPlaces.length > 0) {
+            setSavedPlaces((prev) => {
+              const map = new Map(INITIAL_SAVED_PLACES.map((p) => [p.id, p]));
+              prev.forEach((p) => map.set(p.id, p));
+              cloudState.savedPlaces.forEach((cp: any) => {
+                if (cp && cp.id) map.set(cp.id, cp);
+              });
+              return Array.from(map.values());
+            });
+          }
+          if (cloudState.mapPlaces && cloudState.mapPlaces.length > 0) {
+            setMapPlaces((prev) => {
+              const map = new Map(SAMPLE_MAP_PLACES.map((p) => [p.id, p]));
+              prev.forEach((p) => map.set(p.id, p));
+              cloudState.mapPlaces.forEach((cp: any) => {
+                if (cp && (cp.id || cp._id)) map.set(cp.id || cp._id, cp);
+              });
+              return Array.from(map.values());
+            });
+          }
           if (cloudState.coupleEvents && cloudState.coupleEvents.length > 0) setCoupleEvents(cloudState.coupleEvents);
-            if (cloudState.ritualSeeds && cloudState.ritualSeeds.length > 0) setRitualSeeds(cloudState.ritualSeeds);
+          if (cloudState.ritualSeeds && cloudState.ritualSeeds.length > 0) setRitualSeeds(cloudState.ritualSeeds);
         }
       }).catch((e) => console.warn('[DevContext] Cloud sync on login error:', e));
     }
